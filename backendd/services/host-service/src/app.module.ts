@@ -3,7 +3,7 @@ import { HostService } from './app.service';
 import { HostController } from './app.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Host, HostSchema } from './schema/host.schema';
-import { DatabaseModule } from '../config/database.module';
+import { DatabaseModule } from './database.module';
 import { FirebaseAdminModule } from './firebase/firebase.module';
 import { HostPlanModule } from './plan/plan.module';
 import { JwtModule } from '@nestjs/jwt';
