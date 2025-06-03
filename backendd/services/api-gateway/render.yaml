@@ -2,12 +2,11 @@ services:
   - type: web
     name: estatias-api-gateway
     env: node
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:prod
+    buildCommand: cd backendd/services/api-gateway && npm install && npm run build
+    startCommand: cd backendd/services/api-gateway && npm run start:prod
     plan: free
     region: frankfurt
     branch: main
-    rootDir: backendd/services/api-gateway
     envVars:
       - key: NODE_ENV
         value: production
