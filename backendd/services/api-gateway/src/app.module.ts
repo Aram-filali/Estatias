@@ -15,7 +15,7 @@ import { WebhookController } from './webhooks/webhook.controller';
 import { CalSyncController } from './app.controller/CalSync.controller';
 import { AppController } from './app.controller';
 import { TestController } from './test.controller';
-import { FirebaseAuthGuard } from './firebase/firebase-auth.guards'
+import { FirebaseAuthGuard } from './firebase/firebase-auth.guards'; // ✅ Point-virgule ajouté
 
 @Module({
   imports: [
@@ -139,9 +139,8 @@ import { FirebaseAuthGuard } from './firebase/firebase-auth.guards'
       envFilePath: '.env',
     }),
   ],
-  // IMPORTANT: Put AppController FIRST to ensure root route is registered properly
   controllers: [
-    AppController, // Root controller should be first
+    AppController,
     HostController, 
     PropertyController, 
     UserController, 
@@ -153,7 +152,7 @@ import { FirebaseAuthGuard } from './firebase/firebase-auth.guards'
     CalSyncController, 
     WebhookController,
     TestController,
-    FirebaseAuthGuard,
   ],
+  providers: [FirebaseAuthGuard],
 })
 export class AppModule {}
