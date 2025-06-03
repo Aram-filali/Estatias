@@ -15,6 +15,7 @@ import { WebhookController } from './webhooks/webhook.controller';
 import { CalSyncController } from './app.controller/CalSync.controller';
 import { AppController } from './app.controller';
 import { TestController } from './test.controller';
+import { FirebaseAuthGuard } from './firebase/firebase-auth.guards'
 
 @Module({
   imports: [
@@ -152,6 +153,7 @@ import { TestController } from './test.controller';
     CalSyncController, 
     WebhookController,
     TestController,
+    FirebaseAuthGuard,
   ],
 })
 export class AppModule {}
