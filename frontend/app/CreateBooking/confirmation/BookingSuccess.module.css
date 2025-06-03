@@ -1,0 +1,221 @@
+.successContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.successCard {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 3rem;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.iconSuccess {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background-color: #ecfdf5;
+  border-radius: 50%;
+  color: #10b981;
+}
+
+.iconSuccess svg {
+  width: 40px;
+  height: 40px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+}
+
+.message {
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.message p {
+  margin-bottom: 0.75rem;
+}
+
+.bookingReference {
+  background-color: #f3f4f6;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+}
+
+.bookingReference span {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Booking Summary Styles */
+.bookingSummary {
+  margin: 2rem 0;
+  text-align: left;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.bookingSummary h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.bookingDetail {
+  background-color: #f9fafb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.detailRow:last-child {
+  margin-bottom: 0;
+}
+
+.guestInfo {
+  display: flex;
+  justify-content: space-between;
+  margin: 1rem 0;
+  padding-top: 1rem;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.pricingSummary {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.totalPrice {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.homeButton, .editButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  cursor: pointer;
+  outline: none;
+  border: none;
+}
+
+.homeButton {
+  background-color: #003366;
+  color: white;
+}
+
+.homeButton:hover {
+  background-color: #012244;
+}
+
+.editButton {
+  background-color: white;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.editButton:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Error Styling */
+.errorContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.errorMessage {
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+}
+
+.errorMessage h2 {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.retryButton {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+  background-color: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .successCard {
+    padding: 2rem 1.5rem;
+  }
+  
+  .buttons {
+    flex-direction: column;
+  }
+  
+  .homeButton, .editButton {
+    width: 100%;
+  }
+  
+  .bookingDetail {
+    padding: 1rem;
+  }
+}

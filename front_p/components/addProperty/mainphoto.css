@@ -1,0 +1,112 @@
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; 
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  
+  .sectionHeader h2 {
+    margin: 0;
+    /*font-size: 30px;*/
+  }
+
+  
+  .text-muted {
+    color: #6c757d;
+    /*font-size: 24px;*/
+    /*margin: 8px 0;*/
+  }
+  
+  .photoGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    margin-top: 10px;
+  }
+  
+  .photoPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .previewImage {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .removeButton {
+    margin-top: 5px;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /*PROPERTY SPACE */
+
+
+  .spaceDivider {
+    border: none;
+    border-top: 0.5px solid #ccc;
+    margin: 20px 0;
+  }
+
+  /* MAP */
+  /* Add these styles to your existing CSS file */
+
+.locationControls {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  
+  .locationButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .locationButton:hover {
+    background-color: #e9e9e9;
+  }
+  
+  .locationButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .mapContainer {
+    margin-top: 15px;
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mapContainer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  
+  

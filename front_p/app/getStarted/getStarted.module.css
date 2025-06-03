@@ -1,0 +1,222 @@
+.pageContainer {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2rem;
+  box-sizing: border-box;
+  
+}
+
+.backgroundOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.backgroundImage {
+  position: fixed;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: blur(8px);
+}
+
+.contentWrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 100px !important;
+}
+
+.heroTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.heroTitle h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  tracking-tight: true;
+}
+
+.stepsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 3rem;
+}
+
+.stepCard {
+  width: 100%;
+  border-left-width: 8px;
+  padding: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.stepCard:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.02);
+}
+
+.stepContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stepText {
+  flex-grow: 1;
+  padding-right: 1rem;
+}
+
+.stepText h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.stepText p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stepNumber {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ctaContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Incorporated your existing animated button styles */
+.ctaButton {
+  background: linear-gradient(45deg, #24343e, #576580);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 1;
+  width: 100%;
+  max-width: 500px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border-radius: 0.75rem;
+}
+
+.ctaButton::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #576580, #24343e);
+  transition: left 0.5s ease;
+  z-index: -1;
+}
+
+.ctaButton:hover::before {
+  left: 0;
+}
+
+.ctaButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ctaButton:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.ctaSubtext {
+  color: white;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Border color variations */
+.border-white {
+  border-color: white;
+}
+
+.border-slate-300 {
+  border-color: rgba(203, 213, 225, 1);
+}
+
+.border-slate-200 {
+  border-color: rgba(226, 232, 240, 1);
+}
+
+@media (max-width: 768px) {
+  .heroTitle h1 {
+    font-size: 2.5rem;
+  }
+
+  .stepText h3 {
+    font-size: 1.25rem;
+  }
+
+  .stepNumber {
+    font-size: 2rem;
+  }
+}
+
+
+
+/*
+.animatedButton {
+  background: linear-gradient(45deg, #24343e, #576580);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.animatedButton::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #576580, #24343e);
+  transition: left 0.5s ease;
+  z-index: -1;
+}
+
+.animatedButton:hover::before {
+  left: 0;
+}
+
+.animatedButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.animatedButton:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}*/

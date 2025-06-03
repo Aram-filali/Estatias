@@ -1,0 +1,180 @@
+/* Modern and simplified styling for email verification page */
+
+/* Main container with background */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+
+/* Form container styling */
+.formContainer {
+  background-color: rgba(12, 9, 31, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 32px;
+  width: 100%;
+  max-width: 550px;
+  min-height: 60vh;
+  margin-top: 100px;
+  z-index: 2;
+  position: relative;
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Title styling */
+.title {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 2rem;
+  color: #f4f4f4;
+  font-weight: 700;
+  animation: slideIn 0.8s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Centered content area */
+.centeredContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 16px 0;
+}
+
+/* Button container */
+.button {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  width: 100%;
+}
+
+/* Login button styling */
+.loginButton {
+  padding: 14px 28px;
+  background-color: #3a86ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 250px;
+  text-align: center;
+}
+
+.loginButton:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Message styling */
+.successMessage {
+  padding: 16px;
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  margin: 16px 0;
+  width: 100%;
+  font-weight: 500;
+}
+
+.errorMessage {
+  padding: 16px;
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  margin: 16px 0;
+  width: 100%;
+  font-weight: 500;
+}
+
+/* Resend section styling */
+.resendSection {
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f4f4f4;
+}
+
+.emailForm {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emailInput {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 16px;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f4f4f4;
+}
+
+.emailInput::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.resendButton {
+  padding: 12px 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.resendButton:hover {
+  background-color: #43a047;
+  transform: translateY(-2px);
+}
+
+.resendButton:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Success message after resend */
+.resendSuccessMessage {
+  padding: 16px;
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  margin: 16px 0;
+  width: 100%;
+  font-weight: 500;
+}

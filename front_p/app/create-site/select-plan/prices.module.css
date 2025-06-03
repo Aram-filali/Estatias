@@ -1,0 +1,118 @@
+.pricesContainer {
+    margin-top: 100px !important;
+  }
+  
+
+.button {
+  background-color: #00ACC1;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  margin-top: 1rem;
+}
+
+.button:hover {
+  background-color: #0097A7;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.span{
+  margin-right: 4rem;
+}
+/* Add these styles to your prices.module.css file */
+
+/* Container styling */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Form container styling similar to your example */
+.formContainer {
+  background-color: rgba(12, 9, 31, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 32px;
+  width: 100%;
+  max-width: 550px;
+  min-height: 60vh;
+  z-index: 2;
+  position: relative;
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Title styling */
+.title {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 2rem;
+  color: var(--grey0Col, #f4f4f4);
+  font-weight: 800;
+  padding: 15px;
+  opacity: 0;
+  animation: slideIn 0.8s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Button styling */
+.button {
+  padding: 12px 24px;
+  background-color: rgb(16, 37, 57);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-weight: 500;
+}
+
+.button:hover {
+  background-color: rgb(255, 255, 255);
+  color: #0d1727;
+}
+
+/* Main container for centering the form */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}

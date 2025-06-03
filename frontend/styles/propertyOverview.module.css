@@ -1,0 +1,79 @@
+/* styles/propertyOverview.module.css */
+.propertyOverviewContainer {
+    background-color: #1fc4c1;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 32px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .propertyOverviewTitle {
+    color: #ffffff;
+    font-size: 24px;
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  
+  .propertyOverviewGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  
+  .propertyOverviewItem {
+    display: flex;
+    align-items: center;
+    background-color: #508379;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .propertyOverviewItem:hover {
+    background-color: #517676;
+    transform: scale(1.05);
+  }
+  
+  .propertyOverviewIcon {
+    font-size: 24px;
+    margin-right: 16px;
+    opacity: 0.7;
+  }
+  
+  .propertyOverviewDetails {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .propertyOverviewLabel {
+    color: #9ca3af;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  
+  .propertyOverviewValue {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .propertyOverviewGrid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .propertyOverviewGrid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .propertyOverviewGrid {
+      grid-template-columns: 1fr;
+    }
+  }

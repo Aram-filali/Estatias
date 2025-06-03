@@ -1,0 +1,85 @@
+.container {
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+  }
+  
+  .header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #1f2937;
+  }
+  
+  .activityList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .activityItem {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .activityUser {
+    display: flex;
+    align-items: center;
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #d1d5db;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: 1rem;
+    margin-right: 12px;
+  }
+  
+  .activityDetails {
+    margin-left: 12px;
+  }
+  
+  .activityName {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .activityAction {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .activityTime {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .viewButton {
+    padding: 12px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #7e3af2;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  
+  .viewButton:hover {
+    color: #6b2c91;
+  }
+  

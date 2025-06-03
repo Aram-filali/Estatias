@@ -1,0 +1,150 @@
+/* Modal Overlay */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.3s ease;
+  }
+  
+  /* Modal Content */
+  .confirmationModal {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(0);
+    animation: slideUp 0.4s ease;
+    position: relative;
+    border: 1px solid rgba(229, 231, 235, 0.8);
+  }
+  
+  .confirmationModal h3 {
+    color: #080329;
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 16px;
+    position: relative;
+    padding-bottom: 12px;
+  }
+  
+  .confirmationModal h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #080329, #080329);
+    border-radius: 2px;
+  }
+  
+  .confirmationModal p {
+    color: #4b5563;
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  
+  .confirmationModal p:last-of-type {
+    margin-bottom: 24px;
+    font-weight: 500;
+    color: #1f2937;
+  }
+  
+  /* Modal Buttons */
+  .modalButtons {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+  
+  /* Button styles for modal */
+  .modalButtons .button {
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+  }
+  
+  /* Cancel button style */
+  .modalButtons .cancelButton {
+    background: #f3f4f6;
+    color: #4b5563;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .modalButtons .cancelButton:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px);
+  }
+  
+  /* Delete button style */
+  .modalButtons .deleteButton {
+    background: #080329;
+    color: white;
+    box-shadow: 0 4px 12px rgba(38, 21, 80, 0.2);
+  }
+  
+  .modalButtons .deleteButton:hover {
+    background: #080329;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(38, 21, 80, 0.2);
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .confirmationModal {
+      padding: 1.75rem 1.25rem;
+      width: 95%;
+    }
+    
+    .modalButtons {
+      flex-direction: column-reverse; /* Reverse order so delete button is on top on mobile */
+      gap: 12px;
+    }
+    
+    .modalButtons .button {
+      width: 100%;
+      min-width: unset;
+    }
+  }

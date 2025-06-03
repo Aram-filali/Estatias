@@ -1,0 +1,504 @@
+
+.container {
+  max-width: 1700px;
+  margin: 80px auto;
+  padding: 0 20px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.card {
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mainTitle {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #374151;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.mainTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 4px;
+  background: linear-gradient(90deg, #4b5563, #9ca3af);
+  border-radius: 2px;
+}
+
+.sectionContainer {
+  margin: 30px 0;
+  animation: fadeIn 0.4s ease;
+}
+
+.section {
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #374151;
+  position: relative;
+  display: inline-block;
+}
+
+.sectionTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #f3f4f6;
+  border-radius: 3px;
+}
+
+
+
+.dangerTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #c53030;
+  position: relative;
+  display: inline-block;
+}
+
+.dangerTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #fed7d7;
+  border-radius: 3px;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, #9ca3af, #f3f4f6, transparent);
+  margin: 40px 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form Styles */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.passwordFields {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.input {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 2px solid #f3f4f6;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background-color: #f9fafb;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.15);
+  background-color: #fff;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.deleteInput {
+  border-color: #fed7d7;
+  background-color: #fff5f5;
+}
+
+.deleteInput:focus {
+  border-color: #f56565;
+  box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.15);
+}
+
+/* Action Button Styles */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.bottomActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+}
+
+.button {
+  padding: 14px 32px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.3px;
+  min-width: 180px;
+}
+
+.submitButton {
+  background: #374151;
+  color: white;
+}
+
+.submitButton:hover {
+  background:  #1f2937;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(55, 65, 81, 0.2);
+}
+
+.submitButton:active {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  background: #374151;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cancelButton {
+    background: #374151;
+    color: white;
+  }
+  
+  .cancelButton:hover {
+    background:  #1f2937;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(55, 65, 81, 0.2);
+  }
+
+.cancelButton:active {
+  transform: translateY(0);
+}
+
+.cancelButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.deleteButton {
+  background: #e53e3e;
+  color: white;
+}
+
+.deleteButton:hover {
+  background: #c53030;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(229, 62, 62, 0.2);
+}
+
+.deleteButton:disabled {
+  background: #e53e3e;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Notification Styles */
+.error {
+  background-color: #fff5f5;
+  color: #c53030;
+  padding: 16px;
+  border-radius: 10px;
+  border-left: 5px solid #f56565;
+  margin-bottom: 24px;
+  font-size: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.success {
+  background-color: #f0fff4;
+  color: #276749;
+  padding: 16px;
+  border-radius: 10px;
+  border-left: 5px solid #48bb78;
+  margin-bottom: 24px;
+  font-size: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Danger Zone Styles */
+.dangerZone {
+  background-color: #fff5f5;
+  border-radius: 12px;
+  padding: 24px;
+  border: 2px solid #fed7d7;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.warningMessage {
+  margin-bottom: 24px;
+}
+
+.warningMessage h3 {
+  color: #c53030;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.warningMessage p {
+  color: #742a2a;
+  font-size: 15px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .card {
+    padding: 30px 20px;
+  }
+  
+  .passwordFields {
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .actions {
+    justify-content: center;
+  }
+  
+  .button {
+    width: 100%;
+    padding: 12px 20px;
+  }
+}
+
+.infoMessage {
+  color: #373737; /* vert foncé pour le texte */
+  padding: 16px;
+  margin: 16px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.confirmationContent {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.confirmationContent h3 {
+  margin-top: 0;
+  color: #e74c3c;
+}
+
+.confirmationActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* Modal Overlay - Version corrigée */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease;
+}
+
+/* Modal Content - Version corrigée */
+.confirmationModal {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+  animation: slideUp 0.4s ease;
+  position: relative;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+.confirmationModal h3 {
+  color: #e53e3e;
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 16px;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.confirmationModal h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #e53e3e, #f56565);
+  border-radius: 2px;
+}
+
+.confirmationModal p {
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+
+.confirmationModal p:last-of-type {
+  margin-bottom: 24px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* Modal Buttons - Version corrigée */
+.modalButtons {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+/* Redéfinition des styles de boutons spécifiques pour la modal */
+.modalButtons .button {
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+}
+
+/* Style du bouton Cancel dans la modal */
+.modalButtons .cancelButton {
+  background: #f3f4f6;
+  color: #4b5563;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.modalButtons .cancelButton:hover {
+  background: #e5e7eb;
+  transform: translateY(-2px);
+}
+
+/* Style du bouton Delete dans la modal */
+.modalButtons .deleteButton {
+  background: #e53e3e;
+  color: white;
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+}
+
+.modalButtons .deleteButton:hover {
+  background: #c53030;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(229, 62, 62, 0.3);
+}
+
+/* Animations - Définitions corrigées */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments - Ajustements pour mobile */
+@media (max-width: 640px) {
+  .confirmationModal {
+    padding: 1.75rem 1.25rem;
+    width: 95%;
+  }
+  
+  .modalButtons {
+    flex-direction: column-reverse; /* Inverser l'ordre pour que le bouton de suppression soit en haut sur mobile */
+    gap: 12px;
+  }
+  
+  .modalButtons .button {
+    width: 100%;
+    min-width: unset;
+  }
+}

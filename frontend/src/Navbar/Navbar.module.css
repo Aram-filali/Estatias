@@ -1,0 +1,435 @@
+.main {
+  width: 100%;
+  position: relative;
+}
+
+.fixed {
+  width: 100%;
+  padding: 15px 40px;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  background-color: transparent;
+  transition: all 0.3s ease;
+  position: fixed;
+  background-color: rgba(45, 46, 69, 0.551);
+  box-shadow: 0 2px 10px rgba(173, 222, 241, 0.188);
+}
+
+.scrolled {
+  background-color: rgba(45, 46, 69, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.navbarContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brandSection {
+  display: flex;
+  align-items: center;
+}
+
+.brandLink {
+  text-decoration: none;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandName {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1;
+}
+
+.brandTagline {
+  font-size: 14px;
+  margin: 0;
+  font-weight: 300;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+}
+
+.navList {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+.navItem {
+  margin-left: 30px;
+  position: relative;
+}
+
+.navLink {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.navLink:hover {
+  opacity: 0.8;
+}
+
+.dropdownContainer {
+  display: flex;
+  align-items: center;
+  z-index: 10000;
+  position: relative;
+}
+
+.dropdownArrow {
+  font-size: 14px;
+  margin-left: 5px;
+  color: white;
+  font-weight: bold;
+  transition: transform 0.2s ease;
+}
+
+/* Rotation de la flèche quand le menu est ouvert */
+.dropdownArrow.rotate {
+  transform: rotate(180deg);
+}
+
+.langLink, .currency {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.authButtons {
+  margin-left: 30px;
+  position: relative;
+  z-index: 10001;
+}
+
+/* Style simplifié du bouton de connexion */
+.loginBtn {
+  color: white !important;
+  text-decoration: none;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.loginBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* S'assurer que tous les textes dans les boutons sont blancs */
+.loginBtn span, 
+a.loginBtn, 
+button.loginBtn, 
+.loginBtn a {
+  color: white !important;
+}
+
+/* Style simplifié du menu déroulant */
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: rgba(45, 46, 69, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 8px 0;
+  min-width: 150px;
+  z-index: 10000;
+  margin-top: 5px;
+  list-style: none;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Style des liens dans le menu déroulant */
+.dropdownMenu li {
+  padding: 0;
+  margin: 0;
+}
+
+.dropdownMenu li a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 15px;
+  display: block;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdownMenu li a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.userProfile {
+  margin-left: 30px;
+}
+
+.heroSection {
+  width: 100%;
+  height: 100vh;
+  background-image: url('/luxury-property.jpg'); 
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.heroSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3));
+}
+
+.heroContent {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+}
+
+.heroTitle {
+  font-size: 60px;
+  color: white;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Styles pour les éléments mobiles */
+.mobileMenuToggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 10002;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fixed {
+    padding: 15px 20px;
+  }
+  
+  .brandName {
+    font-size: 28px;
+  }
+  
+  .navList {
+    display: none; /* Hide normal nav on mobile */
+  }
+  
+  .mobileMenuToggle {
+    display: block;
+  }
+  
+  .mobileNav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(45, 46, 69, 0.98);
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .mobileNav.open {
+    transform: translateX(0);
+  }
+  
+  .mobileNavList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .mobileNavItem {
+    margin: 15px 0;
+  }
+  
+  .mobileNavLink {
+    color: white;
+    text-decoration: none;
+    font-size: 20px;
+    padding: 10px;
+    display: block;
+  }
+  
+  .heroTitle {
+    font-size: 42px;
+  }
+  
+  .authButtons {
+    margin-left: 15px;
+  }
+  
+  .dropdownMenu {
+    position: fixed;
+    top: unset;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: 0;
+    margin-top: 0;
+  }
+}
+
+.colored {
+  background-color: #8b8b8b; 
+  color: rgb(0, 0, 0); 
+}
+
+.transparent {
+  background: transparent !important; 
+  box-shadow: none !important; 
+}
+
+.highZIndexDropdown {
+  z-index: 10000 !important;
+}
+
+/* Fix pour état défilé */
+.scrolled .loginBtn, 
+.scrolled .navLink {
+  color: white;
+}
+
+/* Styles pour ProfileDropdown */
+.profileContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.profileButton {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.profileAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.profileIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.profileDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: rgba(45, 46, 69, 0.95);
+  border-radius: 4px;
+  padding: 10px 0;
+  min-width: 180px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  margin-top: 10px;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.profileDropdownItem {
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  color: white;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.profileDropdownItem:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.profileDropdownIcon {
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.logoutButton {
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: #ff6b6b;
+  cursor: pointer;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  background-color: rgba(255, 99, 99, 0.1);
+}
+
+/* Overlay pour fermer le dropdown quand on clique ailleurs */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 9999;
+}

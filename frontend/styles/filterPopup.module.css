@@ -1,0 +1,290 @@
+.popupOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Arial', sans-serif;
+}
+
+.popupContainer {
+    background-color: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.popupHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(113, 128, 150, 0.2);
+}
+
+.popupHeader h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #4a5568;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+    background-color: rgba(113, 128, 150, 0.1);
+}
+
+.popupContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+}
+
+.filterSection {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(113, 128, 150, 0.2);
+}
+
+.filterSection:last-child {
+    border-bottom: none;
+}
+
+.priceSubtitle {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-bottom: 16px;
+}
+
+.priceHistogram {
+    display: flex;
+    align-items: flex-end;
+    height: 60px;
+    gap: 4px;
+    margin-bottom: 24px;
+}
+
+.histogramBar {
+    flex: 1;
+    background-color: #e53e3e;
+    border-radius: 2px;
+    min-width: 4px;
+    transition: opacity 0.3s;
+}
+
+.priceInputs {
+    display: flex;
+    gap: 16px;
+}
+
+.priceInputContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.priceInputContainer label {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-bottom: 8px;
+}
+
+.priceInputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.currencySymbol {
+    position: absolute;
+    left: 16px;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.priceInputContainer input {
+    width: 100%;
+    padding: 12px 12px 12px 36px;
+    border: 1px solid #e2e8f0;
+    border-radius: 32px;
+    font-size: 1rem;
+    color: #2d3748;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.priceInputContainer input:focus {
+    border-color: #4a5568;
+}
+
+.filterChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.htitle {
+    margin-bottom: 25px;
+}
+
+.filterChip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 32px;
+    font-size: 0.95rem;
+    color: #4a5568;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filterChip.active {
+    background-color: #f3f4f6;
+    border-color: #2d3748;
+    color: #1a202c;
+}
+
+.filterChip:hover:not(.active) {
+    background-color: #edf2f7;
+}
+
+.chipIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popupFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid rgba(113, 128, 150, 0.2);
+}
+
+.clearButton,
+.showMoreButton,
+.showLessButton {
+    background: none;
+    border: none;
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.clearButton:hover,
+.showMoreButton:hover,
+.showLessButton:hover {
+    color: #1a202c;
+}
+
+.applyButton {
+    background-color: rgb(20, 26, 36);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.applyButton:hover {
+    background-color: rgb(16, 27, 45);
+    transform: scale(1.03);
+}
+
+/* New filter section for payment methods */
+.paymentMethodsSection {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(113, 128, 150, 0.2);
+}
+
+.paymentMethodsSection:last-child {
+    border-bottom: none;
+}
+
+.paymentMethodsChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.paymentMethodChip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 32px;
+    font-size: 0.95rem;
+    color: #4a5568;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.paymentMethodChip.active {
+    background-color: #f3f4f6;
+    border-color: #2d3748;
+    color: #1a202c;
+}
+
+.paymentMethodChip:hover:not(.active) {
+    background-color: #edf2f7;
+}
+
+@media (max-width: 576px) {
+    .popupContainer {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
+
+    .priceInputs {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .filterChip,
+    .paymentMethodChip {
+        font-size: 0.85rem;
+    }
+}

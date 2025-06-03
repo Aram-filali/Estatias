@@ -1,0 +1,314 @@
+/* CancelBookingModal.module.css */
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal, .statusModal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 450px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.header, .statusHeader {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.iconWrapper, .statusIconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.iconWrapper {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.warningIcon {
+  width: 24px;
+  height: 24px;
+  color: #d97706;
+}
+
+.title, .statusTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f8fafc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.closeButton:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.closeButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.content, .statusContent {
+  padding: 16px 24px 24px 24px;
+}
+
+.message, .statusMessage {
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  font-size: 15px;
+}
+
+.bookingInfo {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.bookingInfo h4 {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.details span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.actions, .statusActions {
+  padding: 16px 24px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 12px 20px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.cancelButton:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.confirmButton {
+  padding: 12px 20px;
+  border: none;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+}
+
+.confirmButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.loading {
+  pointer-events: none;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Status Modal Variants */
+.statusModal.success .statusIconWrapper {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+}
+
+.statusModal.error .statusIconWrapper {
+  background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+}
+
+.statusModal.info .statusIconWrapper {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.successIcon {
+  width: 24px;
+  height: 24px;
+  color: #16a34a;
+}
+
+.errorIcon {
+  width: 24px;
+  height: 24px;
+  color: #dc2626;
+}
+
+.infoIcon {
+  width: 24px;
+  height: 24px;
+  color: #2563eb;
+}
+
+.okButton {
+  padding: 12px 24px;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.okButton:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+}
+
+/* Status Modal Specific Styles */
+.statusModal.success .okButton {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.statusModal.success .okButton:hover {
+  background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  box-shadow: 0 8px 16px rgba(22, 163, 74, 0.3);
+}
+
+.statusModal.error .okButton {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.statusModal.error .okButton:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .modal, .statusModal {
+    margin: 16px;
+    width: calc(100% - 32px);
+  }
+  
+  .header, .statusHeader {
+    padding: 20px 20px 12px 20px;
+  }
+  
+  .content, .statusContent {
+    padding: 12px 20px 20px 20px;
+  }
+  
+  .actions, .statusActions {
+    padding: 12px 20px 20px 20px;
+    flex-direction: column;
+  }
+  
+  .cancelButton, .confirmButton, .okButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

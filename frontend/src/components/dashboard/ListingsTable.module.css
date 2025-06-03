@@ -1,0 +1,161 @@
+/* ListingsTable.module.css */
+.tableContainer {
+  overflow-x: auto;
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.listingsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.listingsTable th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.listingsTable td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+  color: #4b5563;
+}
+
+.listingsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.listingsTable tbody tr {
+  transition: background-color 0.2s;
+}
+
+.listingsTable tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.titleCell {
+  max-width: 250px;
+}
+
+.listingTitle {
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listingSubtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.available {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.pending {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.booked {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.maintenance {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.draft {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+.actionsCell {
+  white-space: nowrap;
+}
+
+.viewButton,
+.editButton,
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.viewButton {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.viewButton:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+.editButton {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.editButton:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+
+.deleteButton {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  margin-right: 0;
+}
+
+.deleteButton:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+
+
+
+
+
+
+@media (max-width: 768px) {
+  .listingsTable {
+    font-size: 0.75rem;
+  }
+  
+  .listingsTable th:nth-child(3),
+  .listingsTable td:nth-child(3),
+  .listingsTable th:nth-child(5),
+  .listingsTable td:nth-child(5),
+  .listingsTable th:nth-child(6),
+  .listingsTable td:nth-child(6) {
+    display: none;
+  }
+}

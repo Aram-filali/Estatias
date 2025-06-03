@@ -1,0 +1,127 @@
+.sidebarContainer {
+    display: flex;
+    flex-direction: column;
+    width: 16rem; /* w-64 */
+    background-color: white;
+    border-right: 1px solid #e5e7eb; /* border-gray-200 */
+  }
+  
+  .sidebarHeader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 4rem; /* h-16 */
+    padding: 0 1rem; /* px-4 */
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 1.25rem; /* text-xl */
+    font-weight: 600;
+    color: #1f2937; /* text-gray-800 */
+  }
+  
+  .sidebarNav {
+    flex: 1;
+    padding: 1rem 0.5rem; /* py-4 px-2 */
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem; /* space-y-1 */
+  }
+  
+  .sidebarLink {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem; /* px-4 py-2 */
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease-in-out;
+    color: #4b5563; /* text-gray-600 */
+    text-decoration: none;
+  }
+  
+  .sidebarLink:hover {
+    background-color: #f9fafb; /* hover:bg-gray-50 */
+    color: #111827; /* hover:text-gray-900 */
+  }
+  
+  .sidebarLinkActive {
+    background-color: #f5f3ff; /* bg-purple-50 */
+    color: var(--secondary-buttond); /* text-purple-700 */
+  }
+  
+  .sidebarIcon {
+    margin-right: 0.75rem;
+    height: 1.25rem;
+    width: 1.25rem;
+    color: #9ca3af; /* text-gray-400 */
+  }
+  
+  .sidebarIconActive {
+    color: var(--secondary-buttond); /* text-purple-500 */
+  }
+  
+  .sidebarFooter {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    /* Changed to row to align avatar and user info horizontally */
+    flex-direction: row;
+    /* Added to wrap elements for better layout */
+    flex-wrap: wrap;
+    /* Added to place items properly */
+    justify-content: center;
+  }
+  
+  .sidebarAvatar {
+    width: 32px;
+    height: 32px;
+    background-color: #6b7280;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sidebarUserInfo {
+    display: flex;
+    flex-direction: column;
+    margin-left: 0.75rem;
+    /* Added to align with avatar properly */
+    justify-content: center;
+  }
+  
+  .sidebarUserName {
+    font-size: 0.875rem;
+    font-weight: bold;
+    color: #374151;
+    /* Added for better spacing */
+    margin: 0;
+  }
+  
+  .sidebarUserEmail {
+    font-size: 0.75rem;
+    color: #6b7280;
+    /* Added for better spacing */
+    margin: 0;
+  }
+  
+  .logoutButton {
+    /* Changed from margin-top to margin-left for horizontal layout */
+    
+    font-weight: 600;
+    background-color: #ef4444;
+    color: white;
+    text-decoration: none;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 2rem; /* px-4 py-2 */
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .logoutButton:hover {
+    background-color: #dc2626;
+  }

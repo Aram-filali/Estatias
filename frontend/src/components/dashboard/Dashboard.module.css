@@ -1,0 +1,501 @@
+/* Dashboard.module.css - Updated for proper nesting */
+
+.dashboardContainer {
+  width: 100%;  /* Full width of parent */
+  height: auto; /* Adjust height automatically */
+  margin: 0;    /* Remove margin that might cause conflicts */
+  
+  position: relative;
+  
+  overflow: hidden;
+}
+
+/* Section Styles */
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eaeaea;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 0.5rem;
+}
+
+.sectionHeader h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.addButton,
+.backButton, .editButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 2rem;
+  font-weight: 500;
+  margin: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 2.3rem;
+  font-weight: 500;
+  margin: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+
+.addButton {
+  background-color: #162a4a;
+  color: #fff;
+  border: none;
+}
+
+.addButton:hover {
+  background-color: #18233a;
+  transform: scale(1.05);
+}
+
+.backButton {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: none;
+}
+
+.backButton:hover, .editButton:hover {
+  background-color: #e5e7eb;
+  transform: scale(1.05);
+}
+
+/* Listing Details Styles */
+.listingDetails {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  width: 100%;
+  overflow: auto;
+}
+
+.detailsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detailsHeader h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detailsHeader .editButton {
+  background-color: #10b981;
+  color: #fff;
+  border: none;
+  margin-right: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.detailsHeader .editButton:hover {
+  background-color: #059669;
+}
+
+.detailsContent {
+  padding: 1rem;
+  overflow: auto;
+}
+
+.detailsContent h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.basicInfo,
+.roomInfo,
+.contactInfo,
+.description,
+.amenities,
+.policies,
+.payment {
+  margin-bottom: 1.5rem;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.infoGrid div {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.infoGrid strong {
+  color: #374151;
+}
+
+.description p {
+  margin: 0;
+  line-height: 1.5;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.amenitiesList,
+.paymentList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.amenityTag,
+.paymentTag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.amenityTag {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.paymentTag {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  text-transform: capitalize;
+}
+
+.policiesInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.policiesInfo strong {
+  color: #374151;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .infoGrid,
+  .policiesInfo {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboardContainer {
+    padding: 0.75rem;
+  }
+  
+  .detailsHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .infoGrid,
+  .policiesInfo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .amenitiesList,
+  .paymentList {
+    gap: 0.25rem;
+  }
+}
+
+/* Add these styles to your Dashboard.module.css file */
+
+/* Property Space Section */
+.spacesInfo {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.spacesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.spaceCard {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.spaceCard:hover {
+  transform: translateY(-4px);
+}
+
+.spaceCard h4 {
+  font-size: 1.1rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+/* Space Photo Gallery */
+.spacePhotoGallery {
+  margin-top: 1rem;
+}
+
+.spacePhotoPreview {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.spacePhotoPreview:hover .previewImage {
+  transform: scale(1.05);
+}
+
+.photoCount {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thumbnailStrip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.thumbnail:hover {
+  opacity: 0.8;
+}
+
+.moreThumbnails {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.noPhotos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  padding: 1.5rem;
+  color: #777;
+}
+
+.noPhotos p {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+/* Photo Viewer Modal */
+.photoViewerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.photoViewerContent {
+  width: 90%;
+  max-width: 1000px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.photoViewerMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0;
+}
+
+.mainPhotoContainer {
+  flex-grow: 1;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 1rem;
+}
+
+.mainPhoto {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.navButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.1);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.navButton:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.photoCounter {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.photoThumbnails {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.photoThumbnail {
+  width: 80px;
+  height: 60px;
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.photoThumbnail:hover {
+  opacity: 0.9;
+}
+
+.activeThumbnail {
+  opacity: 1;
+  border: 2px solid #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .spacesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mainPhotoContainer {
+    height: 300px;
+  }
+  
+  .photoViewerContent {
+    width: 95%;
+    padding: 1rem;
+  }
+}

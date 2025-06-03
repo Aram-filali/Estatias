@@ -1,0 +1,17 @@
+[
+    {
+      "provider": "brightdata",
+      "email": "aramfilali.19@gmail.com",
+      "expiresAt": "2025-06-23T23:59:59.000Z",
+      "proxies": [
+        {
+          "host": "brd.superproxy.io",
+          "port": 33335,
+          "username": "brd-customer-hl_297b923c-zone-residential_proxy1",
+          "password": "imxj6gxqrvl3",
+          "protocol": "http",
+          "countryCode": "US"
+        }
+      ]
+    }
+  ]
