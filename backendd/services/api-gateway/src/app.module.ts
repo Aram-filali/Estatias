@@ -152,7 +152,6 @@ import { TestController } from './test.controller';
     CalSyncController, 
     WebhookController,
     TestController,
-
   ],
 })
 export class AppModule {}
