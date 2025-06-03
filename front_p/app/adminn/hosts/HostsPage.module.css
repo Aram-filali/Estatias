@@ -1,0 +1,345 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .searchInput {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .searchInput:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+  }
+  
+  .select {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 32px 8px 12px;
+    font-size: 14px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    appearance: none;
+  }
+  
+  .select:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5);
+  }
+  
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  @media (min-width: 1024px) {
+    .layout {
+      flex-direction: row;
+    }
+  }
+  
+  .tableContainer {
+    width: 100%;
+  }
+  
+  @media (min-width: 1024px) {
+    .tableContainer {
+      width: 66.666667%;
+    }
+  }
+  
+  .card {
+    background-color: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .table {
+    width: 100%;
+    min-width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .tableHead {
+    background-color: #f9fafb;
+  }
+  
+  .tableHeader {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  
+  .tableBody {
+    background-color: white;
+  }
+  
+  .tableRow {
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+  }
+  
+  .tableRow:hover {
+    background-color: #f9fafb;
+  }
+  
+  .tableRow:last-child {
+    border-bottom: none;
+  }
+  
+  .selectedRow {
+    background-color: #f5f3ff;
+  }
+  
+  .tableCell {
+    padding: 16px 24px;
+    white-space: nowrap;
+  }
+  
+  .cellContent {
+    display: flex;
+    align-items: center;
+  }
+  
+  .avatar {
+    flex-shrink: 0;
+    height: 40px;
+    width: 40px;
+  }
+  
+  .roundedAvatar {
+    border-radius: 50%;
+  }
+  
+  .userInfo {
+    margin-left: 16px;
+  }
+  
+  .userName {
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+  }
+  
+  .userEmail {
+    font-size: 14px;
+    color: #6b7280;
+  }
+  
+  .status {
+    padding: 2px 8px;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+  
+  .statusActive {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  
+  .statusSuspended {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .statusPending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .detailContainer {
+    width: 100%;
+  }
+  
+  @media (min-width: 1024px) {
+    .detailContainer {
+      width: 33.333333%;
+    }
+  }
+  
+  .profileHeader {
+    padding: 20px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .profileTitle {
+    font-size: 18px;
+    font-weight: 500;
+    color: #111827;
+  }
+  
+  .suspendButton {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid #fca5a5;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    color: #b91c1c;
+    background-color: white;
+    cursor: pointer;
+  }
+  
+  .suspendButton:hover {
+    background-color: #fef2f2;
+  }
+  
+  .activateButton {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid #86efac;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    color: #166534;
+    background-color: white;
+    cursor: pointer;
+  }
+  
+  .activateButton:hover {
+    background-color: #ecfdf5;
+  }
+  
+  .detailList {
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .detailItem {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 20px 16px;
+  }
+  
+  .detailItemGray {
+    background-color: #f9fafb;
+  }
+  
+  .detailItemWhite {
+    background-color: white;
+  }
+  
+  .detailLabel {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+  }
+  
+  .detailValue {
+    font-size: 14px;
+    color: #111827;
+    grid-column: span 2;
+  }
+  
+  .detailValueFlex {
+    display: flex;
+    align-items: center;
+  }
+  
+  .link {
+    margin-left: 8px;
+    color: #9333ea;
+  }
+  
+  .link:hover {
+    color: #7e22ce;
+  }
+  
+  .footer {
+    padding: 12px 16px;
+    background-color: #f9fafb;
+    text-align: right;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .viewButton {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    color: #374151;
+    background-color: white;
+    cursor: pointer;
+  }
+  
+  .viewButton:hover {
+    background-color: #f9fafb;
+  }
+  
+  .emptyState {
+    background-color: white;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+  }
+  
+  .emptyText {
+    color: #6b7280;
+    text-align: center;
+  }
+  
+  .externalLink {
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    color: #9333ea;
+    cursor: pointer;
+  }
+  
+  .externalLink:hover {
+    color: #7e22ce;
+  }
+  
+  .externalLinkIcon {
+    height: 16px;
+    width: 16px;
+    margin-right: 4px;
+  }

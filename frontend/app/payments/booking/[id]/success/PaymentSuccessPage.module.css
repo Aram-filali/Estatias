@@ -1,0 +1,125 @@
+.successContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  margin-top: 4%;
+}
+
+.successCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  text-align: center;
+}
+
+.iconContainer {
+  margin: 0 auto;
+  width: 4rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #d1fae5;
+  border-radius: 9999px;
+  margin-bottom: 1.5rem;
+}
+
+.successIcon {
+  color: #10b981;
+  font-size: 2.25rem;
+}
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.successMessage {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+}
+
+.referenceBox {
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.referenceText {
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.referenceNumber {
+  font-weight: 600;
+}
+
+.redirectMessage {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.primaryButton {
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.primaryButton:hover {
+  background-color: #2563eb;
+}
+
+.secondaryButton {
+  background-color: #e5e7eb;
+  color: #1f2937;
+  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background-color: #d1d5db;
+}
+
+.footerText {
+  margin-top: 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .buttonContainer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+    padding: 0.75rem;
+  }
+}

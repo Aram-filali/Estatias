@@ -1,0 +1,228 @@
+/* ListingForm.module.css */
+.formContainer {
+  background-color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.formTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.formTabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid #e5e7eb;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.formTabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.tabButton {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.availableTab {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.availableTab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #3b82f6;
+}
+
+.tabButton:hover {
+  color: #3b82f6;
+}
+
+.form {
+  padding: 1.5rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.fullWidth {
+  grid-column: span 2;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  transition: border-color 0.2s;
+}
+
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.sectionTitle {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  grid-column: 1 / -1;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  accent-color: #3b82f6;
+}
+
+.checkboxLabel {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+  
+}
+
+.cancelButton {
+  padding: 0.625rem 1.25rem;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: rgb(203, 204, 205);
+  color: #4b5563;
+  transform: scale(1.05);
+  transition: all 0.2s;
+}
+
+.submitButton {
+  padding: 0.625rem 1.25rem;
+  background-color: #242f41;
+  color: #fff;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #171e29;
+  color: #fff;
+  transform: scale(1.05);
+  transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+  .formGrid,
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .fullWidth {
+    grid-column: auto;
+  }
+}

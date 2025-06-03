@@ -1,0 +1,358 @@
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; 
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  
+  .sectionHeader h2 {
+    margin: 0;
+    /*font-size: 30px;*/
+  }
+
+  
+  .text-muted {
+    color: #6c757d;
+    /*font-size: 24px;*/
+    /*margin: 8px 0;*/
+  }
+
+  .text-mutedd {
+    color: #6c757d;
+    /*font-size: 24px;*/
+    margin-bottom: 5px;
+  }
+  
+  .photoGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    margin-top: 10px;
+  }
+  
+  .photoPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .previewImage {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .removeButton {
+    margin-top: 5px;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  /*PROPERTY SPACE */
+
+
+  .spaceDivider {
+    border: none;
+    border-top: 0.5px solid #ccc;
+    margin: 20px 0;
+  }
+
+  /* MAP */
+  /* Add these styles to your existing CSS file */
+
+.locationControls {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  
+  .locationButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .locationButton:hover {
+    background-color: #e9e9e9;
+  }
+  
+  .locationButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .mapContainer {
+    margin-top: 15px;
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .mapContainer iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /*CALENDAR*/
+  /* Add these styles to your CSS file */
+
+/* Calendar overlay styles */
+.calendar-overlay {
+  position: absolute;
+  z-index: 1000;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 420px;
+  margin-top: 8px;
+}
+
+/* Selected dates display */
+.date-display {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  background-color: #f9f9f9;
+  transition: all 0.2s ease;
+}
+
+.date-display:hover {
+  border-color: #007bff;
+  background-color: #f0f7ff;
+}
+
+.selected-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+/* Style for the availability form */
+.availability-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-group label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.input-group input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Add availability button */
+.availability-form button {
+  margin-top: 8px;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.availability-form button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.availability-form button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Availabilities list */
+.availabilities-list {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.availabilities-list h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.availabilities-list ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.availabilities-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.availabilities-list li:last-child {
+  border-bottom: none;
+}
+
+/* Ensure the date-selector container has proper positioning */
+.date-selector {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+/* Ajoutez ce CSS pour bien formatter la section de disponibilité */
+
+/* Styles pour la section d'availability */
+.availability-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+  .availability-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .calendar-section {
+    flex: 1;
+    min-width: 300px;
+  }
+  
+  .price-section {
+    flex: 1;
+    padding: 0 15px;
+  }
+}
+
+.date-display {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.selected-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.availability-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-weight: 500;
+}
+
+.form-group input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.add-availability-btn {
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.add-availability-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.availabilities-list {
+  margin-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 15px;
+}
+
+.availabilities-list h3 {
+  margin-bottom: 10px;
+}
+
+.availabilities-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.availabilities-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.remove-btn {
+  padding: 5px 10px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+  
+  
+  

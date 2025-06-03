@@ -1,0 +1,136 @@
+/* DocumentCard.module.css */
+.documentCard {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.documentCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.documentHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 12px;
+}
+
+.documentIcon {
+  font-size: 20px;
+  color: #111827;
+  margin-right: 12px;
+}
+
+.documentHeader h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.documentContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%; /* S'assurer que le contenu prend toute la largeur */
+}
+
+.documentName {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+
+.previewContainer {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end; /* Alignement à droite */
+  align-items: center;
+  width: 100%; /* S'assurer que le conteneur prend toute la largeur */
+}
+
+.documentPreview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+  object-fit: contain;
+  border: 1px solid #e0e0e0;
+  margin-right: 0; /* S'assurer qu'il n'y a pas de marge qui pousse vers la gauche */
+}
+
+.uploadArea {
+  display: flex;
+  justify-content: flex-end; /* Aligner les éléments à droite */
+  width: 100%; /* S'assurer que la zone prend toute la largeur disponible */
+}
+
+.uploadButton {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centrer le contenu du bouton */
+  font-size: 14px;
+  padding: 8px 16px;
+  transition: background-color 0.2s ease;
+}
+
+.uploadButton:hover {
+  background-color: #e9ecef;
+}
+
+.uploadButton svg {
+  margin-right: 8px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.viewButton {
+  background-color: #111827;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centrer le contenu du bouton */
+  font-size: 14px;
+  padding: 8px 16px;
+  transition: background-color 0.2s ease;
+  margin-left: 10px; /* Ajouter un peu d'espace entre les boutons */
+}
+
+.viewButton:hover {
+  background-color: #141c2d;
+}
+
+.viewButton svg {
+  margin-right: 8px;
+}
+
+/* Nouveau style spécifique pour le conteneur du view button */
+.viewButtonContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Nouveau style pour conteneur des boutons */
+.buttonsContainer {
+  display: flex;
+  justify-content: flex-end; /* Aligner les boutons à droite */
+  margin-top: 16px;
+  width: 100%; /* S'assurer que le conteneur prend toute la largeur disponible */
+}

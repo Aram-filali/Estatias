@@ -1,0 +1,44 @@
+.popupOverlay {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+.popup {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    min-width: 250px;
+    max-width: 300px;
+    position: relative;
+}
+
+.success {
+    border-left: 5px solid rgb(108, 129, 108);
+}
+
+.error {
+    border-left: 5px solid rgb(130, 114, 114);
+}
+
+.popupMessage {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.closeButton {
+    background-color: transparent;
+    border: none;
+    color: #636c76;
+    font-size: 14px;
+    cursor: pointer;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}

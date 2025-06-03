@@ -1,0 +1,426 @@
+.main {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: rgba(240, 245, 248, 0.5);
+  padding: 1.5rem;
+  margin: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 210, 220, 0.5);
+  
+}
+.inputGroup {
+  position: relative;
+  
+}
+.error {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.placeholderLabel {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  color: #888; /* Placeholder color */
+  pointer-events: none;
+  transition: 0.2s ease all;
+  margin-top: 100px;
+}
+
+input:focus + .placeholderLabel,
+input:not(:placeholder-shown) + .placeholderLabel {
+  top: -20px;
+  left: 10px;
+  font-size: 12px;
+  color: #000;
+  width: 50px;
+}
+
+.propertyForm {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+.section h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #f4f7f9;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.propertyForm input,
+.propertyForm select,
+.propertyForm textarea {
+  width: calc(50% - 20px);
+  padding: 12px;
+  margin-bottom: 20px;
+  margin-right: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #333;
+  background-color: #f9f9f9;
+  transition: border-color 0.3s ease-in-out;
+}
+
+.propertyForm input:focus,
+.propertyForm select:focus,
+.propertyForm textarea:focus {
+  border-color: #3b565c;
+}
+
+.propertyForm textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.propertyForm .fullWidth {
+  width: 100%;
+}
+
+
+.propertyForm label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+  color: #666;
+  cursor: pointer;
+}
+
+.propertyForm label input {
+  margin-right: 10px;
+}
+
+/* Modification du style de tous les boutons */
+.propertyForm button {
+  padding: 15px 30px;
+  font-size: 18px;
+  background-color: #6cb2b7;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+  border-radius: 8px;
+  border: none;
+}
+
+.propertyForm button:hover {
+  background-color: #6cb2b7;
+}
+
+@media (max-width: 768px) {
+  .propertyForm input,
+  .propertyForm select {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+
+.propertyForm .mapContainer {
+  margin-top: 20px;
+}
+
+.propertyForm .mapContainer iframe {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  border: none;
+}
+
+.inputIconWrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.inputIcon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ccc; /* Couleur de l'icône */
+  pointer-events: none;
+}
+
+input {
+  width: 100%;
+  padding-right: 30px; /* Ajoutez un espace à droite pour l'icône */
+}
+
+textarea {
+  width: 100%;
+}
+
+select {
+  width: 100%;
+}
+
+.mapContainer iframe {
+  width: 100%;
+  height: 300px;
+}
+.amenitiesForm {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.amenitiesSection {
+  margin-bottom: 30px;
+}
+
+.amenitiesSection h3 {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.checkboxGroup {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+  margin-bottom: 8px;
+}
+
+.amenitiesForm label {
+  display: block;
+  font-size: 16px;
+  color: #555;
+  cursor: pointer;
+}
+
+.amenitiesForm label input {
+  margin-right: 8px;
+}
+
+input[type="checkbox"] {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.inputContainer {
+  position: relative;
+}
+
+.inputContainer i {
+  position: absolute;
+  right: 10px;
+  top: 35%;
+  transform: translateY(-50%);
+  color: #066b87;
+}
+
+.inputContainer input {
+  padding-right: 35px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+}
+
+/* Style général pour tous les boutons */
+.button {
+  background-color: #6cb2b7 !important;
+  color: white !important;
+  border: none;
+  border-radius: 8px;
+  /*font-size: 1.1rem;*/
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.button:hover {
+  background-color: #6cb2b7 !important;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.add-availability-btn {
+  background-color: #6cb2b7 !important;
+  color: white;
+  border-radius: 8px;
+}
+
+/* Add these CSS styles to your form.css file or create a new style file */
+
+.input-group {
+margin-bottom: 15px;
+width: 100%;
+}
+
+.full-width-input {
+width: 100%;
+padding: 8px;
+box-sizing: border-box;
+border: 1px solid #ccc;
+border-radius: 4px;
+}
+
+.error {
+color: red;
+font-size: 12px;
+display: block;
+margin-top: 5px;
+}
+
+.pricing-inputs {
+margin-top: 20px;
+width: 100%;
+}
+
+.price-section {
+display: flex;
+flex-direction: column;
+padding: 20px;
+background-color: #f9f9f9;
+border-radius: 8px;
+margin-left: 20px;
+width: 300px;
+}
+
+.calendar-section {
+flex: 1;
+}
+
+.availability-container {
+display: flex;
+margin-bottom: 30px;
+}
+
+/* Modification du bouton add-availability */
+.add-availability-btn {
+background-color: #6cb2b7 !important;
+color: white;
+padding: 10px 15px;
+border: none;
+border-radius: 8px;
+cursor: pointer;
+margin-top: 20px;
+width: 100%;
+}
+
+.add-availability-btn:hover {
+background-color: #6cb2b7 !important;
+}
+
+.add-availability-btn:disabled {
+background-color: #cccccc;
+cursor: not-allowed;
+}
+
+/* Modification du bouton remove */
+.remove-btn {
+background-color: #6cb2b7;
+color: white;
+padding: 5px 10px;
+border: none;
+border-radius: 8px;
+cursor: pointer;
+margin-left: 10px;
+}
+
+.remove-btn:hover {
+background-color: #6cb2b7;
+}
+
+.availabilities-list {
+margin-top: 20px;
+}
+
+.availabilities-list ul {
+list-style-type: none;
+padding: 0;
+}
+
+.availabilities-list li {
+padding: 10px;
+margin: 5px 0;
+background-color: #f5f5f5;
+border-radius: 4px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.date-display {
+margin-bottom: 15px;
+padding: 10px;
+background-color: #e9e9e9;
+border-radius: 4px;
+display: flex;
+align-items: center;
+}
+
+.selected-dates {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.uploadButton{
+  margin-bottom: 10px;
+}
+/* Updated button styles for smaller buttons */
+.propertyForm button {
+  padding: 10px 20px;  /* Reduced from 15px 30px */
+  font-size: 16px;     /* Reduced from 18px */
+  background-color: #6cb2b7;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+  border-radius: 6px;  /* Slightly smaller radius */
+  border: none;
+}
+
+/* Style for general buttons */
+.button {
+  background-color: #6cb2b7 !important;
+  color: white !important;
+  border: none;
+  border-radius: 6px;  /* Reduced from 8px */
+  font-size: 14px;     /* Reduced from implied larger size */
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  padding: 8px 15px;   /* Added specific padding */
+}
+
+/* Add availability button - make it smaller */
+.add-availability-btn {
+  background-color: #6cb2b7 !important;
+  color: white;
+  padding: 8px 12px;   /* Reduced from 10px 15px */
+  border: none;
+  border-radius: 6px;  /* Reduced from 8px */
+  cursor: pointer;
+  margin-top: 15px;    /* Slightly reduced from 20px */
+  width: 100%;
+  font-size: 14px;     /* Added smaller font size */
+}
+
+/* Remove button - make it smaller */
+.remove-btn {
+  background-color: #6cb2b7;
+  color: white;
+  padding: 4px 8px;    /* Reduced from 5px 10px */
+  border: none;
+  border-radius: 6px;  /* Reduced from 8px */
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 12px;     /* Added smaller font size */
+}

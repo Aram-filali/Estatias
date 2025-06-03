@@ -1,0 +1,160 @@
+.sidebarContainer {
+    width: 380px;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+  
+  .propertySidebar {
+    background-color: white;
+    border: 1px solid #dddddd;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  
+  /* Property header in sidebar */
+  .propertyHeader {
+    display: flex;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ebebeb;
+  }
+  
+  .propertyImage {
+    width: 100px;
+    height: 80px;
+    background-color: #f5f5f5;
+    margin-right: 16px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    background-image: url('https://via.placeholder.com/100x80');
+  }
+  
+  .propertyInfo h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .rating {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .rating span:first-child {
+    color: #e5ff00;
+    margin-right: 4px;
+  }
+  
+  .cancellationText {
+    font-weight: 600;
+    color: #2a901f;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  
+  .cancellationDetails {
+    font-size: 13px;
+    color: #717171;
+    line-height: 1.4;
+  }
+  
+  .tripDetails {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #ebebeb;
+  }
+  
+  .tripDetails h4, .priceDetails h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .tripDetailsContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  
+  .priceRow, .totalPrice, .paymentSchedule div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+  
+  .totalPrice {
+    font-weight: 600;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #ebebeb;
+  }
+  
+  .paymentSchedule {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #ebebeb;
+    font-size: 14px;
+    color: #717171;
+  }
+  
+/* Normal state */
+.changeButton {
+    margin-left: auto;
+    color: #fff; /* White text */
+    background-color: #14162c; /* Green background */
+    border: 1px solid  #0b0c13; /* Border matches background */
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px; /* Slightly larger text */
+    transition: all 0.3s ease; /* Smooth transition */
+    font-weight: 600;
+  }
+  
+  /* Hover state */
+  .changeButton:hover {
+    background-color: #14162c; /* Darker green on hover */
+    border-color: #0b0c13; /* Match border with background */
+    transform: scale(1.05); /* Slight scaling effect */
+  }
+  
+  /* Focus state for accessibility */
+  .changeButton:focus {
+    outline: 3px solid #12142b; /* Orange focus outline */
+    outline-offset: 2px;
+  }
+  
+  /* Active state (when button is clicked) */
+  .changeButton:active {
+    background-color: #14162c; /* Darker green when clicked */
+    border-color: #0b0c13;
+    transform: scale(0.98); /* Slight shrinking effect */
+  }
+  
+  /* Disabled state (if you need a disabled state) */
+  .changeButton:disabled {
+    background-color: #b3b3b3; /* Light grey */
+    border-color: #b3b3b3;
+    cursor: not-allowed; /* No cursor change */
+  }
+  
+  
+  /* Responsive styles */
+  @media (max-width: 900px) {
+    .sidebarContainer {
+      width: 100%;
+      position: static;
+      order: -1;
+      margin-bottom: 24px;
+    }
+  }

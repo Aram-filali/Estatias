@@ -1,0 +1,479 @@
+.paymentContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 4%;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.expirationAlert {
+  background-color: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.expirationAlert p {
+  color: #92400e;
+  font-size: 0.95rem;
+}
+
+.bookingSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.bookingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.propertyName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.bookingId {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.bookingDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.bookingDetail {
+  margin-bottom: 0.75rem;
+}
+
+.detailLabel {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.detailValue {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.paymentMethodSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.paymentMethodsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.paymentMethodCard {
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.paymentMethodCard:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+
+.paymentMethodCard.selected {
+  border-color: #3b82f6;
+  background-color: #ebf5ff;
+}
+
+.paymentMethodIcon {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  color: #64748b;
+}
+
+.paymentMethodName {
+  font-weight: 500;
+  color: #334155;
+}
+
+.paymentFormSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.formGroup {
+  margin-bottom: 1.25rem;
+}
+
+.formLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.cardInputGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+
+   /*
+  .buttonGroup {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    width: 100%;
+  }
+  
+  .backButton {
+    flex: 1;
+    padding: 0.875rem;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .backButton:hover {
+    background-color: #e5e7eb;
+    border-color: #9ca3af;
+  }
+  
+  .groupedSubmitButton {
+    flex: 1;
+    margin-top: 0;
+  } 
+  
+
+
+.submitButton {
+  display: block;
+  width: 100%;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: 600;
+  padding: 0.875rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 1.5rem;
+}
+
+.submitButton:hover {
+  background-color: #2563eb;
+}
+
+.submitButton:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+*/
+
+
+
+
+  .buttonGroup {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 2rem;
+    width: 100%;
+  }
+  
+  .backButton {
+    flex: 1;
+    padding: 1rem;
+    background-color: #ffffff;
+    color: #4b5563;
+    padding: 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .backButton:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .backButton:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .submitButton {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    /*margin-top: 1.5rem;*/
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .submitButton:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(37, 99, 235, 0.3);
+  }
+  
+  .submitButton:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);
+  }
+  
+  .submitButton:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  
+  /* When submitButton is used inside buttonGroup */
+  .groupedSubmitButton {
+    flex: 1;
+    margin-top: 0 !important;
+  }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.errorMessage {
+  background-color: #fee2e2;
+  border-left: 4px solid #ef4444;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.errorMessage p {
+  color: #b91c1c;
+}
+
+.offlineInstructions {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.instructionStep {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #0ea5e9;
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-right: 0.75rem;
+}
+
+.stepText {
+  flex: 1;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 640px) {
+  .bookingDetails {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .paymentMethodsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cardInputGroup {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+
+
+
+
+
+
+/* Additional styles for PaymentOnline page - add these to your PaymentPage.module.css */
+
+.pricingDetails {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.pricingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.pricingRow:last-child {
+  border-bottom: none;
+}
+
+.totalRow {
+  border-top: 2px solid #dee2e6;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  font-size: 1.1rem;
+}
+
+.securityNotice {
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 2rem;
+  text-align: center;
+  color: #2d5016;
+}
+
+.securityNotice p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: space-between;
+}
+
+.groupedSubmitButton {
+  flex: 1;
+  max-width: 300px;
+}
+
+.backButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.backButton:hover:not(:disabled) {
+  background: #5a6268;
+}
+
+.backButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .groupedSubmitButton {
+    max-width: none;
+  }
+}

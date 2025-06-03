@@ -1,0 +1,168 @@
+
+  .confirmButtonLarge {
+  background-color: #10b981;
+  color: white;
+}
+
+.confirmButtonLarge:hover {
+  background-color: #059669;
+}
+
+.rejectButtonLarge {
+  background-color: #ef4444;
+  color: white;
+}
+
+.rejectButtonLarge:hover {
+  background-color: #dc2626;
+}
+
+.printButton {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.printButton:hover {
+  background-color: #e5e7eb;
+}
+
+.emailButton {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.emailButton:hover {
+  background-color: #2563eb;
+}
+
+
+.confirmButton:disabled,
+.rejectButton:disabled,
+.confirmButtonLarge:disabled,
+.rejectButtonLarge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  height: 60vh;
+}
+
+.loadingSpinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorContainer {
+  padding: 32px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.errorContainer h2 {
+  color: #ef4444;
+  margin-bottom: 16px;
+}
+
+.retryButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.retryButton:hover {
+  background-color: #2563eb;
+}
+
+.errorBanner {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 12px 16px;
+  margin: 0 20px 20px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.errorBanner button {
+  background: none;
+  border: none;
+  color: #b91c1c;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.errorBanner button:hover {
+  text-decoration: underline;
+}
+
+.noBookings {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+
+@media print {
+  .bookingsHeader,
+  .bookingsActions,
+  .tableHeader,
+  .modalActions,
+  .closeButton {
+    display: none !important;
+  }
+  
+  .modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  
+  .modalOverlay {
+    position: absolute;
+    background-color: white;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  .modal, .modal * {
+    visibility: visible;
+  }
+  
+  .modalContent {
+    padding: 0;
+  }
+}

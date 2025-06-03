@@ -1,0 +1,253 @@
+.calendarContainer {
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .calendarHeader {
+    margin-bottom: 16px;
+  }
+  
+  .calendarHeader h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .datesInfo {
+    color: #717171;
+    font-size: 14px;
+    margin: 0;
+  }
+  
+  .calendarContent {
+    margin-bottom: 20px;
+  }
+  
+  .calendarPlaceholder {
+    background-color: #f5f5f5;
+    border: 1px dashed #dddddd;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .calendarPlaceholder p {
+    margin: 0 0 16px 0;
+    color: #717171;
+  }
+  
+  .calendarPlaceholder ul {
+    padding-left: 20px;
+    text-align: left;
+    color: #717171;
+  }
+  
+  .calendarPlaceholder li {
+    margin-bottom: 8px;
+  }
+  
+  /* Calendar actions */
+  .calendarActions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #ebebeb;
+  }
+  
+  .clearButton {
+    background: #141e3a;
+    border: none;
+    color: #141e3a;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .clearButton:hover {
+    color: #141e3a;
+  }
+  
+  .saveButton {
+    padding: 10px 20px;
+    background-color: #141e3a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .saveButton:hover {
+    background-color: #141e3a;
+  }
+
+  /*.calendarContainer {
+    font-family: Arial, sans-serif;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }*/
+  
+  .calendarHeader {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  
+  .calendarHeader h3 {
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+  
+  .datesInfo {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+  }
+  
+  .calendarContent {
+    margin-bottom: 20px;
+  }
+  
+  .calendarActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .clearButton {
+    background: none;
+    border: none;
+    color: #141e3a;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    text-decoration: underline;
+  }
+  
+  .saveButton {
+    background-color: #141e3a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .saveButton:hover {
+    background-color: #141e3a;
+  }
+  
+  /* Styles du composant ExpandedCalendar */
+  .expandedCalendar {
+    width: 100%;
+  }
+  
+  .calendarNavigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .navButton {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  
+  .navButton:hover {
+    background-color: #f2f2f2;
+  }
+  
+  .currentMonthYear {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  .weekDaysHeader {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 8px;
+  }
+  
+  .weekDay {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    color: #666;
+    padding: 8px 0;
+  }
+  
+  .calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  
+  .calendarDay {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .calendarDay:hover:not(.disabledDay):not(.otherMonth) {
+    background-color: #f2f2f2;
+  }
+  
+  .otherMonth {
+    color: #ccc;
+  }
+  
+  .disabledDay {
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: line-through;
+  }
+  
+  .startDate, .endDate {
+    background-color: #141e3a;
+    color: white;
+  }
+  
+  .inRange {
+    background-color: rgba(0, 132, 137, 0.2);
+  }
+  
+  .selectedDates {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 14px;
+    justify-content: center;
+  }

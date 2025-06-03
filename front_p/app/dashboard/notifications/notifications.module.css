@@ -1,0 +1,532 @@
+/* notifications.module.css */
+/* Base layout and responsive container */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pageTitleContainer {
+  display: flex;
+  align-items: center;
+}
+
+.pageTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+}
+
+.profileSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.notificationIcon {
+  color: #4a5568;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.notificationIcon:hover {
+  color: var(--lWrite);
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--lWrite);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+  
+  /* Notifications container */
+  .notificationsContainer {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  .notificationsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .notificationsInfo {
+    font-size: 1rem;
+    color: #4a5568;
+  }
+  
+  .unreadCount {
+    font-weight: 600;
+    color: #e53e3e;
+  }
+  
+  .notificationsActions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .markAllReadButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #ebf8ff;
+    color: var(--secondary-button);
+    border: 1px solid #bef8f4;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .markAllReadButton:hover:not(:disabled) {
+    background-color: #e2f7f7;
+  }
+  
+  .markAllReadButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Notifications filter */
+  .notificationsFilter {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .filterButton {
+    padding: 0.5rem 1rem;
+    background-color: #f7fafc;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .filterButton:hover {
+    background-color: #edf2f7;
+  }
+  
+  .activeFilter {
+    background-color: var(--secondary-button);
+    color: white;
+    border-color: var(--secondary-button);
+  }
+  
+  .activeFilter:hover {
+    background-color: #3FCDB0;
+  }
+  
+  /* Notifications list */
+  .notificationsList {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  
+  .notificationItem {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.25rem;
+    border-bottom: 1px solid #f0f4f8;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .notificationItem:last-child {
+    border-bottom: none;
+  }
+  
+  .notificationItem:hover {
+    background-color: #f8fafc;
+  }
+  
+  .unread {
+    background-color: #ebf8ff;
+  }
+  
+  .unread:hover {
+    background-color: #e6f6ff;
+  }
+  
+  .notificationTypeIcon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+  
+  .bookingIcon {
+    background-color: #4299e1;
+  }
+  
+  .systemIcon {
+    background-color: #ecc94b;
+  }
+  
+  .paymentIcon {
+    background-color: #48bb78;
+  }
+  
+  .notificationContent {
+    flex: 1;
+  }
+  
+  .notificationContent p {
+    margin: 0 0 0.5rem 0;
+    color: #2d3748;
+    line-height: 1.4;
+  }
+  
+  .notificationDate {
+    font-size: 0.8rem;
+    color: #718096;
+  }
+  
+  .notificationActions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    align-items: flex-start;
+  }
+  
+  .markReadButton, .deleteButton {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+  }
+  
+  .markReadButton:hover {
+    color: #3182ce;
+  }
+  
+  .deleteButton:hover {
+    color: #e53e3e;
+  }
+  
+  .unreadIndicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--secondary-button);
+  }
+  
+  /* Empty notifications state */
+  .emptyNotifications {
+    padding: 3rem;
+    text-align: center;
+    color: #718096;
+  }
+  
+  .emptyIcon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #cbd5e0;
+  }
+  
+  .emptyNotifications h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #4a5568;
+  }
+  
+  .emptyNotifications p {
+    margin: 0;
+    color: #718096;
+  }
+  
+  /* Pagination */
+  .notificationsPagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .paginationButton {
+    padding: 0.5rem 1rem;
+    background-color: #f7fafc;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .paginationButton:hover:not(:disabled) {
+    background-color: #edf2f7;
+  }
+  
+  .paginationButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .paginationInfo {
+    font-size: 0.9rem;
+    color: #718096;
+  }
+  
+  /* Notification preferences */
+  .notificationPreferences {
+    margin-bottom: 2rem;
+  }
+  
+  .preferencesTitle {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .preferencesCard {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+  }
+  
+  .preferenceItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f0f4f8;
+  }
+  
+  .preferenceItem:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1.5rem;
+  }
+  
+  .preferenceInfo h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 0.25rem 0;
+  }
+  
+  .preferenceInfo p {
+    font-size: 0.9rem;
+    color: #718096;
+    margin: 0;
+  }
+  
+  /* Toggle switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e0;
+    transition: .3s;
+    border-radius: 24px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: var(--secondary-button);
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(24px);
+  }
+  
+  .primaryButton {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--secondary-button);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.95rem;
+  }
+  
+  .primaryButton:hover {
+    background-color: #3FCDB0;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .header {
+      padding: 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .profileSection {
+      width: 100%;
+      justify-content: flex-end;
+    }
+    
+    .notificationsContainer {
+      padding: 1rem;
+    }
+    
+    .notificationsHeader {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .notificationsActions {
+      width: 100%;
+    }
+    
+    .markAllReadButton {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .notificationsFilter {
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      width: 100%;
+    }
+    
+    .filterButton {
+      white-space: nowrap;
+    }
+    
+    .notificationItem {
+      flex-direction: column;
+    }
+    
+    .notificationTypeIcon {
+      margin-bottom: 0.75rem;
+      margin-right: 0;
+    }
+    
+    .notificationActions {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      margin-left: 0;
+    }
+    
+    .notificationContent {
+      width: 100%;
+    }
+    
+    .preferenceItem {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .switch {
+      align-self: flex-start;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .profileInfo span {
+      display: none;
+    }
+    
+    .notificationsPagination {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .paginationButton {
+      width: 100%;
+    }
+  }
+  
+  /* Additional responsive styles for better mobile experience */
+  @media (max-width: 640px) {
+    .notificationsList {
+      margin-left: -1rem;
+      margin-right: -1rem;
+      border-radius: 0;
+    }
+    
+    .preferencesCard {
+      margin-left: -1rem;
+      margin-right: -1rem;
+      border-radius: 0;
+    }
+  }

@@ -1,0 +1,530 @@
+/* app/dashboard/finances/Finances.module.css */
+
+.financesContent {
+    padding: 20px;
+  }
+  
+  .pageTitle {
+    font-size: 24px;
+    font-weight: 500;
+    margin: 0;
+    padding: 0 20px;
+  }
+  
+  .summaryCards {
+    margin-bottom: 30px;
+  }
+  
+  .summaryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .summaryHeader h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .toggleCardsButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .cardsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  
+  .summaryCard {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .cardIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background-color: #f0f5ff;
+    color: var(--secondary-button);
+    margin-right: 15px;
+    font-size: 20px;
+  }
+  
+  .cardContent {
+    flex: 1;
+  }
+  
+  .cardContent h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #777;
+    margin: 0 0 5px 0;
+  }
+  
+  .cardValue {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .cardSubtext {
+    font-size: 12px;
+    color: #999;
+  }
+  
+  .revenueChart {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .chartHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .chartHeader h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .downloadButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f0f0;
+    color: #555;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .downloadButton:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .chart {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 200px;
+  }
+  
+  .chartBar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 10px;
+  }
+  
+  .barValue {
+    width: 40px;
+    background-color: var(--lWrite);
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10px;
+    min-height: 30px;
+    position: relative;
+  }
+  
+  .barAmount {
+    position: absolute;
+    top: -25px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+  }
+  
+  .barMonth {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #777;
+  }
+  
+  .transactionsSection {
+    margin-bottom: 30px;
+  }
+  
+  .transactionsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .transactionsHeader h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .filtersContainer {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .filterItem {
+    display: flex;
+    align-items: center;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    padding: 8px 12px;
+  }
+  
+  .filterItem svg {
+    margin-right: 8px;
+    color: #666;
+  }
+  
+  .filterSelect {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+  }
+  
+  .transactionsTable {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+  
+  .tableHeader {
+    display: flex;
+    background-color: #f8f9fa;
+    padding: 15px;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .tableBody {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .tableRow {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+  }
+  
+  .tableRow:hover {
+    background-color: #f9f9f9;
+  }
+  
+  .tableRow:last-child {
+    border-bottom: none;
+  }
+  
+  .dateColumn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  
+  .descriptionColumn {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .typeColumn, .statusColumn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  
+  .amountColumn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-weight: 500;
+  }
+  
+  .bookingId {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+  }
+  
+  .typeBadge, .statusBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .typeBooking {
+    background-color: #e6f0ff;
+    color: #4a7aff;
+  }
+  
+  .typePayout {
+    background-color: #fff0e6;
+    color: #ff7a4a;
+  }
+  
+  .typeRefund {
+    background-color: #f0e6ff;
+    color: #7a4aff;
+  }
+  
+  .typeFee {
+    background-color: #f0f0f0;
+    color: #777;
+  }
+  
+  .statusCompleted {
+    background-color: #e6f7ee;
+    color: #00a36c;
+  }
+  
+  .statusPending {
+    background-color: #fff8e6;
+    color: #e6a700;
+  }
+  
+  .statusFailed {
+    background-color: #ffeeee;
+    color: #d93025;
+  }
+  
+  .positiveAmount {
+    color: #00a36c;
+  }
+  
+  .negativeAmount {
+    color: #d93025;
+  }
+  
+  .noTransactions {
+    padding: 40px;
+    text-align: center;
+    color: #777;
+  }
+  
+  .payoutSection, .taxSection {
+    margin-bottom: 30px;
+  }
+  
+  .payoutCard, .taxCard {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+  }
+  
+  .payoutInfo, .taxInfo {
+    margin-bottom: 20px;
+  }
+  
+  .payoutInfo h2, .taxInfo h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 0 15px 0;
+  }
+  
+  .taxInfo p {
+    color: #777;
+    margin: 0;
+  }
+  
+  .payoutDetails {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+  }
+  
+  .payoutMethod, .payoutSchedule {
+    margin-bottom: 15px;
+  }
+  
+  .payoutMethod h3, .payoutSchedule h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 10px 0;
+    color: #555;
+  }
+  
+  .bankInfo {
+    display: flex;
+    align-items: center;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 15px;
+  }
+  
+  .bankLogo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: #f0f5ff;
+    color: var(--secondary-button);
+    margin-right: 15px;
+    font-size: 18px;
+  }
+  
+  .bankDetails {
+    flex: 1;
+  }
+  
+  .bankName {
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+  
+  .accountNumber {
+    font-size: 13px;
+    color: #777;
+  }
+  
+  .scheduleInfo {
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 15px;
+  }
+  
+  .scheduleFrequency, .minAmount, .processingTime {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .scheduleFrequency:last-child, .minAmount:last-child, .processingTime:last-child {
+    margin-bottom: 0;
+  }
+  
+  .payoutActions, .taxDocuments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .requestPayoutButton, .updateMethodButton, .scheduleButton {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+  }
+  
+  .requestPayoutButton {
+    background-color: var(--lWrite);
+    color: white;
+  }
+  
+  .requestPayoutButton:hover {
+    background-color: var(--GG);
+  }
+  
+  .updateMethodButton, .scheduleButton {
+    background-color: #f0f0f0;
+    color: #555;
+  }
+  
+  .updateMethodButton:hover, .scheduleButton:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .taxDocuments {
+    flex-direction: column;
+  }
+  
+  .taxDocument {
+    display: flex;
+    align-items: center;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 15px;
+  }
+  
+  .documentIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: #f0f5ff;
+    color: var(--secondary-button);
+    margin-right: 15px;
+    font-size: 18px;
+  }
+  
+  .documentInfo {
+    flex: 1;
+  }
+  
+  .documentName {
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+  
+  .documentDate {
+    font-size: 13px;
+    color: #777;
+  }
+  
+  .downloadDocumentButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f0f0;
+    color: #555;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .downloadDocumentButton:hover {
+    background-color: #e5e5e5;
+  }

@@ -1,0 +1,152 @@
+.stepContent {
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+  }
+
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .paymentMethodOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .radioGroup {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid #dddddd;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .radioGroup:hover {
+    border-color: #121a2f;
+    background-color: #f7fbfb;
+  }
+  
+  .radioGroup input {
+    margin: 3px 12px 0 0;
+    cursor: pointer;
+  }
+  
+  .radioGroup label {
+    font-size: 15px;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  .paymentLabel {
+    display: flex;
+    align-items: center;
+  }
+  
+  .paymentIcon {
+    width: 32px;
+    height: 32px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    font-weight: 600;
+  }
+  
+  /* Card details form */
+  .cardDetailsForm {
+    background-color: #f7f7f7;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+  
+  .cardIcons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .cardIcon {
+    padding: 4px 8px;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .formRow {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .fullWidth {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dddddd;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  
+  .halfWidth {
+    width: 48%;
+    padding: 12px;
+    border: 1px solid #dddddd;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  
+  .fullWidth:focus, .halfWidth:focus {
+    outline: none;
+    border-color: #100f2a;
+  }
+  
+  
+/* Normal state */
+.changeButton {
+    margin-left: auto;
+    color: #fff; /* White text */
+    background-color: #14162c; /* Green background */
+    border: 1px solid  #0b0c13; /* Border matches background */
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px; /* Slightly larger text */
+    transition: all 0.3s ease; /* Smooth transition */
+    font-weight: 600;
+  }
+  
+  /* Hover state */
+  .changeButton:hover {
+    background-color: #14162c; /* Darker green on hover */
+    border-color: #0b0c13; /* Match border with background */
+    transform: scale(1.05); /* Slight scaling effect */
+  }
+  
+  /* Focus state for accessibility */
+  .changeButton:focus {
+    outline: 3px solid #12142b; /* Orange focus outline */
+    outline-offset: 2px;
+  }
+  
+  /* Active state (when button is clicked) */
+  .changeButton:active {
+    background-color: #14162c; /* Darker green when clicked */
+    border-color: #0b0c13;
+    transform: scale(0.98); /* Slight shrinking effect */
+  }
+  
+  /* Disabled state (if you need a disabled state) */
+  .changeButton:disabled {
+    background-color: #b3b3b3; /* Light grey */
+    border-color: #b3b3b3;
+    cursor: not-allowed; /* No cursor change */
+  }
+  

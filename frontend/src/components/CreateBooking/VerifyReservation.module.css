@@ -1,0 +1,134 @@
+.stepContent {
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .termsContainer {
+    margin-bottom: 24px;
+  }
+  
+  .termsCheckbox {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    cursor: pointer;
+    font-size: 15px;
+    user-select: none;
+  }
+  
+  .termsCheckbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+  
+  .checkmark {
+    height: 20px;
+    width: 20px;
+    background-color: #fff;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    margin-right: 12px;
+    margin-top: 2px;
+    transition: all 0.2s ease;
+  }
+  
+  .termsCheckbox:hover input ~ .checkmark {
+    border-color: #1f1a41;
+  }
+  
+  .termsCheckbox input:checked ~ .checkmark {
+    background-color: #1f1a41;
+    border-color: #1f1a41;
+  }
+  
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+  }
+  
+  .termsCheckbox input:checked ~ .checkmark:after {
+    display: block;
+  }
+  
+  .termsCheckbox .checkmark:after {
+    left: 7px;
+    top: 3px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  
+  .termsText {
+    line-height: 1.5;
+    flex: 1;
+  }
+  
+  .termsLink {
+    color: #191431;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .termsLink:hover {
+    text-decoration: underline;
+  }
+  
+/* Normal state */
+.changeButton {
+    margin-left: auto;
+    color: #fff; /* White text */
+    background-color: #14162c; /* Green background */
+    border: 1px solid  #0b0c13; /* Border matches background */
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px; /* Slightly larger text */
+    transition: all 0.3s ease; /* Smooth transition */
+    font-weight: 600;
+  }
+  
+  /* Hover state */
+  .changeButton:hover {
+    background-color: #14162c; /* Darker green on hover */
+    border-color: #0b0c13; /* Match border with background */
+    transform: scale(1.05); /* Slight scaling effect */
+    color: #fff; 
+  }
+  
+  /* Focus state for accessibility */
+  .changeButton:focus {
+    outline: 3px solid #12142b; /* Orange focus outline */
+    outline-offset: 2px;
+  }
+  
+  /* Active state (when button is clicked) */
+  .changeButton:active {
+    background-color: #14162c; /* Darker green when clicked */
+    border-color: #0b0c13;
+    transform: scale(0.98); /* Slight shrinking effect */
+  }
+  
+  /* Disabled state (if you need a disabled state) */
+  .changeButton:disabled {
+    background-color: #b3b3b3; /* Light grey */
+    border-color: #b3b3b3;
+    cursor: not-allowed; /* No cursor change */
+  }
+  
+  
+  .googlePayIcon, .paypalIcon {
+    font-weight: 600;
+    margin-right: 6px;
+  }

@@ -1,0 +1,1108 @@
+/* subscription.module.css */
+
+/* Dashboard Layout */
+/* Dashboard.module.css */
+.dashboardContainer {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+  }
+  
+  .sidebar {
+    width: 250px;
+    background-color: #1e293b;
+    color: #fff;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .brandLogo {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  .navigation {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  
+  .navigation a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  
+  .navigation a:hover, .navigation a.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .navigation a.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background-color: #3b82f6;
+  }
+  
+  .badge {
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    font-size: 10px;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    margin-left: auto;
+  }
+  
+  .logoutButton {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    color: #cbd5e1;
+    cursor: pointer;
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .logoutButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .mainContent {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pageTitleContainer {
+  display: flex;
+  align-items: center;
+}
+
+.pageTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+}
+
+.profileSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.notificationIcon {
+  color: #4a5568;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.notificationIcon:hover {
+  color: var(--lWrite);
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--lWrite);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Notification Popup Styles */
+.notificationPopup {
+  position: absolute;
+  top: 40px;
+  right: -100px;
+  width: 320px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationPopupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notificationPopupHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.markAllReadButton {
+  background: none;
+  border: none;
+  color: var(--secondary-button);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.markAllReadButton:hover {
+  text-decoration: underline;
+}
+
+.notificationPopupList {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.notificationPopupItem {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  position: relative;
+}
+
+.notificationPopupItem.unread {
+  background-color: #f9fafb;
+}
+
+.notificationPopupItem:hover {
+  background-color: #f3f4f6;
+}
+
+.notificationPopupContent {
+  flex: 1;
+}
+
+.notificationPopupContent p {
+  margin: 0 0 4px 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.notificationPopupDate {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.unreadIndicator {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--secondary-button);
+}
+
+.notificationPopupFooter {
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.viewAllLink {
+  color: var(--secondary-button);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.viewAllLink:hover {
+  text-decoration: underline;
+}
+
+.emptyNotifications {
+  padding: 24px 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* Notification Type Icons */
+.notificationTypeIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-right: 12px;
+}
+
+.bookingIcon {
+  background-color: #4f46e5;
+}
+
+.systemIcon {
+  background-color: #fbbf24;
+}
+
+.paymentIcon {
+  background-color: #10b981;
+}
+
+  
+  
+  /* Subscription Content */
+ 
+  .subscriptionContainer {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+  }
+  
+  /* Current Plan Card */
+  .currentPlanSection {
+    margin-bottom: 2rem;
+  }
+  
+  .currentPlanCard {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .currentPlanHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .currentPlanHeader h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
+  .trialBadge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .active {
+    background-color: #ecfdf5;
+    color: var(--secondary-button);
+  }
+  
+  .warning {
+    background-color: #fffbeb;
+    color: #d97706;
+  }
+  
+  .critical {
+    background-color: #fff1f2;
+    color: #e11d48;
+  }
+  
+  .expired {
+    background-color: #f1f5f9;
+    color: #64748b;
+  }
+  
+  .currentPlanDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .planName {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  
+  .planPrice {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+  
+  .billingPeriod {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+  }
+  
+  .planDescription {
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+  }
+  
+  .planActions {
+    display: flex;
+    flex-direction: column; 
+    gap: 1rem;
+    margin-top: 1rem;
+    
+  }
+  
+  .primaryButton {
+    background-color: var(--lWrite);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .primaryButton:hover {
+    background-color: var(--GG);
+    transition: all 0.2s ease;
+
+  }
+  
+  .secondaryButton {
+    background-color: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .secondaryButton:hover {
+    background-color: #f1f5f9;
+  }
+  
+  .dangerButton {
+    background-color: var(--lWrite); /* dark blue */
+    color: #cbd5e1;
+    border: none;
+    padding: 0.5rem 1rem; /* standard button size */
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    align-self: flex-start; 
+    max-width: 300px; 
+  }
+  
+  .dangerButton:hover {
+    transition: color 0.3s ease;
+    color: white;
+  }
+  
+  /* Plans Grid */
+  .plansSection {
+    margin-bottom: 2.5rem;
+  }
+  
+  .plansSection h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+  }
+  
+  .plansGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .planCard {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .planCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .popularPlan {
+    border-color: var(--GG);
+  }
+  
+  .currentPlan {
+    border-color: #64748b;
+  }
+  
+  .popularBadge {
+    position: absolute;
+    top: 0;
+    right: 1.5rem;
+    background-color: var(--GG);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 1;
+  }
+  
+  .planHeader {
+    margin-bottom: 1.5rem;
+  }
+  
+  .planTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+  }
+  
+  .planPricing {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .price {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
+  .featuresList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+  }
+  
+  .featureItem {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    color: #334155;
+  }
+  
+  .featureUnavailable {
+    color: #94a3b8;
+  }
+  
+  .featureCheck {
+    color: #10b981;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  .featureCross {
+    color: #94a3b8;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  .planAction {
+    margin-top: 1.5rem;
+  }
+  
+  .selectPlanButton {
+    width: 100%;
+    background-color: var(--secondary-button);
+    color: white;
+    border: none;
+    padding: 0.75rem 0;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .selectPlanButton:hover {
+    background-color: #0097A7;
+  }
+  
+  .currentPlanButton {
+    width: 100%;
+    background-color: #e2e8f0;
+    color: #64748b;
+    border: none;
+    padding: 0.75rem 0;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: not-allowed;
+  }
+  
+  /* Payment Methods */
+  .paymentMethodsSection {
+    margin-bottom: 2.5rem;
+  }
+  
+  .paymentMethodsSection h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+  }
+  
+  .paymentMethodsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  
+  .paymentMethodCard {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .defaultPaymentMethod {
+    border-color: var(--secondary-button);
+    box-shadow: 2px 2px 2px 2px rgb(80, 227, 194, 0.4);
+  }
+  
+  .paymentMethodInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .cardType {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  
+  .cardExpiry {
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+  
+  .paymentMethodActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .defaultBadge {
+    background-color: #e0f7fa;
+    color: var(--secondary-button);
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .smallButton {
+    background-color: transparent;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .smallButton:hover {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+  
+  .addPaymentButton {
+    background-color: #f8fafc;
+    color: #0f172a;
+    border: 1px dashed #cbd5e1;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .addPaymentButton:hover {
+    background-color: #f1f5f9;
+  }
+  
+  /* Billing History */
+  .billingHistorySection {
+    margin-bottom: 2rem;
+  }
+  
+  .billingHistorySection h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+  }
+  
+  .billingHistoryTable {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
+  
+  .tableHeader {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .tableRow {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .tableRow:last-child {
+    border-bottom: none;
+  }
+  
+  .tableCell {
+    display: flex;
+    align-items: center;
+  }
+  
+  .statusBadge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .paid {
+    background-color: #ecfdf5;
+    color: #059669;
+  }
+  
+  .pending {
+    background-color: #fffbeb;
+    color: var(--accent);
+  }
+  
+  .failed {
+    background-color: #fff1f2;
+    color: #e11d48;
+  }
+  
+  .downloadLink {
+    color: var(--secondary-button);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .downloadLink:hover {
+    text-decoration: underline;
+  }
+  
+  /* Trial countdown circle */
+  .trialCountdown {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 1rem auto;
+  }
+  
+  .countdownCircle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+  
+  .countdownBackground {
+    stroke: #e2e8f0;
+  }
+  
+  .countdownProgress {
+    stroke: var(--secondary-button);
+    transition: stroke-dashoffset 0.5s ease;
+  }
+  
+  .countdownText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  
+  .countdownDays {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  
+  .countdownLabel {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 1024px) {
+    .plansGrid {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .dashboardContainer {
+      flex-direction: column;
+    }
+    
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: static;
+      padding: 1rem;
+    }
+    
+    .navigation {
+      flex-direction: row;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    
+    .logoutButton {
+      display: none;
+    }
+    
+    .mainContent {
+      padding: 1rem;
+    }
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .profileSection {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .plansGrid {
+      grid-template-columns: 1fr;
+    }
+    
+    .paymentMethodsContainer {
+      grid-template-columns: 1fr;
+    }
+    
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    
+    .tableCell:nth-child(3), .tableCell:nth-child(4) {
+      margin-top: 0.5rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+    
+    .tableCell {
+      margin-top: 0.5rem;
+    }
+    
+    .tableCell:first-child {
+      margin-top: 0;
+    }
+    
+    .planActions {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /* Add these to subscription.module.css */
+
+.paymentFormSection {
+    margin-bottom: 2rem;
+  }
+  
+  .paymentFormCard {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+  }
+  
+  .paymentFormCard h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+  }
+  
+  .formGroup {
+    margin-bottom: 1rem;
+  }
+  
+  .formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #334155;
+  }
+  
+  .formGroup input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .formRow {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .formRow .formGroup {
+    flex: 1;
+  }
+  
+  .formActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .noPaymentMethods {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    text-align: center;
+    grid-column: 1 / -1;
+  }
+  
+  .noPaymentMethods p {
+    margin-bottom: 1rem;
+    color: #64748b;
+  }
+  
+  /* Update table header and row for new column */
+  .tableHeader {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr !important;
+  }
+  
+  .tableRow {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr !important;
+  }
+  
+  @media (max-width: 768px) {
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr 1fr !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .tableHeader, .tableRow {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /* Payment Method Tabs */
+.paymentMethodTabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .paymentTab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .paymentTab:hover {
+    color: var(--secondary-button);
+  }
+  
+  .activeTab {
+    color: var(--secondary-button);
+    border-bottom-color: var(--secondary-button);
+  }
+  
+  /* PayPal Info */
+  .paypalInfo {
+    background-color: #f8fafc;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  
+  .paypalInfo p {
+    margin: 0;
+    color: #64748b;
+  }
+  
+  /* Error Alert */
+  .errorAlert {
+    background-color: #fff1f2;
+    color: #e11d48;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .errorAlert button {
+    background: none;
+    border: none;
+    color: #e11d48;
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+  
+  /* Payment Method Icons */
+  .cardType svg {
+    color: var(--secondary-button);
+    font-size: 1.25rem;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .paymentMethodTabs {
+      flex-direction: column;
+      border-bottom: none;
+    }
+  
+    .paymentTab {
+      border-bottom: none;
+      border-left: 3px solid transparent;
+      justify-content: flex-start;
+    }
+  
+    .activeTab {
+      border-left-color: var(--secondary-button);
+    }
+  }
+  .cardElement {
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }

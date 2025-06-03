@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+    scroll-behavior: smooth;
+  
+}
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --cyan0: #185046;
+  --cyan1: #257b6b;
+  --cyan2: #2a7d6e;
+  --cyan3:#398a7a;
+  --cyan4:#66b3a5;
+  --dwhiteCol:#f1f5f9;
+  --dWhite1Col:#cce9e9;
+  --grey0Col: #f8fafc;
+  --greyCol:#c9d6ff75;
+  --grey1Col: #1e293b;
+  --greyBlue: #24343e;
+  --grey1:#576580;
+  --grey1-hover: #3f4c57;
+  --grey0:#24343e;
+  --grey0-hover: #1a242b;
+  --background: #F4F4F4;
+  --primary-button: #4A90E2;
+  --secondary-button: #50E3C2;
+  --secondary-buttond:#3FCDB0;
+  --text: #333333;
+  --accent: #FF6F61;
+  --lWrite: #1e293b;
+  --Mwrite: #64748b;
+  --primary-dark: #24343e;
+  --primary-light: #576580;
+  --text-white: #ffffff;
+  --transition-speed: 0.3s;
+
+  
+
+
+
+  --AA:#161421;
+  --BB:#131521;
+  --CC:#141622;
+  --DD:#151723;
+  --EE:#161723;
+  --FF:#151421;
+  --GG:#141521;
+  --HH:#151824;
+
+  --II:#151823;
+  --JJ:#151924;
+
+  --BG: #2C2C2C;
+  --PT: #E4E4E4;
+  --ST: #B0B0B0;
+  --AC:#A8DADC;
+  --AC2:#FFC1CC;
+  --BTM: #B39CD0;
+ 
+}
+
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #fdf6f6;
+    --foreground: #1e0b0b;
+  }
+}
+
+html, body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+
+
+
+
+
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 245, 247, 250;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c7c7c7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Additional utility classes */
+.shadow-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Dashboard card hover effect */
+.dashboard-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
