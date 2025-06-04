@@ -10,24 +10,27 @@ import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from './forgetPassword/email.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UpdateProfileModule } from './dashboard/settings/updateProfile.module';
-import { FirebaseAdminService } from './firebase/firebase';
+import { ConfigModule } from '@nestjs/config'
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Host.name, schema: HostSchema }]),
     DatabaseModule,
-    FirebaseAdminModule,
+    FirebaseAdminModule, // Importez le module, pas le service directement
     HostPlanModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-secret',
       signOptions: { expiresIn: '1d' },
     }),
-    forwardRef(() => EmailModule), // Use forwardRef for circular dependency
+    forwardRef(() => EmailModule),
     DashboardModule,
     UpdateProfileModule,
+      ConfigModule.forRoot({
+      isGlobal: true, // Rend ConfigModule disponible partout
+    }),
   ],
   controllers: [HostController],
-  providers: [HostService, FirebaseAdminService],
+  providers: [HostService], // Retirez FirebaseAdminService d'ici
   exports: [HostService],
 })
 export class HostModule {}
