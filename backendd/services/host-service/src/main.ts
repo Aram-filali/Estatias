@@ -1,3 +1,4 @@
+// main.ts - Adaptez votre microservice pour Render Web Service GRATUIT
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
@@ -7,19 +8,20 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    HostModule,
-    {
-      transport: Transport.TCP,
-      options: {
-        host: 'localhost',
-        port: 3003,
-      },
+  // 1. Créer l'application HTTP principale (obligatoire pour Render)
+  const httpApp = await NestFactory.create(HostModule);
+  
+  // 2. Ajouter votre microservice TCP existant
+  const microservice = httpApp.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: {
+      host: '0.0.0.0', // Important : 0.0.0.0 pour Render
+      port: 3003,
     },
-  );
+  });
 
-  app.useGlobalPipes(
+  // 3. Configuration des pipes (comme votre code original)
+  microservice.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -27,8 +29,13 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen();
-  console.log('Host microservice is listening on TCP port 3003');
+  // 4. Démarrer les deux services
+  await httpApp.startAllMicroservices();
+  await httpApp.listen(process.env.PORT || 3000);
+  
+  console.log('🚀 Host microservice hybride démarré');
+  console.log(`📡 HTTP Health endpoint: Port ${process.env.PORT || 3000}`);
+  console.log(`🔌 TCP Microservice: Port ${process.env.MICROSERVICE_PORT || 3003}`);
 }
 
 bootstrap();
