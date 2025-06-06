@@ -10,7 +10,7 @@ dotenv.config();
 async function bootstrap() {
   // 1. HTTP sur le port Render (pour les health checks)
   const httpApp = await NestFactory.create(HostModule);
-  const HTTP_PORT = process.env.PORT || 10000; // Render assigne généralement un port > 10000
+  const HTTP_PORT = process.env.PORT_RENDER || 10000; // Render assigne généralement un port > 10000
   
   // 2. TCP Microservice sur le port 3003 (préservé)
   const microservice = httpApp.connectMicroservice<MicroserviceOptions>({
