@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: estatias-property-service
+    env: node
+    buildCommand: cd backendd/services/property-service && npm install --include=dev && npm run build
+    startCommand: cd backendd/services/property-service && npm run start:prod
+    plan: free
+    region: frankfurt
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3004
+      # Ajoutez vos autres variables d'environnement ici si nécessaire
+      # - key: MONGODB_URI
+      #   value: your_mongodb_connection_string
+      # - key: FIREBASE_PROJECT_ID
+      #   value: your_firebase_project_id
