@@ -1,4 +1,4 @@
-// main.ts - Préserver le port 3003 pour TCP
+// main.ts - Configuration corrigée pour Render
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
@@ -8,11 +8,13 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-  // 1. HTTP sur le port Render (pour les health checks)
+  // 1. HTTP sur le port assigné par Render (via process.env.PORT)
   const httpApp = await NestFactory.create(HostModule);
-  const HTTP_PORT = process.env.PORT_RENDER || 10000; // Render assigne généralement un port > 10000
   
-  // 2. TCP Microservice sur le port 3003 (préservé)
+  // IMPORTANT: Render assigne le port via process.env.PORT
+  const HTTP_PORT = process.env.PORT || process.env.PORT_RENDER || 4000;
+  
+  // 2. TCP Microservice sur le port 3003 (préservé pour vos autres services)
   const microservice = httpApp.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
     options: {
@@ -38,28 +40,45 @@ async function bootstrap() {
     }),
   );
 
-  // 4. CORS et health check
+  // 4. CORS
   httpApp.enableCors();
-  
-  // Route de santé simple pour Render
+
+  // 5. Route de santé pour Render
   httpApp.getHttpAdapter().get('/health', (req, res) => {
-    res.json({ 
-      status: 'OK', 
+    res.status(200).json({
+      status: 'OK',
       timestamp: new Date().toISOString(),
       service: 'host-microservice',
       tcpPort: 3003,
-      httpPort: HTTP_PORT
+      httpPort: HTTP_PORT,
+      environment: process.env.NODE_ENV || 'development'
     });
   });
 
-  // 5. Démarrage des services
+  // 6. Route racine pour vérification
+  httpApp.getHttpAdapter().get('/', (req, res) => {
+    res.status(200).json({
+      message: 'Host Microservice is running',
+      status: 'OK',
+      ports: {
+        http: HTTP_PORT,
+        tcp: 3003
+      }
+    });
+  });
+
+  // 7. Démarrage des services
   await httpApp.startAllMicroservices();
-  await httpApp.listen(HTTP_PORT);
-  
+  await httpApp.listen(HTTP_PORT, '0.0.0.0'); // Important: écouter sur toutes les interfaces
+
   console.log('🚀 Host microservice hybride démarré');
   console.log(`📡 HTTP Health endpoint: Port ${HTTP_PORT}`);
   console.log(`🔌 TCP Microservice: Port 3003 (préservé)`);
   console.log(`🩺 Health check: http://localhost:${HTTP_PORT}/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 
-bootstrap();
+bootstrap().catch(err => {
+  console.error('❌ Erreur lors du démarrage:', err);
+  process.exit(1);
+});

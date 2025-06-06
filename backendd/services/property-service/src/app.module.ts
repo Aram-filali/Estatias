@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PropertyController } from './app.controller';
 import { PropertyService } from './app.service';
 import { PropertySchema, Property } from './schema/property.schema';  // Importer le schéma
-import { DatabaseModule } from '../config/database.module';
+import { DatabaseModule } from './AI/database.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ConfigModule } from '@nestjs/config';
 import { AIModule } from './AI/ai.module';
