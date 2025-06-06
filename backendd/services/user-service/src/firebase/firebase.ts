@@ -9,16 +9,22 @@ export class FirebaseAdminService {
   private initializationError: string | null = null;
 
   constructor(private configService: ConfigService) {
+    // Différer l'initialisation pour éviter les erreurs au démarrage
+    this.initializeFirebaseAsync();
+  }
+
+  private async initializeFirebaseAsync() {
     try {
       // Vérifier si l'application Firebase Admin est déjà initialisée
       if (!admin.apps.length) {
-        this.initializeFirebase();
+        await this.initializeFirebase();
         this.isInitialized = true;
         console.log('✅ Firebase Admin SDK initialisé avec succès.');
       } else {
         this.isInitialized = true;
+        console.log('✅ Firebase Admin SDK déjà initialisé.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erreur lors de l\'initialisation de Firebase Admin SDK:', error);
       this.initializationError = error.message;
       
@@ -27,7 +33,7 @@ export class FirebaseAdminService {
     }
   }
 
-  private initializeFirebase() {
+  private async initializeFirebase() {
     // SOLUTION 1: Variables d'environnement séparées (RECOMMANDÉE)
     const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
     const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
@@ -35,17 +41,23 @@ export class FirebaseAdminService {
 
     console.log('🔍 Debug Firebase Config:');
     console.log('Project ID présent:', !!projectId);
-    console.log('Private Key présent:', !!privateKey);
+    console.log('Private Key présent:', !!privateKey && privateKey.length > 50);
     console.log('Client Email présent:', !!clientEmail);
 
     if (projectId && privateKey && clientEmail) {
       // Mode production avec variables d'environnement
       console.log('🔥 Initialisation Firebase avec variables d\'environnement');
       
+      // Nettoyage de la clé privée
+      const cleanPrivateKey = privateKey
+        .replace(/\\n/g, '\n')
+        .replace(/"/g, '')
+        .trim();
+
       const serviceAccount = {
         type: "service_account",
         project_id: projectId,
-        private_key: privateKey.replace(/\\n/g, '\n'), // Important: remplacer \\n par \n
+        private_key: cleanPrivateKey,
         client_email: clientEmail,
         client_id: this.configService.get<string>('FIREBASE_CLIENT_ID'),
         auth_uri: "https://accounts.google.com/o/oauth2/auth",
@@ -65,8 +77,6 @@ export class FirebaseAdminService {
     // SOLUTION 2: JSON complet depuis variable d'environnement
     const firebaseServiceAccount = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT');
     
-    console.log('Firebase Service Account JSON présent:', !!firebaseServiceAccount);
-    
     if (firebaseServiceAccount) {
       console.log('🔥 Initialisation Firebase avec JSON depuis env');
       
@@ -79,7 +89,7 @@ export class FirebaseAdminService {
         });
 
         return; // Sortir de la fonction si succès
-      } catch (parseError) {
+      } catch (parseError: any) {
         console.error('❌ Erreur lors du parsing du JSON Firebase:', parseError);
         throw new Error('Format JSON Firebase invalide');
       }
@@ -88,7 +98,6 @@ export class FirebaseAdminService {
     // SOLUTION 3: Fallback pour développement local
     console.log('🔥 Tentative d\'initialisation Firebase avec fichier local (développement)');
     
-    // Essayer plusieurs chemins possibles
     const possiblePaths = [
       path.resolve(__dirname, '../../../config/firebase-service-account.json'),
       path.resolve(__dirname, '../../config/firebase-service-account.json'),
@@ -99,20 +108,16 @@ export class FirebaseAdminService {
     ];
 
     let serviceAccount = null;
-    let foundPath = '';
 
     for (const filePath of possiblePaths) {
       try {
         const fs = require('fs');
         if (fs.existsSync(filePath)) {
           serviceAccount = require(filePath);
-          foundPath = filePath;
           console.log(`✅ Firebase config trouvé à: ${filePath}`);
           break;
-        } else {
-          console.log(`❌ Firebase config non trouvé à: ${filePath}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.log(`❌ Erreur lors de la lecture de: ${filePath}`, err.message);
       }
     }
@@ -126,6 +131,11 @@ export class FirebaseAdminService {
       };
       
       console.error('❌ Variables d\'environnement disponibles:', availableEnvVars);
+      console.error('❌ Valeurs actuelles:');
+      console.error('PROJECT_ID:', this.configService.get('FIREBASE_PROJECT_ID'));
+      console.error('CLIENT_EMAIL:', this.configService.get('FIREBASE_CLIENT_EMAIL'));
+      console.error('PRIVATE_KEY length:', this.configService.get('FIREBASE_PRIVATE_KEY')?.length || 0);
+      
       throw new Error('Aucun fichier de configuration Firebase trouvé et aucune variable d\'environnement configurée correctement');
     }
 
@@ -162,7 +172,7 @@ export class FirebaseAdminService {
       const decodedToken = await this.firebaseApp.auth().verifyIdToken(token);
       console.log('✅ Token Firebase vérifié:', decodedToken.uid);
       return decodedToken;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erreur lors de la vérification du token Firebase:', error);
       throw new Error('Token Firebase invalide ou expiré');
     }
@@ -180,7 +190,7 @@ export class FirebaseAdminService {
       await this.firebaseApp.auth().listUsers(1);
       console.log('✅ Connexion Firebase Admin testée avec succès');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Échec du test de connexion Firebase:', error);
       return false;
     }
@@ -193,5 +203,16 @@ export class FirebaseAdminService {
       isInitialized: this.isInitialized,
       error: this.initializationError
     };
+  }
+
+  // Attendre que l'initialisation soit terminée
+  async waitForInitialization(timeout = 10000): Promise<boolean> {
+    const startTime = Date.now();
+    
+    while (!this.isInitialized && !this.initializationError && (Date.now() - startTime) < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    return this.isInitialized;
   }
 }

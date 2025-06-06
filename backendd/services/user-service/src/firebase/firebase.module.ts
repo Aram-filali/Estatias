@@ -12,7 +12,9 @@ import { User, UserSchema } from '../schema/user.schema'; // ou ajuste le chemin
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    ConfigModule
+    ConfigModule.forRoot({
+      isGlobal: true, // Rend ConfigService disponible globalement
+    })
   ],
   providers: [FirebaseAdminService, FirebaseClientService, FirebaseAuthService, FirebasePassService],
   exports: [FirebaseAdminService, FirebaseClientService, FirebaseAuthService, FirebasePassService],
