@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { UserController } from './app.controller';
 import { UserService } from './app.service';
-import { DatabaseModule } from '../config/database.module';
+import { DatabaseModule } from './firebase/database.module';
 import { FirebaseAdminModule } from './firebase/firebase.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schema/user.schema';
