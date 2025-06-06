@@ -31,11 +31,11 @@ async function bootstrap() {
 
   // 4. Démarrer les deux services
   await httpApp.startAllMicroservices();
-  await httpApp.listen(process.env.PORT || 3000);
+  await httpApp.listen(3003);
   
   console.log('🚀 Host microservice hybride démarré');
-  console.log(`📡 HTTP Health endpoint: Port ${process.env.PORT || 3000}`);
-  console.log(`🔌 TCP Microservice: Port ${process.env.MICROSERVICE_PORT || 3003}`);
+  console.log(`📡 HTTP Health endpoint: Port 3001`);
+  console.log(`🔌 TCP Microservice: Port 3001`);
 }
 
 bootstrap();
