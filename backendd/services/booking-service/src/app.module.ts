@@ -4,7 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { BookingController } from './app.controller';
 import { BookingService } from './app.service';
 import { BookingSchema, Booking } from './schema/booking.schema';
-import { DatabaseModule } from '../config/database.module';
+import { DatabaseModule } from './email/database.module';
 import { BookingEmailModule } from './email/booking-email.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentExpirationTask } from './payment-expiration.task';
