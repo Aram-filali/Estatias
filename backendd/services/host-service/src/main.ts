@@ -34,8 +34,8 @@ async function bootstrap() {
   await httpApp.listen(3003);
   
   console.log('🚀 Host microservice hybride démarré');
-  console.log(`📡 HTTP Health endpoint: Port 3001`);
-  console.log(`🔌 TCP Microservice: Port 3001`);
+  console.log(`📡 HTTP Health endpoint: Port 3003`);
+  console.log(`🔌 TCP Microservice: Port 3003`);
 }
 
 bootstrap();

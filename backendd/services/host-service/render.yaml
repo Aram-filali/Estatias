@@ -2,8 +2,8 @@ services:
   - type: web
     name: estatias-host-service
     env: node
-    buildCommand: cd backendd/services/host-service && npm install && npm run build
-    startCommand: cd backendd/services/host-servicey && npm run start:prod
+    buildCommand: cd backendd/services/host-service && npm install --include=dev && npm run build
+    startCommand: cd backendd/services/host-service && npm run start:prod
     plan: free
     region: frankfurt
     branch: main
