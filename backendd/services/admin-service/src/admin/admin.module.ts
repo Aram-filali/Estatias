@@ -3,7 +3,7 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { Admin, AdminSchema } from '../schema/admin.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { DatabaseModule } from '../../config/database.module';
+import { DatabaseModule } from '../firebase-auth/database.module';
 import { FirebaseAdminModule } from '../firebase-auth/firebase.module';
 
 @Module({
