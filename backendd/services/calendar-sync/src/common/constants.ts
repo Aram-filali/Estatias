@@ -40,7 +40,7 @@ export enum Platform {
 }
 
 // Statuts de synchronisation
-export enum SyncStatus {
+/*export enum SyncStatus {
   PENDING = 'PENDING',
   STARTED = 'STARTED',
   SUCCESS = 'SUCCESS',
@@ -48,14 +48,14 @@ export enum SyncStatus {
   ERROR = 'ERROR',
   CRITICAL_ERROR = 'CRITICAL_ERROR',
   CANCELLED = 'CANCELLED',
-}
+}*/
 
 // Priorités de synchronisation
-export enum SyncPriority {
+/*export enum SyncPriority {
   HIGH = 1,
   NORMAL = 2,
   LOW = 3,
-}
+}*/
 
 // Intervalle minimal entre les synchronisations (en heures)
 export const MIN_SYNC_INTERVAL = 6;
@@ -79,3 +79,36 @@ export const CACHE_PREFIX = 'calendar-sync:';
 
 // Durée de validité du cache (en secondes)
 export const CACHE_TTL = 3600; // 1 heure
+
+// common/constants.ts or wherever your constants are defined
+
+export enum SyncStatus {
+  PENDING = 'PENDING',
+  STARTED = 'STARTED',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+  IN_PROGRESS = 'IN_PROGRESS',
+  CRITICAL_ERROR = 'CRITICAL_ERROR',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum SyncPriority {
+  HIGH = 'HIGH',
+  NORMAL = 'NORMAL',
+  LOW = 'LOW'
+}
+
+// Additional constants for the unified sync service
+export const SYNC_DEFAULTS = {
+  MAX_PARALLEL_SYNCS: 3,
+  SYNC_DELAY_MS: 2000,
+  SYNC_TIMEOUT_MINUTES: 15,
+  CONFLICT_RESOLUTION: 'scraping_priority'
+} as const;
+
+export type ConflictResolutionStrategy = 
+  | 'scraping_priority' 
+  | 'ical_priority' 
+  | 'available_priority' 
+  | 'unavailable_priority' 
+  | 'manual';

@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Property, PropertyDocument } from '../schema/property.schema';
-import { Availability, AvailabilityDocument } from '../schema/availability.schema';
+import { Availability, AvailabilityDocument, AvailabilityItem } from '../schema/availability.schema';
 import { CalendarSubscription, CalendarSubscriptionDocument } from '../schema/calendar-subscription.schema';
 import { CreatePropertyDto } from '../dto/create-property.dto';
 import { UpdateAvailabilityDto } from '../dto/update-availability.dto';
@@ -154,38 +154,56 @@ export class CalendarService {
     // Vérifier si la propriété existe
     await this.findPropertyById(updateAvailabilityDto.propertyId);
     
-    // Utiliser upsert pour créer ou mettre à jour la disponibilité
-    const availability = await this.availabilityModel.findOneAndUpdate(
-      {
+    const targetDate = new Date(updateAvailabilityDto.date);
+    
+    // Trouver le document d'availability pour cette propriété et source
+    let availabilityDoc = await this.availabilityModel.findOne({
+      propertyId: updateAvailabilityDto.propertyId,
+      source: updateAvailabilityDto.source,
+    }).exec();
+
+    if (!availabilityDoc) {
+      // Créer un nouveau document d'availability
+      availabilityDoc = new this.availabilityModel({
         propertyId: updateAvailabilityDto.propertyId,
-        date: new Date(updateAvailabilityDto.date),
+        siteId: updateAvailabilityDto.propertyId, // Vous pouvez ajuster cela selon vos besoins
         source: updateAvailabilityDto.source,
-      },
-      {
-        $set: {
-          isAvailable: updateAvailabilityDto.isAvailable,
-          lastUpdated: new Date(),
-        },
-        $setOnInsert: {
-          propertyId: updateAvailabilityDto.propertyId,
-          date: new Date(updateAvailabilityDto.date),
-          source: updateAvailabilityDto.source,
-        }
-      },
-      { 
-        new: true, 
-        upsert: true,
-        runValidators: true 
-      }
-    ).exec();
+        availabilities: [],
+        lastUpdated: new Date(),
+      });
+    }
+
+    // Chercher si la date existe déjà dans le tableau availabilities
+    const existingAvailabilityIndex = availabilityDoc.availabilities.findIndex(
+      (avail) => avail.date.getTime() === targetDate.getTime()
+    );
+
+    const newAvailabilityItem: AvailabilityItem = {
+      date: targetDate,
+      isAvailable: updateAvailabilityDto.isAvailable,
+      lastUpdated: new Date(),
+    };
+
+    if (existingAvailabilityIndex >= 0) {
+      // Mettre à jour l'élément existant
+      availabilityDoc.availabilities[existingAvailabilityIndex] = newAvailabilityItem;
+    } else {
+      // Ajouter un nouvel élément
+      availabilityDoc.availabilities.push(newAvailabilityItem);
+    }
+
+    availabilityDoc.lastUpdated = new Date();
+    availabilityDoc.updatedAt = new Date();
+
+    const savedDoc = await availabilityDoc.save();
 
     // Émettre un événement pour la mise à jour de disponibilité
     this.eventEmitter.emit('availability.updated', { 
-      availability, 
+      availability: savedDoc, 
       propertyId: updateAvailabilityDto.propertyId 
     });
     
-    return availability;
+    return savedDoc;
   }
 
   /**
@@ -194,23 +212,28 @@ export class CalendarService {
   async detectConflicts(propertyId: string, startDate: string, endDate: string): Promise<ConflictDetectionResult> {
     this.logger.log(`Détection des conflits pour la propriété ${propertyId} du ${startDate} au ${endDate}`);
     
-    const availabilities = await this.availabilityModel.find({
+    const availabilityDocs = await this.availabilityModel.find({
       propertyId,
-      date: {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      },
-    }).sort({ date: 1 }).exec();
+    }).exec();
 
     const conflictMap = new Map<string, string[]>();
     
-    // Grouper par date pour détecter les conflits
-    availabilities.forEach(avail => {
-      const dateKey = avail.date.toISOString().split('T')[0];
-      if (!conflictMap.has(dateKey)) {
-        conflictMap.set(dateKey, []);
-      }
-      conflictMap.get(dateKey)?.push(avail.source);
+    // Parcourir tous les documents d'availability
+    availabilityDocs.forEach(doc => {
+      doc.availabilities.forEach(avail => {
+        const availDate = new Date(avail.date);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Vérifier si la date est dans la plage demandée
+        if (availDate >= start && availDate <= end) {
+          const dateKey = avail.date.toISOString().split('T')[0];
+          if (!conflictMap.has(dateKey)) {
+            conflictMap.set(dateKey, []);
+          }
+          conflictMap.get(dateKey)?.push(doc.source);
+        }
+      });
     });
 
     const conflicts = Array.from(conflictMap.entries())
@@ -235,38 +258,52 @@ export class CalendarService {
     
     const property = await this.findPropertyById(propertyId);
     
-    let query: any = { propertyId };
-    if (options.startDate || options.endDate) {
-      query.date = {};
-      if (options.startDate) query.date.$gte = new Date(options.startDate);
-      if (options.endDate) query.date.$lte = new Date(options.endDate);
-    }
+    const availabilityDocs = await this.availabilityModel.find({ propertyId }).exec();
     
-    const availabilities = await this.availabilityModel.find(query).sort({ date: 1 }).exec();
+    // Aplatir toutes les availabilities de tous les documents
+    const allAvailabilities: Array<AvailabilityItem & { source: string }> = [];
+    
+    availabilityDocs.forEach(doc => {
+      doc.availabilities.forEach(avail => {
+        const availDate = new Date(avail.date);
+        
+        // Filtrer par date si spécifié
+        if (options.startDate && availDate < new Date(options.startDate)) return;
+        if (options.endDate && availDate > new Date(options.endDate)) return;
+        
+        allAvailabilities.push({
+          ...avail,
+          source: doc.source,
+        });
+      });
+    });
+    
+    // Trier par date
+    allAvailabilities.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     switch (options.format) {
       case 'ical':
-        return this.generateICalendar(property, availabilities);
+        return this.generateICalendar(property, allAvailabilities);
       case 'csv':
-        return this.generateCSV(property, availabilities, options.includeMetadata);
+        return this.generateCSV(property, allAvailabilities, options.includeMetadata);
       case 'xml':
-        return this.generateXML(property, availabilities, options.includeMetadata);
+        return this.generateXML(property, allAvailabilities, options.includeMetadata);
       default:
         return {
           property,
-          availabilities,
+          availabilities: allAvailabilities,
           scrapingInfo: options.includeMetadata ? {
             publicUrl: property.publicUrl,
             platform: property.platform,
             lastScraped: property.lastSynced,
             exportedAt: new Date(),
-            totalRecords: availabilities.length,
+            totalRecords: allAvailabilities.length,
           } : undefined,
         };
     }
   }
 
-  private generateICalendar(property: PropertyDocument, availabilities: AvailabilityDocument[]): string {
+  private generateICalendar(property: PropertyDocument, availabilities: Array<AvailabilityItem & { source: string }>): string {
     let icalData = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -302,7 +339,7 @@ export class CalendarService {
     return icalData.join('\r\n');
   }
 
-  private generateCSV(property: PropertyDocument, availabilities: AvailabilityDocument[], includeMetadata: boolean = false): string {
+  private generateCSV(property: PropertyDocument, availabilities: Array<AvailabilityItem & { source: string }>, includeMetadata: boolean = false): string {
     const headers = ['Date', 'Available', 'Source', 'Last Updated'];
     if (includeMetadata) {
       headers.push('Property ID', 'Platform', 'Site ID');
@@ -328,7 +365,7 @@ export class CalendarService {
     return rows.join('\n');
   }
 
-  private generateXML(property: PropertyDocument, availabilities: AvailabilityDocument[], includeMetadata: boolean = false): string {
+  private generateXML(property: PropertyDocument, availabilities: Array<AvailabilityItem & { source: string }>, includeMetadata: boolean = false): string {
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<calendar>\n';
     
     if (includeMetadata) {
@@ -418,13 +455,21 @@ export class CalendarService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
     
-    const result = await this.availabilityModel.deleteMany({
-      date: { $lt: cutoffDate }
-    }).exec();
+    // Nettoyer les éléments dans les tableaux availabilities
+    const result = await this.availabilityModel.updateMany(
+      {},
+      {
+        $pull: {
+          availabilities: {
+            date: { $lt: cutoffDate }
+          }
+        }
+      }
+    ).exec();
     
-    this.logger.log(`Nettoyage: ${result.deletedCount} enregistrements de disponibilité supprimés`);
+    this.logger.log(`Nettoyage: ${result.modifiedCount} documents mis à jour pour supprimer les anciennes disponibilités`);
     
-    return { deletedCount: result.deletedCount };
+    return { deletedCount: result.modifiedCount };
   }
 
   /**
@@ -435,15 +480,16 @@ export class CalendarService {
     
     const stats = await this.availabilityModel.aggregate([
       { $match: match },
+      { $unwind: '$availabilities' },
       {
         $group: {
           _id: null,
           totalRecords: { $sum: 1 },
-          availableDays: { $sum: { $cond: ['$isAvailable', 1, 0] } },
-          unavailableDays: { $sum: { $cond: ['$isAvailable', 0, 1] } },
+          availableDays: { $sum: { $cond: ['$availabilities.isAvailable', 1, 0] } },
+          unavailableDays: { $sum: { $cond: ['$availabilities.isAvailable', 0, 1] } },
           sourcesCount: { $addToSet: '$source' },
-          oldestDate: { $min: '$date' },
-          newestDate: { $max: '$date' },
+          oldestDate: { $min: '$availabilities.date' },
+          newestDate: { $max: '$availabilities.date' },
         }
       }
     ]).exec();
