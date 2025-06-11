@@ -10,6 +10,7 @@ import { ConfigModule } from './config/config.module'; // Import your custom Con
 import { CalendarModule } from './calendar/calendar.module';
 import { ScraperModule } from './scraper/scraper.module';
 import { SyncModule } from './sync/sync.module';
+import { ICalModule } from './ICal/ICal.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SyncModule } from './sync/sync.module';
     CalendarModule,
     ScraperModule,
     SyncModule,
+    ICalModule,
   ],
   providers: [AppService],
 })

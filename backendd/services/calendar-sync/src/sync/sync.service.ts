@@ -98,6 +98,18 @@ private transformScraperResult(scraperResult: any): PropertyAvailabilityResult {
   };
 }
 
+private mapPriorityToString(priority: SyncPriority): string {
+  switch (priority) {
+    case SyncPriority.HIGH:
+      return 'HIGH';
+    case SyncPriority.NORMAL:
+      return 'NORMAL';
+    case SyncPriority.LOW:
+      return 'LOW';
+    default:
+      return 'NORMAL';
+  }
+}
   /**
    * Enhanced property synchronization with detailed status reporting
    */
@@ -136,13 +148,13 @@ async syncProperty(
     this.updateSyncStatus(propertyId, 2, 'Validating platform and URL');
     this.validateSupportedPlatform(property.platform, property.publicUrl);
 
-    // Step 3: Create sync log
+    // Step 3: Create sync log - FIXED: Convert priority to string
     this.updateSyncStatus(propertyId, 3, 'Creating sync log');
     syncLog = new this.syncLogModel({
       propertyId: property._id,
       platform: property.platform,
       status: SyncStatus.STARTED,
-      priority,
+      priority: this.mapPriorityToString(priority), // Convert numeric enum to string
       message: `Démarrage du scraping de l'URL publique: ${property.publicUrl}`,
       createdAt: new Date(),
     });
@@ -648,27 +660,33 @@ private detectConflicts(existing: any[], newData: any[]): ConflictItem[] {
 
   // ... (keeping all your existing methods)
   
-  private validateSupportedPlatform(platform: string, publicUrl: string): void {
-    const supportedPlatforms = ['airbnb', 'booking'];
-    
-    if (!supportedPlatforms.includes(platform.toLowerCase())) {
-      throw new Error(`Plateforme non supportée pour le scraping public: ${platform}`);
-    }
-
-    switch (platform.toLowerCase()) {
-      case 'airbnb':
-        if (!publicUrl.includes('airbnb.') || !publicUrl.includes('/rooms/')) {
-          throw new Error('URL Airbnb invalide. Format attendu: https://www.airbnb.com/rooms/[ID]');
-        }
-        break;
-        
-      case 'booking':
-        if (!publicUrl.includes('booking.com') || !publicUrl.includes('/hotel/')) {
-          throw new Error('URL Booking.com invalide. Format attendu: https://www.booking.com/hotel/...');
-        }
-        break;
-    }
+private validateSupportedPlatform(platform: string, publicUrl: string): void {
+  const supportedPlatforms = ['airbnb', 'booking', 'hometogo']; // Ajout de hometogo
+  
+  if (!supportedPlatforms.includes(platform.toLowerCase())) {
+    throw new Error(`Plateforme non supportée pour le scraping public: ${platform}. Plateformes supportées: ${supportedPlatforms.join(', ')}`);
   }
+
+  switch (platform.toLowerCase()) {
+    case 'airbnb':
+      if (!publicUrl.includes('airbnb.') || !publicUrl.includes('/rooms/')) {
+        throw new Error('URL Airbnb invalide. Format attendu: https://www.airbnb.com/rooms/[ID]');
+      }
+      break;
+      
+    case 'booking':
+      if (!publicUrl.includes('booking.com') || !publicUrl.includes('/hotel/')) {
+        throw new Error('URL Booking.com invalide. Format attendu: https://www.booking.com/hotel/...');
+      }
+      break;
+      
+    case 'hometogo':
+      if (!publicUrl.includes('hometogo.') && !publicUrl.includes('hometogo.com')) {
+        throw new Error('URL HomeToGo invalide. Format attendu: https://www.hometogo.com/...');
+      }
+      break;
+  }
+}
 
   async getSyncLogs(propertyId: string, limit: number = 10): Promise<SyncLogDocument[]> {
     return this.syncLogModel
