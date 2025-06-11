@@ -8,10 +8,11 @@ import styles from './subscription.module.css';
 import StripePaymentForm from 'components/payment/StripePaymentForm';
 import PaymentMethodsList, { PaymentMethod } from 'components/payment/PaymentMethodsList';
 import { 
-  
+  removePaymentMethod,
   verifyPaymentMethod, 
   processPayment, 
-  fetchPaymentMethods 
+  fetchPaymentMethods,
+  setDefaultPaymentMethod
 } from '@/services/paymentService';
 import axios from 'axios';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -43,12 +44,22 @@ interface SubscriptionData {
   status: string;
   paymentMethods: PaymentMethod[];
   customerId?: string;
+  // New payment-related fields
+  isPaid?: boolean;
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentDate?: Date;
+  subscriptionStartDate?: Date;
 }
 
 interface SubscriptionState extends Omit<SubscriptionData, 'firebaseUid' |'status' | 'paymentMethods'> {
   paymentMethods: PaymentMethod[];
   billingHistory: BillingHistory[];
   customerId?: string;
+  // New payment-related fields
+  isPaid?: boolean;
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
+  paymentDate?: Date;
+  subscriptionStartDate?: Date;
 }
 
 interface BillingHistory {
@@ -58,6 +69,8 @@ interface BillingHistory {
   status: 'paid' | 'pending' | 'failed';
   invoiceUrl: string;
   type: 'setup' | 'maintenance' | 'transaction';
+  paymentIntentId?: string; // Add payment intent tracking
+
 }
 
 interface DashboardDto {
@@ -121,8 +134,9 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
+  console.log('SubscriptionSection received hostId:', hostId);
 
-  useEffect(() => {
+ useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -130,11 +144,17 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
           const token = await user.getIdToken();
           setAuthToken(token);
           
+          console.log('Firebase user UID:', user.uid);
+          console.log('Prop hostId:', hostId);
+          
+          // Use the Firebase user UID as the primary identifier
+          const userUid = user.uid;
+          
           // Fetch host data first
-          await fetchHostData(user.uid, token);
+          await fetchHostData(userUid, token);
           
           // Then fetch subscription data which will trigger payment methods refresh
-          await fetchSubscriptionData(user.uid, token);
+          await fetchSubscriptionData(userUid, token);
           
         } catch (err) {
           console.error("Error getting authentication token:", err);
@@ -150,7 +170,18 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, hostId]); 
+
+
+
+  useEffect(() => {
+  console.log('=== Subscription State Debug ===');
+  console.log('subscriptionState:', subscriptionState);
+  console.log('subscriptionData:', subscriptionData);
+  console.log('subscriptionState customerId:', subscriptionState?.customerId);
+  console.log('subscriptionData customerId:', subscriptionData?.customerId);
+  console.log('================================');
+}, [subscriptionState, subscriptionData]);
 
   const fetchHostData = async (hostId: string, token: string) => {
     try {
@@ -164,70 +195,114 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
     }
   };
 
-  const fetchSubscriptionData = async (hostId: string, token: string) => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/hosts/${hostId}/plan`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
 
-      if (response.data.message) {
-        setError(response.data.message);
-        return;
-      }
 
-      const planData = response.data;
 
-      const subscriptionInfo: SubscriptionData = {
-        firebaseUid: planData.firebaseUid,
-        plan: planData.plan,
-        trialEndsAt: new Date(planData.trialEndsAt),
-        isTrialActive: planData.isTrialActive,
-        status: planData.status,
-        paymentMethods: [],
-        customerId: planData.customerId
-      };
-
-      setSubscriptionData(subscriptionInfo);
-      
-      // Find the current plan to get its upfront cost
-      const currentPlan = plans.find(plan => plan.id === (planData.plan === 'Premium Plan' ? 'premium' : 'standard'));
-      const upfrontCost = currentPlan?.upfrontCost || (planData.plan === 'Premium Plan' ? 2500 : 500);
-      
-      // Update billing history with correct amount based on plan
-      let updatedBillingHistory = planData.billingHistory || [];
-      if (!updatedBillingHistory.length && subscriptionState?.billingHistory) {
-        updatedBillingHistory = subscriptionState.billingHistory.map(item => ({
-          ...item,
-          amount: upfrontCost // Set the correct upfront cost
-        }));
-      }
-      
-      // Update subscriptionState with new data
-      setSubscriptionState(prev => prev ? {
-        ...prev,
-        plan: planData.plan,
-        trialEndsAt: new Date(planData.trialEndsAt),
-        isTrialActive: planData.isTrialActive,
-        customerId: planData.customerId,
-        billingHistory: updatedBillingHistory
+  // Updated subscription component methods
+const refreshPaymentMethods = async (hostUid: string) => {
+  if (!hostUid) {
+    console.log('No hostUid provided to refreshPaymentMethods');
+    return;
+  }
+  
+  try {
+    console.log('Fetching payment methods for hostUid:', hostUid);
+    const response = await fetchPaymentMethods(hostUid); // Changed from customerId to hostUid
+    
+    if (response?.paymentMethods) {
+      console.log('Successfully fetched payment methods:', response.paymentMethods);
+      setSubscriptionState(prev => prev ? { 
+        ...prev, 
+        paymentMethods: response.paymentMethods
       } : null);
       
-      updateTrialStatus({
-        trialEndsAt: new Date(planData.trialEndsAt),
-        isTrialActive: planData.isTrialActive
-      });
-      
-      // If we have a customer ID, fetch payment methods
-      if (planData.customerId) {
-        refreshPaymentMethods(planData.customerId);
-      }
-    } catch (err) {
-      console.error("Error fetching subscription data:", err);
-      setError("Failed to load subscription data.");
-    } finally {
-      setLoading(false);
+      setSubscriptionData(prev => prev ? {
+        ...prev,
+        paymentMethods: response.paymentMethods
+      } : null);
     }
-  };
+  } catch (error) {
+    console.error('Failed to refresh payment methods:', error);
+    setPaymentError(error instanceof Error ? error.message : 'Failed to load payment methods');
+  }
+};
+
+ // Updated fetchSubscriptionData method
+const fetchSubscriptionData = async (hostId: string, token: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/hosts/${hostId}/plan`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.data.message) {
+      setError(response.data.message);
+      return;
+    }
+
+    const planData = response.data;
+
+    const subscriptionInfo: SubscriptionData = {
+      firebaseUid: planData.firebaseUid || hostId,
+      plan: planData.plan,
+      trialEndsAt: new Date(planData.trialEndsAt),
+      isTrialActive: planData.isTrialActive,
+      status: planData.status,
+      paymentMethods: [],
+      //customerId: planData.customerId,
+      // New payment fields
+      isPaid: planData.isPaid || false,
+      paymentStatus: planData.paymentStatus || 'pending',
+      paymentDate: planData.paymentDate ? new Date(planData.paymentDate) : undefined,
+      subscriptionStartDate: planData.subscriptionStartDate ? new Date(planData.subscriptionStartDate) : undefined,
+    };
+
+
+    setSubscriptionData(subscriptionInfo);
+    
+    // Find the current plan to get its upfront cost
+    const currentPlan = plans.find(plan => plan.id === (planData.plan === 'Premium Plan' ? 'premium' : 'standard'));
+    const upfrontCost = currentPlan?.upfrontCost || (planData.plan === 'Premium Plan' ? 2500 : 500);
+    
+    // Update billing history with correct amount and payment status
+    let updatedBillingHistory = planData.billingHistory || [];
+    if (!updatedBillingHistory.length && subscriptionState?.billingHistory) {
+      updatedBillingHistory = subscriptionState.billingHistory.map(item => ({
+        ...item,
+        amount: upfrontCost,
+        // Update status based on payment status
+        status: planData.isPaid ? 'paid' : (planData.paymentStatus === 'failed' ? 'failed' : 'pending')
+      }));
+    }
+    
+    // Update subscriptionState with all new fields
+    setSubscriptionState(prev => prev ? {
+      ...prev,
+      plan: planData.plan,
+      trialEndsAt: new Date(planData.trialEndsAt),
+      isTrialActive: planData.isTrialActive,
+      customerId: planData.customerId,
+      isPaid: planData.isPaid || false,
+      paymentStatus: planData.paymentStatus || 'pending',
+      paymentDate: planData.paymentDate ? new Date(planData.paymentDate) : undefined,
+      subscriptionStartDate: planData.subscriptionStartDate ? new Date(planData.subscriptionStartDate) : undefined,
+      billingHistory: updatedBillingHistory
+    } : null);
+    
+    updateTrialStatus({
+      trialEndsAt: new Date(planData.trialEndsAt),
+      isTrialActive: planData.isTrialActive
+    });
+    
+    // Fetch payment methods using hostId
+    console.log('Fetching payment methods for hostUid:', hostId);
+    await refreshPaymentMethods(hostId);
+  } catch (err) {
+    console.error("Error fetching subscription data:", err);
+    setError("Failed to load subscription data.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const updateTrialStatus = (data: { trialEndsAt: Date, isTrialActive: boolean }) => {
     if (!data.isTrialActive) {
@@ -280,217 +355,261 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
   };
 
   
-  const refreshPaymentMethods = async (customerId: string) => {
-  if (!customerId) return;
+
+  // Updated handlePaymentMethodSuccess method
+const handlePaymentMethodSuccess = async (data: any) => {
+  setShowPaymentForm(false);
+  setPaymentError(null);
   
-  try {
-    const response = await fetchPaymentMethods(customerId);
-    
-    if (response?.paymentMethods) {
-      setSubscriptionState(prev => prev ? { 
-        ...prev, 
-        paymentMethods: response.paymentMethods,
-        customerId
-      } : null);
-      
-      setSubscriptionData(prev => prev ? {
-        ...prev,
-        paymentMethods: response.paymentMethods,
-        customerId
-      } : null);
-    }
-  } catch (error) {
-    console.error('Failed to refresh payment methods:', error);
-    setPaymentError(error instanceof Error ? error.message : 'Failed to load payment methods');
+  // Immediately update local state
+  const updatedPaymentMethod = data.paymentMethod;
+  const newCustomerId = data.customerId;
+  
+  console.log('Updating with customerId:', newCustomerId);
+  // Update both state objects
+  setSubscriptionState(prev => prev ? {
+    ...prev,
+    paymentMethods: [
+      ...prev.paymentMethods.filter(m => m.id !== updatedPaymentMethod.id),
+      updatedPaymentMethod
+    ],
+    customerId: data.customerId || prev.customerId
+  } : null);
+
+  setSubscriptionData(prev => prev ? {
+    ...prev,
+    paymentMethods: [
+      ...prev.paymentMethods.filter(m => m.id !== updatedPaymentMethod.id),
+      updatedPaymentMethod
+    ],
+    customerId: data.customerId || prev.customerId
+  } : null);
+
+  // Force refresh from backend using hostId
+  if (subscriptionData?.firebaseUid) {
+    await refreshPaymentMethods(subscriptionData.firebaseUid);
   }
 };
 
-  const handlePaymentMethodSuccess = async (data: any) => {
-    setShowPaymentForm(false);
+// 3. Update the handleSetDefaultPayment function to remove customerId dependency:
+const handleSetDefaultPayment = async (id: string) => {
+  const hostUid = subscriptionData?.firebaseUid;
+  
+  if (!hostUid) {
+    setPaymentError('Host ID is required');
+    return;
+  }
+
+  try {
     setPaymentError(null);
     
-    // Immediately update local state
-    const updatedPaymentMethod = data.paymentMethod;
+    // Call the backend to update the default payment method using hostUid
+    const result = await setDefaultPaymentMethod(hostUid, id);
     
-    // Update both state objects
-    setSubscriptionState(prev => prev ? {
-      ...prev,
-      paymentMethods: [
-        ...prev.paymentMethods.filter(m => m.id !== updatedPaymentMethod.id),
-        updatedPaymentMethod
-      ],
-      customerId: data.customerId || prev.customerId
-    } : null);
-
-    setSubscriptionData(prev => prev ? {
-      ...prev,
-      paymentMethods: [
-        ...prev.paymentMethods.filter(m => m.id !== updatedPaymentMethod.id),
-        updatedPaymentMethod
-      ],
-      customerId: data.customerId || prev.customerId
-    } : null);
-
-    // Force refresh from backend to ensure we have the latest data
-    if (data.customerId) {
-      await refreshPaymentMethods(data.customerId);
-    }
-  };
-
-  const handleSetDefaultPayment = (id: string) => {
-    if (subscriptionData) {
-      setSubscriptionData({
-        ...subscriptionData,
-        paymentMethods: subscriptionData.paymentMethods.map(m => ({
-          ...m,
-          isDefault: m.id === id
-        }))
-      });
-    }
-    
-    setSubscriptionState(prev => prev ? {
-      ...prev,
-      paymentMethods: prev.paymentMethods.map(m => ({
-        ...m,
-        isDefault: m.id === id
-      }))
-    } : null);
-    
-    setSelectedPaymentMethodId(id);
-  };
-
-  const handleRemovePaymentMethod = async (id: string) => {
-    // In a real application, you would call an API to remove the payment method
-    if (subscriptionData) {
-      setSubscriptionData({
-        ...subscriptionData,
-        paymentMethods: subscriptionData.paymentMethods.filter(m => m.id !== id)
-      });
-    }
-    
-    setSubscriptionState(prev => prev ? {
-      ...prev,
-      paymentMethods: prev.paymentMethods.filter(m => m.id !== id)
-    } : null);
-    
-    if (selectedPaymentMethodId === id) {
-      setSelectedPaymentMethodId(null);
-    }
-  };
-
-  const handleActivateSubscription = async () => {
-    // If no payment methods exist, show the form immediately
-    if (subscriptionState?.paymentMethods.length === 0) {
-      setShowPaymentForm(true);
-      return;
-    }
-
-    setIsProcessingPayment(true);
-    setPaymentError(null);
-
-    try {
-      // Find selected, default, or first payment method
-      const paymentMethod = selectedPaymentMethodId 
-                        ? subscriptionState?.paymentMethods.find(m => m.id === selectedPaymentMethodId)
-                        : subscriptionState?.paymentMethods.find(m => m.isDefault) 
-                        || subscriptionState?.paymentMethods[0];
-      
-      const paymentMethodId = paymentMethod?.id;
-      
-      if (!paymentMethodId) throw new Error('No payment method available');
-        
-      // Ensure we have a customer ID
-      if (!subscriptionState?.customerId) {
-        throw new Error('Customer ID is required for payment processing');
-      }
-
-      console.log('Verifying payment method ID:', paymentMethodId);
-
-      // First verify the payment method exists and is attached to the customer
-      const verifyResult = await verifyPaymentMethod(
-        paymentMethodId, 
-        subscriptionState.customerId
-      );
-
-       if (!verifyResult.isValid) {
-        console.error('Payment verification failed:', verifyResult.reason);
-        throw new Error(`Payment method is ${verifyResult.reason || 'invalid'}`);
-      }
-
-       // Find the current plan
-      const currentPlan = plans.find(plan => plan.name === subscriptionState?.plan);
-            
-      // Process payment with the validated payment method
-      const amount = currentPlan?.upfrontCost ? Math.round(currentPlan.upfrontCost) : 2500;
-            
-      const paymentResult = await processPayment(
-        amount, 
-        // If verifyResult returns a paymentMethod.id, use that instead
-        // as it's guaranteed to be the Stripe ID
-        verifyResult.paymentMethod?.id || paymentMethodId,
-        subscriptionState.customerId
-      );
-
-       // Update both state objects on successful payment
-      setSubscriptionState(prev => prev ? {
-        ...prev,
-        isTrialActive: false,
-        billingHistory: prev.billingHistory.map(item => ({
-          ...item,
-          status: 'paid'
-        }))
-      } : null);
-            
+    if (result.success) {
+      // Update local state immediately
       if (subscriptionData) {
         setSubscriptionData({
           ...subscriptionData,
-          isTrialActive: false
+          paymentMethods: subscriptionData.paymentMethods.map(m => ({
+            ...m,
+            isDefault: m.id === id
+          }))
         });
       }
+      
+      setSubscriptionState(prev => prev ? {
+        ...prev,
+        paymentMethods: prev.paymentMethods.map(m => ({
+          ...m,
+          isDefault: m.id === id
+        }))
+      } : null);
+      
+      setSelectedPaymentMethodId(id);
+      
+      // Refresh payment methods to ensure consistency
+      await refreshPaymentMethods(hostUid);
+      
+      console.log('Default payment method updated successfully');
+    }
+  } catch (error) {
+    console.error('Failed to set default payment method:', error);
+    setPaymentError(error instanceof Error ? error.message : 'Failed to set default payment method');
+  }
+};
 
-      // Update the backend with the subscription status
-      /*if (authToken && subscriptionData) {
-        await axios.post(
-          `${API_BASE_URL}/hosts/${subscriptionData.firebaseUid}/activate-subscription`,
+  // Replace your existing handleRemovePaymentMethod with this updated version
+const handleRemovePaymentMethod = async (id: string) => {
+  const hostUid = subscriptionData?.firebaseUid;
+  
+  if (!hostUid) {
+    setPaymentError('Host ID is required');
+    return;
+  }
+
+  try {
+    setPaymentError(null);
+    
+    // Call the backend to remove the payment method
+    const result = await removePaymentMethod(hostUid, id);
+    
+    if (result.success) {
+      // Update local state immediately
+      if (subscriptionData) {
+        setSubscriptionData({
+          ...subscriptionData,
+          paymentMethods: subscriptionData.paymentMethods.filter(m => m.id !== id)
+        });
+      }
+      
+      setSubscriptionState(prev => prev ? {
+        ...prev,
+        paymentMethods: prev.paymentMethods.filter(m => m.id !== id)
+      } : null);
+      
+      // Clear selected payment method if it was the one removed
+      if (selectedPaymentMethodId === id) {
+        setSelectedPaymentMethodId(null);
+      }
+      
+      // Refresh payment methods to ensure consistency
+      await refreshPaymentMethods(hostUid);
+      
+      console.log('Payment method removed successfully');
+    }
+  } catch (error) {
+    console.error('Failed to remove payment method:', error);
+    setPaymentError(error instanceof Error ? error.message : 'Failed to remove payment method');
+  }
+};
+
+ // 1. Update the handleActivateSubscription function - replace the entire function with this:
+const handleActivateSubscription = async () => {
+  // If no payment methods exist, show the form immediately
+  if (subscriptionState?.paymentMethods.length === 0) {
+    setShowPaymentForm(true);
+    return;
+  }
+
+  setIsProcessingPayment(true);
+  setPaymentError(null);
+
+  try {
+    // Find selected, default, or first payment method
+    const paymentMethod = selectedPaymentMethodId 
+                      ? subscriptionState?.paymentMethods.find(m => m.id === selectedPaymentMethodId)
+                      : subscriptionState?.paymentMethods.find(m => m.isDefault) 
+                      || subscriptionState?.paymentMethods[0];
+    
+    const paymentMethodId = paymentMethod?.id;
+    
+    if (!paymentMethodId) throw new Error('No payment method available');
+      
+    // Use Firebase UID instead of customerId for identification
+    const hostUid = subscriptionData?.firebaseUid;
+    
+    if (!hostUid) {
+      console.error('No Firebase UID found');
+      throw new Error('User identification not found. Please refresh the page and try again.');
+    }
+
+    console.log('Using Firebase UID for identification:', hostUid);
+    console.log('Processing payment with method ID:', paymentMethodId);
+
+    // Find the current plan
+    const currentPlan = plans.find(plan => plan.name === subscriptionState?.plan);
+          
+    // Process payment - modified to use hostUid instead of customerId
+    const amount = currentPlan?.upfrontCost ? Math.round(currentPlan.upfrontCost) : 2500;
+          
+    // Update processPayment call to use hostUid
+    const paymentResult = await processPayment(
+      amount, 
+      paymentMethodId,
+      hostUid // Use hostUid instead of customerId
+    );
+
+    // Call the backend to update the plan status
+    if (paymentResult.success && authToken) {
+      try {
+        const activationResponse = await axios.post(
+          `${API_BASE_URL}/hosts/${hostUid}/activate-plan`,
           {
-            customerId: subscriptionState.customerId,
-            paymentMethodId,
-            planId: currentPlan?.id,
-            // Include necessary Stripe data for transaction recording
-            stripeData: {
-              amount,
-              currency: 'usd',
-              description: `${currentPlan?.name} Activation`,
-              metadata: {
-                hostId: subscriptionData.firebaseUid,
-                planType: currentPlan?.id || 'premium',
-                feeType: 'setup'
-              }
-            }
+            plan: subscriptionState?.plan,
+            paymentIntentId: paymentResult.paymentIntentId,
+            hostUid: hostUid // Include hostUid in the request
           },
           {
             headers: { Authorization: `Bearer ${authToken}` }
           }
         );
-      }*/
 
-    } catch (error) {
-      console.error('Payment error:', error);
-      setPaymentError(error instanceof Error ? error.message : 'Payment failed');
-      
-      // If customer or payment method doesn't exist, refresh payment methods
-      if (subscriptionState?.customerId) {
-        refreshPaymentMethods(subscriptionState.customerId);
+        console.log('Plan activation response:', activationResponse.data);
+        
+        // Update local state with the response from backend
+        if (activationResponse.data) {
+          setSubscriptionState(prev => prev ? {
+            ...prev,
+            isTrialActive: false,
+            billingHistory: prev.billingHistory.map(item => ({
+              ...item,
+              status: 'paid'
+            }))
+          } : null);
+              
+          if (subscriptionData) {
+            setSubscriptionData({
+              ...subscriptionData,
+              isTrialActive: false
+            });
+          }
+        }
+      } catch (backendError) {
+        console.error('Backend activation error:', backendError);
+        setPaymentError('Payment successful but plan update failed. Please contact support.');
+        return;
       }
-      
-      // Show payment form if no valid payment methods
-      if (subscriptionState?.paymentMethods.length === 0) {
-        setShowPaymentForm(true);
-      }
-    } finally {
-      setIsProcessingPayment(false);
     }
-  };
+
+    console.log('Subscription activated successfully');
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    setPaymentError(error instanceof Error ? error.message : 'Payment failed');
+    
+    // Update payment status to failed in backend
+    if (subscriptionData?.firebaseUid && authToken) {
+      try {
+        await axios.post(
+          `${API_BASE_URL}/hosts/${subscriptionData.firebaseUid}/payment-status`,
+          {
+            paymentStatus: 'failed',
+            hostUid: subscriptionData.firebaseUid // Use hostUid instead of stripeCustomerId
+          },
+          {
+            headers: { Authorization: `Bearer ${authToken}` }
+          }
+        );
+      } catch (updateError) {
+        console.error('Failed to update payment status:', updateError);
+      }
+    }
+    
+    // If payment method doesn't exist, refresh payment methods
+    const hostUid = subscriptionData?.firebaseUid;
+    if (hostUid) {
+      await refreshPaymentMethods(hostUid);
+    }
+    
+    // Show payment form if no valid payment methods
+    if (subscriptionState?.paymentMethods.length === 0) {
+      setShowPaymentForm(true);
+    }
+  } finally {
+    setIsProcessingPayment(false);
+  }
+};
 
   const getFeeTypeLabel = (type: string) => {
     switch(type) {
@@ -535,6 +654,10 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
 
   const handleSetupEarnings = () => {
     router.push('/dashboard/subscription/connect'); // Replace '/finances' with your actual finances page route
+  };
+
+  const handleFinances = () => {
+    router.push('/dashboard/finances'); // Replace '/finances' with your actual finances page route
   };
 
 
@@ -611,10 +734,15 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
               
               <div className={styles.planActions}>
                 <h3>Add your bank account details so we can send you your earnings</h3>
+                <div className={styles.buttonsRow}>
                 <button className={styles.dangerButton} onClick={handleSetupEarnings}>
                   Set Up My Earnings
                 </button>
+                <button className={styles.dangerButton} onClick={handleFinances}>
+                  View my transactions
+                </button>
                 </div>
+              </div>
             )}
           </div>
         </div>
@@ -634,7 +762,7 @@ export default function SubscriptionSection({ hostId }: { hostId: string }) {
               <StripePaymentForm
                 onSuccess={handlePaymentMethodSuccess}
                 onCancel={() => setShowPaymentForm(false)}
-                customerId={subscriptionState.customerId}
+                hostUid={subscriptionData?.firebaseUid!}
               />
             </Elements>
           </div>

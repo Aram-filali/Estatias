@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { FaFilter, FaSort, FaCalendarAlt, FaEye, FaCheck, FaTimes, FaHome } from 'react-icons/fa';
+import { FaFilter, FaSort, FaEye, FaCheck, FaTimes, FaHome } from 'react-icons/fa';
 import styles from './bookings.module.css';
 
 interface Guest {
@@ -47,7 +46,7 @@ interface Property {
 }
 
 export default function BookingsPage() {
-  const router = useRouter();
+ 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);

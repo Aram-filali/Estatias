@@ -1,26 +1,30 @@
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsString, IsBoolean, IsOptional, IsUrl } from 'class-validator';
 
 export class UpdateDocumentsDto {
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
   @IsBoolean()
   hasRepresentative?: boolean;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
   @IsBoolean()
   isAgency?: boolean;
 
   @IsOptional()
   @IsString()
+  firebaseUid?: string;
+
+  @IsOptional()
+  @IsUrl()
+  @IsString()
   kbisOrId?: string;
 
   @IsOptional()
+  @IsUrl()
   @IsString()
   proxy?: string;
 
   @IsOptional()
+  @IsUrl()
   @IsString()
   repId?: string;
 }

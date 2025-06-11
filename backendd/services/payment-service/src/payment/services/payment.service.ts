@@ -7,6 +7,9 @@ import { PaymentMethodDocument } from '../schemas/payment-method.schema';
 import { PaymentIntentDto } from '../dto/payment-intent.dto';
 import { VerifyPaymentMethodDto } from '../dto/verify-payment-method.dto';
 import { CreatePaymentMethodDto } from '../dto/create-payment-method.dto';
+import { PaymentMethodResponse, PaymentMethodsListResponse } from '../interfaces/payment-method.interface';
+
+
 
 @Injectable()
 export class PaymentService {
@@ -122,21 +125,46 @@ export class PaymentService {
     }
   }
 
+  // payment-service/src/payment/payment.service.ts
   async createPaymentIntent(paymentIntentDto: PaymentIntentDto) {
     try {
-      const { amount, paymentMethodId, customerId } = paymentIntentDto;
+      const { amount, paymentMethodId, hostUid } = paymentIntentDto; // Changed from customerId to hostUid
 
-      if (!amount || !paymentMethodId || !customerId) {
-        throw new Error('Amount, payment method ID, and customer ID are required');
+      if (!amount || !paymentMethodId || !hostUid) {
+        throw new Error('Amount, payment method ID, and host UID are required');
       }
 
-      // Verify payment method exists and is attached to customer
+      // First, find the payment method in our database using hostUid
+      let storedPaymentMethod;
+      
+      // Check if paymentMethodId is a MongoDB ObjectId (24 hex characters)
+      if (paymentMethodId.length === 24 && /^[0-9a-f]{24}$/i.test(paymentMethodId)) {
+        storedPaymentMethod = await this.paymentMethodModel.findOne({
+          _id: paymentMethodId,
+          hostUid: hostUid
+        });
+      } else {
+        // It might be a Stripe payment method ID, look it up by stripePaymentMethodId
+        storedPaymentMethod = await this.paymentMethodModel.findOne({
+          stripePaymentMethodId: paymentMethodId,
+          hostUid: hostUid
+        });
+      }
+
+      if (!storedPaymentMethod) {
+        throw new Error('Payment method not found');
+      }
+
+      const stripePaymentMethodId = storedPaymentMethod.stripePaymentMethodId;
+      const customerId = storedPaymentMethod.customerId;
+
+      // Verify payment method exists in Stripe
       let paymentMethod;
       try {
-        paymentMethod = await this.stripe.paymentMethods.retrieve(paymentMethodId);
+        paymentMethod = await this.stripe.paymentMethods.retrieve(stripePaymentMethodId);
       } catch (error) {
         if (error.code === 'resource_missing') {
-          throw new Error('Payment method not found');
+          throw new Error('Payment method not found in Stripe');
         }
         throw error;
       }
@@ -145,10 +173,10 @@ export class PaymentService {
       if (paymentMethod.customer !== customerId) {
         try {
           if (paymentMethod.customer) {
-            await this.stripe.paymentMethods.detach(paymentMethodId);
+            await this.stripe.paymentMethods.detach(stripePaymentMethodId);
           }
           
-          await this.stripe.paymentMethods.attach(paymentMethodId, {
+          await this.stripe.paymentMethods.attach(stripePaymentMethodId, {
             customer: customerId,
           });
         } catch (error) {
@@ -161,12 +189,13 @@ export class PaymentService {
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'eur',
         customer: customerId,
-        payment_method: paymentMethodId,
+        payment_method: stripePaymentMethodId,
         confirm: true,
         off_session: true,
         metadata: {
           plan_type: 'premium',
-          setup_fee: 'true'
+          setup_fee: 'true',
+          hostUid: hostUid // Add hostUid to metadata
         }
       });
 
@@ -208,12 +237,18 @@ export class PaymentService {
     }
   }
 
- async savePaymentMethod(createDto: CreatePaymentMethodDto) {
+ // Updated Payment Service Methods
+// Update your existing savePaymentMethod to use hostUid
+async savePaymentMethod(createDto: CreatePaymentMethodDto) {
   try {
-    const { paymentMethodId, customerId } = createDto;
+    const { paymentMethodId, customerId, hostUid } = createDto;
 
     if (!paymentMethodId) {
       throw { error: 'Payment method ID is required' };
+    }
+
+    if (!hostUid) {
+      throw { error: 'Host UID is required' };
     }
 
     // Verify the PaymentMethod exists in Stripe
@@ -230,7 +265,7 @@ export class PaymentService {
     
     let stripeCustomer: Stripe.Customer;
     
-    // If customer ID was provided, retrieve it
+    // Handle customer creation/retrieval logic (same as before)
     if (customerId) {
       try {
         const customer = await this.stripe.customers.retrieve(customerId);
@@ -241,7 +276,6 @@ export class PaymentService {
       } catch (stripeError) {
         this.logger.error(`Error retrieving customer: ${JSON.stringify(stripeError)}`);
         
-        // If customer doesn't exist, create a new one
         try {
           stripeCustomer = await this.stripe.customers.create();
         } catch (createError) {
@@ -252,7 +286,6 @@ export class PaymentService {
         }
       }
     } else {
-      // Create new customer if none provided
       try {
         stripeCustomer = await this.stripe.customers.create();
       } catch (createError) {
@@ -263,12 +296,8 @@ export class PaymentService {
       }
     }
 
-    // Check if payment method is already attached to the customer
-    let isAttached = false;
-    if (stripePaymentMethod.customer === stripeCustomer.id) {
-      isAttached = true;
-    } else {
-      // If already attached to a different customer, detach first
+    // Attach payment method to customer (same logic as before)
+    if (stripePaymentMethod.customer !== stripeCustomer.id) {
       if (stripePaymentMethod.customer) {
         try {
           await this.stripe.paymentMethods.detach(paymentMethodId);
@@ -280,7 +309,6 @@ export class PaymentService {
         }
       }
       
-      // Now attach to our customer
       try {
         await this.stripe.paymentMethods.attach(paymentMethodId, {
           customer: stripeCustomer.id,
@@ -293,26 +321,17 @@ export class PaymentService {
       }
     }
 
-    // Set as default payment method
-    try {
-      await this.stripe.customers.update(stripeCustomer.id, {
-        invoice_settings: {
-          default_payment_method: paymentMethodId,
-        },
-      });
-    } catch (updateError) {
-      throw { 
-        error: 'Failed to set as default payment method',
-        details: updateError
-      };
-    }
+    // Check if this is the first payment method for this host
+    const existingPaymentMethods = await this.paymentMethodModel.find({ hostUid });
+    const isFirstPaymentMethod = existingPaymentMethods.length === 0;
 
     // Prepare payment method data
     const paymentMethodData = {
       stripePaymentMethodId: paymentMethodId,
+      hostUid: hostUid,
       customerId: stripeCustomer.id,
       type: stripePaymentMethod.type,
-      isDefault: true,
+      isDefault: isFirstPaymentMethod, // Set as default only if it's the first one
       details: {} as {
         brand?: string;
         lastFour?: string;
@@ -336,23 +355,29 @@ export class PaymentService {
       };
     }
 
-    // Check if payment method already exists in our database
+    // Save or update payment method
     let paymentMethod;
     try {
       paymentMethod = await this.paymentMethodModel.findOneAndUpdate(
-        { stripePaymentMethodId: paymentMethodId },
+        { stripePaymentMethodId: paymentMethodId, hostUid: hostUid },
         paymentMethodData,
         { new: true, upsert: true }
       ).lean();
 
-      // Update all other payment methods for this customer to not be default
-      await this.paymentMethodModel.updateMany(
-        { 
-          customerId: stripeCustomer.id,
-          _id: { $ne: (paymentMethod as any)._id }
-        },
-        { $set: { isDefault: false } }
-      );
+      // If this is the first payment method, set it as default in Stripe as well
+      if (isFirstPaymentMethod) {
+        try {
+          await this.stripe.customers.update(stripeCustomer.id, {
+            invoice_settings: {
+              default_payment_method: paymentMethodId,
+            },
+          });
+        } catch (updateError) {
+          this.logger.warn(`Failed to set Stripe default payment method: ${JSON.stringify(updateError)}`);
+          // Don't throw here as the main operation was successful
+        }
+      }
+
     } catch (dbError) {
       this.logger.error(`Database error: ${JSON.stringify(dbError)}`);
       throw { 
@@ -374,8 +399,6 @@ export class PaymentService {
     };
   } catch (error) {
     this.logger.error('Error saving payment method:', error);
-    
-    // Ensure we're returning a structured error
     throw {
       error: error.error || error.message || 'Failed to save payment method',
       details: error.details || error
@@ -383,86 +406,220 @@ export class PaymentService {
   }
 }
 
-  async getPaymentMethods(customerId: string) {
-    try {
-      if (!customerId) {
-        throw new Error('Customer ID is required');
-      }
+// Update your existing getPaymentMethods to use hostUid
+async getPaymentMethods(hostUid: string): Promise<PaymentMethodsListResponse> {
+  try {
+    if (!hostUid) {
+      throw new Error('Host UID is required');
+    }
 
-      // Verify customer exists in Stripe
+    this.logger.log('Fetching payment methods for hostUid:', hostUid);
+
+    // Get payment methods from database by hostUid
+    const paymentMethods = await this.paymentMethodModel.find({
+      hostUid
+    }).lean().sort({ createdAt: 1 }); // Sort by creation date, oldest first
+
+    this.logger.log('Found payment methods in DB:', paymentMethods.length);
+
+    // Get unique customer IDs to fetch from Stripe
+    const customerIds = [...new Set(paymentMethods.map(pm => pm.customerId).filter(Boolean))];
+    
+    let allStripePaymentMethods: Stripe.PaymentMethod[] = [];
+    
+    // Fetch payment methods from Stripe for each customer
+    for (const customerId of customerIds) {
       try {
-        const customerCheck = await this.stripe.customers.retrieve(customerId);
-        if (typeof customerCheck === 'string' || customerCheck.deleted) {
-          throw new Error('Customer not found');
-        }
-      } catch (error) {
-        throw new Error('Customer not found');
+        const stripePaymentMethods = await this.stripe.paymentMethods.list({
+          customer: customerId,
+          type: 'card',
+        });
+        allStripePaymentMethods.push(...stripePaymentMethods.data);
+      } catch (stripeError) {
+        this.logger.warn(`Failed to fetch Stripe payment methods for customer ${customerId}:`, stripeError);
       }
+    }
 
-      // Get default payment method from Stripe
-      const customerResponse = await this.stripe.customers.retrieve(
-        customerId,
-        {
-          expand: ['invoice_settings.default_payment_method']
-        }
-      ) as Stripe.Customer & {
-        invoice_settings?: {
-          default_payment_method?: string | Stripe.PaymentMethod;
-        }
-      };
+    // Merge results - prioritize DB records but include Stripe data
+    const mergedMethods: PaymentMethodResponse[] = [];
+    
+    for (const pm of paymentMethods) {
+      const stripePm = allStripePaymentMethods.find(spm => spm.id === pm.stripePaymentMethodId);
       
-      let defaultPaymentMethodId: string | null = null;
-      if (customerResponse.invoice_settings?.default_payment_method) {
-        const defaultMethod = customerResponse.invoice_settings.default_payment_method;
-        defaultPaymentMethodId = typeof defaultMethod === 'string' 
-          ? defaultMethod 
-          : defaultMethod.id;
-      }
-
-      // Get payment methods from our database
-      const paymentMethods = await this.paymentMethodModel.find({
-        customerId
-      }).lean().sort({ createdAt: -1 });
-
-      // Also get from Stripe to ensure sync
-      const stripePaymentMethods = await this.stripe.paymentMethods.list({
-        customer: customerId,
-        type: 'card',
-      });
-
-      // Merge results
-      const mergedMethods = paymentMethods.map(pm => ({
+      mergedMethods.push({
         id: pm._id.toString(),
         stripePaymentMethodId: pm.stripePaymentMethodId,
         type: pm.type,
-        details: pm.details || {},
-        isDefault: pm.stripePaymentMethodId === defaultPaymentMethodId
-      }));
-
-      // Add any Stripe methods not in our DB
-      for (const stripePm of stripePaymentMethods.data) {
-        if (!paymentMethods.some(pm => pm.stripePaymentMethodId === stripePm.id)) {
-          mergedMethods.push({
-            id: stripePm.id,
-            stripePaymentMethodId: stripePm.id,
-            type: stripePm.type,
-            details: stripePm.type === 'card' ? {
-              brand: stripePm.card?.brand,
-              lastFour: stripePm.card?.last4,
-              expiryMonth: stripePm.card?.exp_month,
-              expiryYear: stripePm.card?.exp_year
-            } : {},
-            isDefault: stripePm.id === defaultPaymentMethodId
-          });
-        }
-      }
-
-      return { 
-        paymentMethods: mergedMethods
-      };
-    } catch (error) {
-      this.logger.error('Error fetching payment methods:', error);
-      throw { error: error.message || 'Failed to fetch payment methods' };
+        details: stripePm && stripePm.type === 'card' ? {
+          brand: stripePm.card?.brand || pm.details?.brand,
+          lastFour: stripePm.card?.last4 || pm.details?.lastFour,
+          expiryMonth: stripePm.card?.exp_month || pm.details?.expiryMonth,
+          expiryYear: stripePm.card?.exp_year || pm.details?.expiryYear
+        } : {
+          brand: pm.details?.brand,
+          lastFour: pm.details?.lastFour,
+          expiryMonth: pm.details?.expiryMonth,
+          expiryYear: pm.details?.expiryYear,
+          email: pm.details?.email
+        },
+        isDefault: pm.isDefault
+      });
     }
+
+    this.logger.log('Returning merged payment methods:', mergedMethods.length);
+
+    return {
+      paymentMethods: mergedMethods
+    };
+  } catch (error) {
+    this.logger.error('Error fetching payment methods:', error);
+    throw { error: error.message || 'Failed to fetch payment methods' };
   }
+}
+
+// Add this new method to your PaymentService class
+async setDefaultPaymentMethod(hostUid: string, paymentMethodId: string) {
+  try {
+    this.logger.log(`Setting default payment method for hostUid: ${hostUid}, paymentMethodId: ${paymentMethodId}`);
+
+    if (!hostUid) {
+      throw { error: 'Host UID is required' };
+    }
+
+    if (!paymentMethodId) {
+      throw { error: 'Payment method ID is required' };
+    }
+
+    // First, verify the payment method exists and belongs to this host
+    const paymentMethod = await this.paymentMethodModel.findOne({
+      hostUid,
+      _id: paymentMethodId
+    }).lean();
+
+    if (!paymentMethod) {
+      throw { 
+        error: 'Payment method not found or does not belong to this host' 
+      };
+    }
+
+    // Set all payment methods for this host to not default
+    await this.paymentMethodModel.updateMany(
+      { hostUid },
+      { $set: { isDefault: false } }
+    );
+
+    // Set the selected payment method as default
+    const updatedPaymentMethod = await this.paymentMethodModel.findByIdAndUpdate(
+      paymentMethodId,
+      { $set: { isDefault: true } },
+      { new: true }
+    ).lean();
+
+    if (!updatedPaymentMethod) {
+    throw { error: 'Payment method not found after update' };
+  }
+
+    // Also update Stripe customer's default payment method if customerId exists
+    if (paymentMethod.customerId && paymentMethod.stripePaymentMethodId) {
+      try {
+        await this.stripe.customers.update(paymentMethod.customerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethod.stripePaymentMethodId,
+          },
+        });
+        this.logger.log(`Updated Stripe customer default payment method: ${paymentMethod.customerId}`);
+      } catch (stripeError) {
+        this.logger.warn(`Failed to update Stripe default payment method: ${JSON.stringify(stripeError)}`);
+        // Don't throw here as the DB update was successful
+      }
+    }
+
+    return {
+      success: true,
+      paymentMethod: {
+        id: updatedPaymentMethod._id.toString(),
+        stripePaymentMethodId: updatedPaymentMethod.stripePaymentMethodId,
+        type: updatedPaymentMethod.type,
+        details: updatedPaymentMethod.details,
+        isDefault: updatedPaymentMethod.isDefault
+      }
+    };
+  } catch (error) {
+    this.logger.error('Error setting default payment method:', error);
+    throw {
+      error: error.error || error.message || 'Failed to set default payment method',
+      details: error.details || error
+    };
+  }
+}
+
+
+
+// Add this method to your PaymentService class
+async removePaymentMethod(hostUid: string, paymentMethodId: string) {
+  try {
+    this.logger.log(`Removing payment method for hostUid: ${hostUid}, paymentMethodId: ${paymentMethodId}`);
+
+    if (!hostUid) {
+      throw { error: 'Host UID is required' };
+    }
+
+    if (!paymentMethodId) {
+      throw { error: 'Payment method ID is required' };
+    }
+
+    // First, verify the payment method exists and belongs to this host
+    const paymentMethod = await this.paymentMethodModel.findOne({
+      hostUid,
+      _id: paymentMethodId
+    }).lean();
+
+    if (!paymentMethod) {
+      throw { 
+        error: 'Payment method not found or does not belong to this host' 
+      };
+    }
+
+    // Check if this is the default payment method
+    const isDefault = paymentMethod.isDefault;
+
+    // Remove from Stripe first if we have the Stripe payment method ID
+    if (paymentMethod.stripePaymentMethodId) {
+      try {
+        await this.stripe.paymentMethods.detach(paymentMethod.stripePaymentMethodId);
+        this.logger.log(`Detached Stripe payment method: ${paymentMethod.stripePaymentMethodId}`);
+      } catch (stripeError) {
+        this.logger.warn(`Failed to detach Stripe payment method: ${JSON.stringify(stripeError)}`);
+        // Continue with database removal even if Stripe detach fails
+      }
+    }
+
+    // Remove from database
+    await this.paymentMethodModel.findByIdAndDelete(paymentMethodId);
+    this.logger.log(`Removed payment method from database: ${paymentMethodId}`);
+
+    // If this was the default payment method, set another one as default (if any exist)
+    if (isDefault) {
+      const remainingMethods = await this.paymentMethodModel.find({ hostUid }).lean();
+      if (remainingMethods.length > 0) {
+        await this.paymentMethodModel.findByIdAndUpdate(
+          remainingMethods[0]._id,
+          { $set: { isDefault: true } }
+        );
+        this.logger.log(`Set new default payment method: ${remainingMethods[0]._id}`);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Payment method removed successfully'
+    };
+  } catch (error) {
+    this.logger.error('Error removing payment method:', error);
+    throw {
+      error: error.error || error.message || 'Failed to remove payment method',
+      details: error.details || error
+    };
+  }
+}
 }

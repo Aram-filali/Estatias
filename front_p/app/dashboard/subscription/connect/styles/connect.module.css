@@ -141,18 +141,27 @@
   background-color: #1d4ed8;
 }
 
-.buttonSecondary {
-  background-color: #2563eb;
-  color: white;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  margin-top: 1rem;
-}
 
-.buttonSecondary:hover {
-  background-color: #1d4ed8;
-}
+
+
+.buttonSecondary {
+    background-color: var(--lWrite); /* dark blue */
+    color: #cbd5e1;
+    border: none;
+    padding: 0.5rem 1rem; /* standard button size */
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    align-self: flex-start; 
+    max-width: 300px; 
+  }
+  
+  .buttonSecondary:hover {
+    transition: color 0.3s ease;
+    color: white;
+  }
 
 /* Loaders */
 .spinnerContainer {

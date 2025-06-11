@@ -120,6 +120,10 @@ export default function ConnectAccountPage() {
     }
   };
 
+  const handleGoBack = () => {
+    router.back();
+  };
+
   if (loading) {
     return (
       <div className={styles.spinnerContainer}>
@@ -255,6 +259,15 @@ export default function ConnectAccountPage() {
               </button>
             </div>
           )}
+          
+          <div className={styles.buttonContainer}>
+            <button
+              onClick={handleGoBack}
+              className={styles.buttonSecondary}
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       )}
       

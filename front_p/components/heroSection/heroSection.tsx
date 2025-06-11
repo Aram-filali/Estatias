@@ -123,10 +123,7 @@ const HeroSection = ({ id }: { id?: string }) => {
                 <span className={styles.checkmark}>✓</span>
                 <span>14-day free trial</span>
               </div>
-              <div className={styles.trustBadge}>
-                <span className={styles.checkmark}>✓</span>
-                <span>No setup fees</span>
-              </div>
+             
               <div className={styles.trustBadge}>
                 <span className={styles.checkmark}>✓</span>
                 <span>Cancel anytime</span>

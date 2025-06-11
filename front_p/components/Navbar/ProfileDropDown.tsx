@@ -1,116 +1,136 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Avatar, Button, Dropdown, Menu, message, MenuProps  } from "antd";
+import { Avatar, Button, Dropdown, MenuProps } from "antd";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import {jwtDecode} from "jwt-decode";
-import axios from "axios";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/contexts/firebaseConfig";
 
-// Define types for the user and host data
+// User type with role
 interface User {
-  username: string;
+  username?: string;
   email: string;
+  role?: "host" | "admin" | string;
+  uid?: string;
 }
 
-interface HostData {
-  _id: string;
-  email: string;
-  username: string;
-}
-
-interface PropertyData {
-  _id: string;
-  location: {
-    city: string;
-  };
-}
-
-// Define props interface
 interface ProfileDropdownProps {
   onLogout: () => void;
 }
 
 const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ onLogout }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [hostData, setHostData] = useState<HostData | {}>({});
-  const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem("jwt") || localStorage.getItem("token");
-
-      if (token) {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
         try {
-          const decoded = jwtDecode<User>(token);
-          setUser(decoded);
-
-          const headers = { Authorization: `Bearer ${token}` };
-          const hostResponse = await axios.get(
-            `http://localhost:3000/hosts/api/getByEmail/${decoded.username}`,
-            { headers }
-          );
-          const hostData = hostResponse.data;
-          setHostData(hostData);
-
-          const hostsID = hostData._id;
-          const propertyResponse = await axios.get(
-            `http://localhost:3000/properties/api/getByHostsID/${hostsID}`,
-            { headers }
-          );
-          setPropertyData(propertyResponse.data);
+          // Get the ID token to access custom claims
+          const idTokenResult = await firebaseUser.getIdTokenResult();
+          const customClaims = idTokenResult.claims;
+          
+          console.log("Custom claims:", customClaims);
+          
+          setUser({
+            email: firebaseUser.email || "",
+            role: customClaims.role as "host" | "admin" | string,
+            uid: firebaseUser.uid,
+            username: firebaseUser.email?.split("@")[0] || "User",
+          });
         } catch (error) {
-          console.error("Erreur de récupération des données :", error);
+          console.error("Error getting user token:", error);
           setUser(null);
         }
+      } else {
+        setUser(null);
       }
-    };
+      setLoading(false);
+    });
 
-    fetchData();
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("jwt");
     localStorage.removeItem("token");
-    //message.success("Logout successful !");
-    router.push("/"); // Redirect to the home page
-    window.location.reload(); // Reload the page
-    onLogout(); 
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userType");
+    router.push("/");
+    window.location.reload();
+    onLogout();
   };
 
-  const profileData = propertyData
-    ? `/search/${propertyData.location?.city}/${propertyData._id}`
-    : `/`;
+  const handleDashboardClick = () => {
+    console.log("Dashboard clicked, user:", user);
+    
+    if (!user) {
+      console.log("No user found, redirecting to home");
+      router.push("/");
+      return;
+    }
 
-    const items: MenuProps["items"] = [
-      {
-        key: "profile",
-        icon: <UserOutlined />,
-        label: <a href={profileData}>My Profile</a>,
-      },
-      {
-        type: "divider",
-      },
-      {
-        key: "logout",
-        icon: <LogoutOutlined />,
-        label: "Logout",
-        onClick: handleLogout,
-      },
-    ];
+    console.log("User role:", user.role);
     
+    if (user.role === "host") {
+      console.log("Redirecting to /dashboard");
+      router.push("/dashboard");
+    } else if (user.role === "admin") {
+      console.log("Redirecting to /adminn");
+      router.push("/adminn");
+    } else {
+      console.log("Unknown role, redirecting to home");
+      router.push("/");
+    }
+  };
+
+  const items: MenuProps["items"] = [
+    {
+      key: "dashboard",
+      icon: <UserOutlined />,
+      label: "Dashboard",
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "Logout",
+    },
+  ];
+
+  // Don't render if still loading
+  if (loading) {
     return (
-      <Dropdown menu={{ items }} trigger={["click"]}>
-        <Button type="text" shape="circle">
-          <Avatar
-            src="assets/images/hero-slider-1.jpg"
-            icon={<UserOutlined />}
-            size={50}
-          />
-        </Button>
-      </Dropdown>
+      <Button type="text" shape="circle">
+        <Avatar icon={<UserOutlined />} size={50} />
+      </Button>
     );
-    
+  }
+
+  return (
+    <Dropdown
+      trigger={["click"]}
+      menu={{
+        items,
+        onClick: ({ key }) => {
+          console.log("Menu item clicked:", key);
+          if (key === "dashboard") handleDashboardClick();
+          else if (key === "logout") handleLogout();
+        },
+      }}
+    >
+      <Button type="text" shape="circle">
+        <Avatar
+          src="assets/images/hero-slider-1.jpg"
+          icon={<UserOutlined />}
+          size={50}
+        />
+      </Button>
+    </Dropdown>
+  );
 };
 
 export default ProfileDropdown;

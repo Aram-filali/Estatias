@@ -51,48 +51,113 @@ export class PaymentController {
     }
   }
 
+ // Updated Payment Microservice Controller
+@MessagePattern('save_payment_method')
+async savePaymentMethod(createDto: CreatePaymentMethodDto) {
+  this.logger.log(`Received save_payment_method request: ${JSON.stringify(createDto)}`);
   
-  @MessagePattern('save_payment_method')
-  async savePaymentMethod(createDto: CreatePaymentMethodDto) {
-    this.logger.log(`Received save_payment_method request: ${JSON.stringify(createDto)}`);
+  try {
+    const result = await this.paymentService.savePaymentMethod(createDto);
     
-    try {
-      const result = await this.paymentService.savePaymentMethod(createDto);
-      
-      this.logger.log(`Payment method saved successfully: ${JSON.stringify(result)}`);
-      
-      return {
-        statusCode: HttpStatus.CREATED,
-        message: 'Payment method saved successfully',
-        data: result
-      };
-    } catch (error) {
-      this.logger.error(`Payment service error: ${JSON.stringify(error)}`);
-      
-      // Ensure we're properly structuring the error response
-      return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: error.error || error.message || 'Failed to save payment method',
-        error: error
-      };
-    }
+    this.logger.log(`Payment method saved successfully for hostUid: ${createDto.hostUid}`);
+    
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Payment method saved successfully',
+      data: result
+    };
+  } catch (error) {
+    this.logger.error(`Payment service error: ${error.error || error.message}`, error.stack);
+    
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: error.error || error.message || 'Failed to save payment method',
+      error: error.details || error
+    };
   }
+}
 
-  @MessagePattern('get_payment_methods')
-  async getPaymentMethods(paymentMethodDto: PaymentMethodDto) {
-    try {
-      const result = await this.paymentService.getPaymentMethods(paymentMethodDto.customerId);
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Payment methods retrieved successfully',
-        data: result
-      };
-    } catch (error) {
-      return {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: error.error || 'Failed to fetch payment methods',
-        error: error.message
-      };
-    }
+@MessagePattern('get_payment_methods')
+async getPaymentMethods(paymentMethodDto: PaymentMethodDto) {
+  this.logger.log(`Received get_payment_methods request for hostUid: ${paymentMethodDto.hostUid}`);
+  
+  try {
+    const result = await this.paymentService.getPaymentMethods(paymentMethodDto.hostUid);
+    
+    this.logger.log(`Successfully retrieved ${result.paymentMethods?.length || 0} payment methods`);
+    
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Payment methods retrieved successfully',
+      data: result
+    };
+  } catch (error) {
+    this.logger.error(`Error retrieving payment methods: ${error.error || error.message}`, error.stack);
+    
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: error.error || error.message || 'Failed to fetch payment methods',
+      error: error.details || error
+    };
   }
+}
+
+
+// Add this new method to your PaymentController
+@MessagePattern('set_default_payment_method')
+async setDefaultPaymentMethod(payload: { hostUid: string; paymentMethodId: string }) {
+  this.logger.log(`Received set_default_payment_method request: ${JSON.stringify(payload)}`);
+ 
+  try {
+    const result = await this.paymentService.setDefaultPaymentMethod(
+      payload.hostUid, 
+      payload.paymentMethodId
+    );
+   
+    this.logger.log(`Default payment method updated successfully for hostUid: ${payload.hostUid}`);
+   
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Default payment method updated successfully',
+      data: result
+    };
+  } catch (error) {
+    this.logger.error(`Error setting default payment method: ${error.error || error.message}`, error.stack);
+   
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: error.error || error.message || 'Failed to set default payment method',
+      error: error.details || error
+    };
+  }
+}
+
+// Add this method to your PaymentController
+@MessagePattern('remove_payment_method')
+async removePaymentMethod(payload: { hostUid: string; paymentMethodId: string }) {
+  this.logger.log(`Received remove_payment_method request: ${JSON.stringify(payload)}`);
+
+  try {
+    const result = await this.paymentService.removePaymentMethod(
+      payload.hostUid,
+      payload.paymentMethodId
+    );
+
+    this.logger.log(`Payment method removed successfully for hostUid: ${payload.hostUid}`);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Payment method removed successfully',
+      data: result
+    };
+  } catch (error) {
+    this.logger.error(`Error removing payment method: ${error.error || error.message}`, error.stack);
+
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: error.error || error.message || 'Failed to remove payment method',
+      error: error.details || error
+    };
+  }
+}
 }

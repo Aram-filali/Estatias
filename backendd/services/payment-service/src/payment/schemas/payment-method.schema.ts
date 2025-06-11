@@ -10,7 +10,10 @@ export class PaymentMethod {
   stripePaymentMethodId: string;
 
   @Prop({ required: true })
-  customerId: string;
+  hostUid: string; // Changed from customerId to hostUid
+
+  @Prop({ required: false }) // Keep customerId but make it optional for Stripe operations
+  customerId?: string;
 
   @Prop({ required: true })
   type: string; // 'card', 'paypal', etc.
