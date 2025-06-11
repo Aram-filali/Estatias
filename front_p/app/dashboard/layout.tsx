@@ -1,18 +1,45 @@
 'use client';
 
 import { useState } from 'react';
+import React, { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { FaHome, FaChartLine, FaCreditCard, FaBell, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
 import styles from './Dashboard.module.css';
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, completeSignOut } from "@/contexts/firebaseConfig";
+import _ProtectedRoute from 'components/ProtectedRoute';
 
+const ProtectedRoute = _ProtectedRoute as React.FC<{
+  allowedRoles?: string[];
+  redirectTo?: string;
+  children: ReactNode;
+}>;
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const unreadCount = 2; // Placeholder, ideally fetched or passed as prop
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
+  
+  const handleLogout = async () => {
+      try {
+        await completeSignOut(); // Handles Firebase signOut + other cleanup
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("userType");
+        localStorage.clear(); // Optional: if you want to fully wipe localStorage
+    
+        window.dispatchEvent(new Event('userLoggedOut'));
+    
+        // Redirect to home or login
+        router.push("/");
+      } catch (error) {
+        console.error("Error during sign out:", error);
+      }
+    };
+
+
   // Helper function to determine active link
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -31,6 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
+    <ProtectedRoute allowedRoles={['host']}>
     <div className={styles.dashboardContainer}>
       {/* Collapsed mini sidebar - only visible when expanded is false */}
       {!sidebarExpanded && (
@@ -65,14 +93,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               <FaCreditCard />
             </button>
-            <button 
+            {/*<button 
               className={`${styles.iconButton} ${isActive('/dashboard/notifications') ? styles.activeIcon : ''}`}
               onClick={() => handleNavigation('/dashboard/notifications')}
               aria-label="Notifications"
             >
               <FaBell />
               {unreadCount > 0 && <span className={styles.miniNotificationBadge}>{unreadCount}</span>}
-            </button>
+            </button>*/}
             <button 
               className={`${styles.iconButton} ${isActive('/dashboard/settings') ? styles.activeIcon : ''}`}
               onClick={() => handleNavigation('/dashboard/settings')}
@@ -84,6 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           
           <button 
             className={`${styles.iconButton} ${styles.logoutIconButton}`}
+            onClick={handleLogout}
             aria-label="Logout"
           >
             <FaSignOutAlt />
@@ -144,7 +173,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             </nav>
             
-            <div className={styles.logoutButton}>
+            <div className={styles.logoutButton}
+            onClick={handleLogout}>
               <FaSignOutAlt /> Logout
             </div>
           </aside>
@@ -155,5 +185,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
       </main>
     </div>
+    </ProtectedRoute>
   );
 }

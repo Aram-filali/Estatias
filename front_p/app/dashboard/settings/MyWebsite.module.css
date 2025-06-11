@@ -135,12 +135,12 @@
   }
   
   .saveButton {
-    background-color: #111827;
+    background-color: var(--lWrite);
     color: white;
   }
   
   .saveButton:hover {
-    background-color: #232b38;
+    background-color: var(--GG);
     transform: scale(1.05);
     
   }

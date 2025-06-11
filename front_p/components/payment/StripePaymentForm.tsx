@@ -7,13 +7,13 @@ import { createPaymentMethod } from '@/services/paymentService';
 interface StripePaymentFormProps {
   onSuccess: (paymentMethod: any) => void;
   onCancel: () => void;
-  customerId?: string;
+  hostUid: string; // Made required since this is our primary identifier
 }
 
 export default function StripePaymentForm({ 
   onSuccess,
   onCancel,
-  customerId
+  hostUid
 }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -23,6 +23,12 @@ export default function StripePaymentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    
+    if (!hostUid) {
+      setError('Host ID is required. Please refresh the page and try again.');
+      console.error('Missing hostUid in StripePaymentForm');
+      return;
+    }
     
     setProcessing(true);
     setError(null);
@@ -37,12 +43,18 @@ export default function StripePaymentForm({
       if (stripeError) throw stripeError;
       if (!paymentMethod) throw new Error('Payment method creation failed');
       
-      // Use the payment service to save the payment method
-      const data = await createPaymentMethod(paymentMethod.id, customerId);
+      console.log('Created Stripe payment method:', paymentMethod.id);
+      console.log('Saving payment method for hostUid:', hostUid);
+      
+      // Use the payment service to save the payment method using only hostUid
+      const data = await createPaymentMethod(paymentMethod.id, hostUid);
         
+      console.log('Payment method saved successfully:', data);
+      
       // Notify parent component of success
       onSuccess(data);
     } catch (err) {
+      console.error('Payment method creation error:', err);
       setError(err instanceof Error ? err.message : 'Payment failed');
     } finally {
       setProcessing(false);

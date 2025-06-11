@@ -286,20 +286,55 @@ async findBookingsByHost(@Payload() filters: any) {
     }
   }
 
-   @MessagePattern('booking_paid')
+  @MessagePattern('booking_paid')
   async handleBookingPaid(@Payload() paymentData: any) {
-    this.logger.log(`Received booking_paid event for booking: ${paymentData.bookingId}`);
-    this.logger.log(`Payment data:`, paymentData);
+    this.logger.log(`🎉 Received booking_paid event for booking: ${paymentData.bookingId}`);
+    this.logger.log(`📝 Payment data received:`, {
+      bookingId: paymentData.bookingId,
+      paymentId: paymentData.paymentId,
+      amount: paymentData.amount,
+      hostAmount: paymentData.hostAmount,
+      plan: paymentData.plan,
+      status: 'processing...'
+    });
 
     try {
+      // Validate required fields
+      if (!paymentData.bookingId) {
+        this.logger.error('❌ Missing bookingId in payment data');
+        return {
+          statusCode: 400,
+          message: 'Missing bookingId in payment data',
+          error: 'MISSING_BOOKING_ID'
+        };
+      }
+
+      if (!paymentData.paymentId) {
+        this.logger.error('❌ Missing paymentId in payment data');
+        return {
+          statusCode: 400,
+          message: 'Missing paymentId in payment data',
+          error: 'MISSING_PAYMENT_ID'
+        };
+      }
+
+      this.logger.log(`🔄 Processing booking payment confirmation...`);
       const result = await this.bookingService.confirmBookingPayment(paymentData);
+      
+      this.logger.log(`✅ Booking payment confirmation result:`, {
+        statusCode: result.statusCode,
+        message: result.message,
+        bookingId: paymentData.bookingId
+      });
+
       return result;
     } catch (error) {
-      this.logger.error(`Error handling booking_paid event: ${error.message}`, error.stack);
+      this.logger.error(`❌ Error handling booking_paid event: ${error.message}`, error.stack);
       return {
         statusCode: 500,
         message: `Failed to process booking payment: ${error.message}`,
-        error: error.message
+        error: error.message,
+        bookingId: paymentData.bookingId
       };
     }
   }

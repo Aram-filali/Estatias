@@ -2,6 +2,7 @@
 import { Inter } from 'next/font/google';
 import Sidebar from 'components/adminn/Sidebar';
 import styles from './adminn.module.css';
+import ProtectedRoute from 'components/ProtectedRoute';
 
 
 export const metadata = {
@@ -11,6 +12,7 @@ export const metadata = {
 
 export default function AdminLayout({ children }) {
   return (
+     <ProtectedRoute allowedRoles={['admin']}>
    <div>
       <div className={styles.topBar} />
         <div className={styles.layoutContainer}>
@@ -20,6 +22,6 @@ export default function AdminLayout({ children }) {
           </main>
         </div>
     </div>
-      
+    </ProtectedRoute>
   );
 }

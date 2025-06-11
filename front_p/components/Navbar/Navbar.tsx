@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, completeSignOut } from "../../src/firebaseConfig";
+import { auth, completeSignOut } from "@/contexts/firebaseConfig";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Navbar.module.css";
@@ -42,7 +42,8 @@ export const Navbar: React.FC<NavbarProps> = () => {
   const router = useRouter();
 
 
-  const isHomePage = pathname === "/" || pathname === "/contact";
+  const showColPages = pathname === "/" || pathname === "/contact" || pathname === "/unauthorized"||
+  pathname.startsWith("/adminn");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -129,28 +130,30 @@ export const Navbar: React.FC<NavbarProps> = () => {
     };
   }, [pathname]);
 
-  const handleLogout = () => {
-    signOut(auth).then(() => {
-      localStorage.clear();
-      setUser(false);
-      window.dispatchEvent(new Event('userLoggedOut'));
+  const handleLogout = async () => {
+  try {
+    await completeSignOut(); // Handles Firebase signOut + other cleanup
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userType");
+    localStorage.clear(); // Optional: if you want to fully wipe localStorage
 
-      // Force reload the page to reset all states
-      router.push("/");
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-    }).catch((error) => {
-      console.error("Error during sign out:", error);
-    });
-  };
+    setUser(false);
+    window.dispatchEvent(new Event('userLoggedOut'));
+
+    // Redirect to home or login
+    router.push("/");
+  } catch (error) {
+    console.error("Error during sign out:", error);
+  }
+};
+
 
   return (
     <div
       ref={navbarRef}
       className={`${styles.main} ${styles.navbarContainer}
         ${isFixed ? styles.fixed : ''}
-        ${isHomePage ? styles.homePage : ''}
+        ${showColPages ? styles.homePage : ''}
         ${isHidden ? styles.hidden : styles.visible}`}
     >
       {/* 🔹 Top section of the navbar */}

@@ -3,5 +3,5 @@ import { IsString } from 'class-validator';
 
 export class PaymentMethodDto {
   @IsString()
-  customerId: string;
+  hostUid: string; // Changed from customerId to hostUid
 }

@@ -17,3 +17,15 @@ export interface PaymentMethod {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface PaymentMethodResponse {
+  id: string;
+  stripePaymentMethodId: string;
+  type: string;
+  details: PaymentMethodDetails;
+  isDefault: boolean;
+}
+
+export interface PaymentMethodsListResponse {
+  paymentMethods: PaymentMethodResponse[];
+}

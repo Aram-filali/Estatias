@@ -6,7 +6,11 @@ export class CreatePaymentMethodDto {
   @IsString()
   paymentMethodId: string;
 
+  @IsNotEmpty()
+  @IsString()
+  hostUid: string; // Changed from customerId to hostUid
+
   @IsOptional()
   @IsString()
-  customerId?: string;
+  customerId?: string; // Keep for Stripe operations but make optional
 }

@@ -76,80 +76,7 @@ export default function SubscriptionLayout({ children }: { children: React.React
     }
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(prev => !prev);
-  };
-
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!host || !authToken) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n => 
-        n.id === notification.id ? { ...n, isRead: true } : n
-      ),
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: [notification.id],
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-
-    router.push(notification.actionUrl || '/dashboard/notifications');
-  };
-
-  const markAllAsRead = async () => {
-    if (!host || !authToken) return;
-
-    const unreadIds = host.notifications.filter(n => !n.isRead).map(n => n.id);
-    if (unreadIds.length === 0) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n => ({ ...n, isRead: true })),
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: unreadIds,
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    }
-  };
-
-  const getNotificationTypeIcon = (type?: string) => {
-    if (!type) return null;
-
-    const iconMap: Record<string, React.ReactNode> = {
-      booking: <div className={`${styles.notificationTypeIcon} ${styles.bookingIcon}`}>B</div>,
-      system: <div className={`${styles.notificationTypeIcon} ${styles.systemIcon}`}>S</div>,
-      payment: <div className={`${styles.notificationTypeIcon} ${styles.paymentIcon}`}>P</div>,
-    };
-
-    return iconMap[type] || null;
-  };
+ 
 
   if (loading) {
     return (
@@ -178,53 +105,7 @@ export default function SubscriptionLayout({ children }: { children: React.React
           <h1 className={styles.pageTitle}>Subscription Management</h1>
         </div>
         <div className={styles.profileSection}>
-          <div className={styles.notificationIcon} onClick={toggleNotifications}>
-            <FaBell />
-            {host.notifications?.some(n => !n.isRead) && (
-              <span className={styles.badge}>
-                {host.notifications?.filter(n => !n.isRead).length}
-              </span>
-            )}
-            {showNotifications && (
-              <div className={styles.notificationPopup}>
-                <div className={styles.notificationPopupHeader}>
-                  <h3>Notifications</h3>
-                  <button
-                    className={styles.markAllReadButton}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markAllAsRead();
-                    }}
-                  >
-                    Mark all as read
-                  </button>
-                </div>
-                <div className={styles.notificationPopupList}>
-                  {host.notifications?.length === 0 ? (
-                    <p>No notifications</p>
-                  ) : (
-                    host.notifications?.slice(0, 5).map(notification => (
-                      <div
-                        key={notification.id}
-                        className={`${styles.notificationPopupItem} ${!notification.isRead ? styles.unread : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNotificationClick(notification);
-                        }}
-                      >
-                        {getNotificationTypeIcon(notification.type)}
-                        <div className={styles.notificationPopupContent}>
-                          <p>{notification.text}</p>
-                          <span className={styles.notificationPopupDate}>{notification.date}</span>
-                        </div>
-                        {!notification.isRead && <div className={styles.unreadIndicator}></div>}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+         
           <div className={styles.profileInfo}>
             <span>{host.name}</span>
             <div className={styles.avatar}>{host.name?.charAt(0) || ''}</div>

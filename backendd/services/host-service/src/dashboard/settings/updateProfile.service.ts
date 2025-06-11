@@ -42,6 +42,28 @@ export class UpdateProfileService {
     };
   }
 
+
+
+  async getHostSocialsByFirebaseUid(firebaseUid: string): Promise<any> {
+  const host = await this.hostModel.findOne({ firebaseUid }).exec();
+      
+  if (!host) {
+    throw new Error('Host not found');
+  }
+
+  // Return only social media links
+  return {
+    socials: {
+      facebook: host.facebookUrl || null,
+      instagram: host.instagramUrl || null,
+      linkedin: host.linkedinUrl || null,
+      twitter: host.twitterUrl || null,
+      youtube: host.youtubeUrl || null,
+      tiktok: host.tiktokUrl || null
+    }
+  };
+}
+
   async updateProfile(hostId: string, updateProfileDto: UpdateProfileDto): Promise<any> {
     console.log('Updating profile for host:', hostId);
     console.log('Update data received:', updateProfileDto);
@@ -113,7 +135,66 @@ export class UpdateProfileService {
     };
   }
 
-  async updateHostDocuments(hostId: string, files: any, documentData: any): Promise<Host> {
+
+  // 4. Host Service (Add this method to your existing host service)
+async updateSocialLinks(hostId: string, socialLinksDto: any): Promise<any> {
+  console.log('Updating social links for host:', hostId);
+  console.log('Social links data received:', socialLinksDto);
+       
+  // Find host by Firebase ID
+  const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+       
+  if (!host) {
+    console.error('Host not found with ID:', hostId);
+    throw new Error('Host not found');
+  }
+       
+  console.log('Found host:', host);
+       
+  // Prepare update object for social media links
+  const updateData: any = {};
+       
+  if (socialLinksDto.facebookUrl !== undefined) updateData.facebookUrl = socialLinksDto.facebookUrl;
+  if (socialLinksDto.instagramUrl !== undefined) updateData.instagramUrl = socialLinksDto.instagramUrl;
+  if (socialLinksDto.linkedinUrl !== undefined) updateData.linkedinUrl = socialLinksDto.linkedinUrl;
+  if (socialLinksDto.twitterUrl !== undefined) updateData.twitterUrl = socialLinksDto.twitterUrl;
+  if (socialLinksDto.youtubeUrl !== undefined) updateData.youtubeUrl = socialLinksDto.youtubeUrl;
+  if (socialLinksDto.tiktokUrl !== undefined) updateData.tiktokUrl = socialLinksDto.tiktokUrl;
+       
+  console.log('Social links update data prepared:', updateData);
+       
+  // Use findOneAndUpdate for atomic update
+  const updatedHost = await this.hostModel.findOneAndUpdate(
+    { firebaseUid: hostId },
+    { $set: updateData },
+    { new: true, runValidators: true }
+  ).exec();
+       
+  if (!updatedHost) {
+    console.error('Social links update failed for host:', hostId);
+    throw new Error('Update failed');
+  }
+       
+  console.log('Host social links updated successfully:', updatedHost);
+       
+  // Return updated profile
+  return {
+    profile: {
+      id: updatedHost.firebaseUid,
+      name: updatedHost.isAgency ? updatedHost.businessName : `${updatedHost.firstName} ${updatedHost.lastName}`,
+      socialLinks: {
+        facebookUrl: updatedHost.facebookUrl,
+        instagramUrl: updatedHost.instagramUrl,
+        linkedinUrl: updatedHost.linkedinUrl,
+        twitterUrl: updatedHost.twitterUrl,
+        youtubeUrl: updatedHost.youtubeUrl,
+        tiktokUrl: updatedHost.tiktokUrl,
+      }
+    }
+  };
+}
+
+  async updateHostDocuments(hostId: string, documentData: any): Promise<Host> {
     try {
       // Find the host by ID first
       const host = await this.hostModel.findById(hostId).exec();
@@ -124,43 +205,29 @@ export class UpdateProfileService {
       const updateData: any = {};
       
       // Process hasRepresentative and isAgency flags
-      updateData.hasRepresentative = documentData.hasRepresentative === 'true';
-      updateData.isAgency = documentData.isAgency === 'true';
+      updateData.hasRepresentative = documentData.hasRepresentative;
+      updateData.isAgency = documentData.isAgency;
       
-      // Set up the uploads directory
-      const uploadsDir = path.join(process.cwd(), 'uploads', hostId);
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+      // Update document URLs from Firebase Storage (if provided)
+      if (documentData.kbisOrId) {
+        updateData.kbisOrId = documentData.kbisOrId;
       }
       
-      // Process each potential document file
-      const fileTypes = ['kbisOrId', 'proxy', 'repId'];
-      
-      for (const type of fileTypes) {
-        if (files?.[type]?.[0]) {
-          const file = files[type][0];
-          const fileExt = file.originalname.split('.').pop();
-          const fileName = `${type}-${uuidv4()}.${fileExt}`;
-          const filePath = path.join(uploadsDir, fileName);
-          
-          // Check if buffer exists and handle it properly
-          if (file.buffer) {
-            // Convert to Buffer if it's not already a Buffer
-            const fileBuffer = Buffer.isBuffer(file.buffer) 
-              ? file.buffer 
-              : Buffer.from(file.buffer);
-            
-            // Write the buffer to a file
-            fs.writeFileSync(filePath, fileBuffer);
-            
-            // Store the file path in the database
-            updateData[type] = fileName;
-          } else {
-            // Log that there's no buffer available
-            console.warn(`No buffer available for ${type}`);
-          }
-        }
+      if (documentData.proxy) {
+        updateData.proxy = documentData.proxy;
       }
+      
+      if (documentData.repId) {
+        updateData.repId = documentData.repId;
+      }
+      
+      // If hasRepresentative is false, clear representative documents
+      if (!documentData.hasRepresentative) {
+        updateData.proxy = null;
+        updateData.repId = null;
+      }
+      
+      console.log('Updating host with data:', updateData);
       
       // Update the host document with new data
       const updatedHost = await this.hostModel.findByIdAndUpdate(
@@ -183,30 +250,57 @@ export class UpdateProfileService {
     }
   }
 
-  async getHostDocuments(hostId: string) {
+  // In your host service file:
+
+  async getHostDocuments(firebaseUid: string) {
     try {
-      const host = await this.hostService.findByFirebaseId(hostId);
+      console.log('Searching for host with firebaseUid:', firebaseUid);
+      
+      // Make sure you're using the correct field name from your schema
+      const host = await this.hostService.findByFirebaseId(firebaseUid);
       
       if (!host) {
-        throw new NotFoundException('Host not found');
+        console.log('Host not found for firebaseUid:', firebaseUid);
+        throw new NotFoundException(`Host not found with firebaseUid: ${firebaseUid}`);
       }
       
-      // Renvoyer uniquement les informations sur les documents
-      return {
+      console.log('Host found:', {
+        firebaseUid: host.firebaseUid,
+        email: host.email,
+        kbisOrId: host.kbisOrId ? 'Present' : 'Missing',
+        proxy: host.proxy ? 'Present' : 'Missing',
+        repId: host.repId ? 'Present' : 'Missing',
+        hasRepresentative: host.hasRepresentative,
+        isAgency: host.isAgency
+      });
+      
+      // Return the Firebase Storage URLs directly
+      const result = {
+        firebaseUid: host.firebaseUid, // Include firebaseUid in response
         kbisOrId: host.kbisOrId || null,
         proxy: host.proxy || null,
         repId: host.repId || null,
         hasRepresentative: host.hasRepresentative || false,
-        isAgency: host.isAgency || false
+        isAgency: host.isAgency || false,
+        // Include other relevant host info if needed
+        email: host.email,
+        businessName: host.businessName || null,
+        firstName: host.firstName || null,
+        lastName: host.lastName || null
       };
+      
+      console.log('Returning documents:', result);
+      
+      return result;
     } catch (error) {
+      console.error('Error in getHostDocuments service:', error);
+      
       if (error instanceof NotFoundException) {
         throw error;
       }
       throw new Error(`Error fetching host documents: ${error.message}`);
     }
   }
-  
 }
 
 

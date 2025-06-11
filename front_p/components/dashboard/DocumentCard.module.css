@@ -134,3 +134,116 @@
   margin-top: 16px;
   width: 100%; /* S'assurer que le conteneur prend toute la largeur disponible */
 }
+
+
+
+
+/* Add these styles to your DocumentCard.module.css */
+
+.documentCard {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.documentCard.hasDocument {
+  border-color: var(--secondary-button);
+  background: #f8fff8;
+}
+
+.documentHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.documentIcon {
+  font-size: 24px;
+  color: #666;
+}
+
+.documentCard.hasDocument .documentIcon {
+  color: var(--secondary-button);
+}
+
+.statusIcon {
+  color: var(--secondary-button);
+  font-size: 18px;
+  margin-left: auto;
+}
+
+.documentName {
+  font-weight: 500;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.documentName.documentExists {
+  color: var(--secondary-button);
+}
+
+.documentName.noDocument {
+  color: #666;
+  font-style: italic;
+}
+
+.previewContainer {
+  margin-bottom: 16px;
+}
+
+.documentPreview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.viewButton {
+  background: var(--lWrite);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.viewButton:hover {
+  background: var(--GG);
+}
+
+.uploadArea {
+  margin-top: 12px;
+}
+
+.uploadButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f5f5f5;
+  border: 2px dashed #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  color: #666;
+}
+
+.uploadButton:hover {
+  background: #e8f5e8;
+  border-color: var(--secondary-button);
+  color: var(--secondary-button);
+}
+
+.fileInput {
+  display: none;
+}

@@ -5,7 +5,7 @@ import Footer from "@/components/Footer/Footer";
 import { Navbar } from "@/components/Navbar/Navbar";
 import { HostProvider } from "@/components/addProperty/HostProvider";
 import { ConditionalNavbarAndFooter } from "@/components/addProperty/ConditionalNavbarAndFooter";
-
+import { AuthProvider } from '../contexts/AuthContext';
 // Enable metadata
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3001'),
@@ -107,11 +107,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <HostProvider>
+        <AuthProvider>
           <ConditionalNavbarAndFooter>
             {children}
           </ConditionalNavbarAndFooter>
-        </HostProvider>
+        </AuthProvider>
       </body>
     </html>
   );

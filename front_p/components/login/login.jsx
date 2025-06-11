@@ -3,7 +3,8 @@
 import { useState } from "react";
 import styles from "./login.module.css";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, completeSignOut } from "../../src/firebaseConfig";
+import { auth, completeSignOut } from "@/contexts/firebaseConfig";
+import { useAuth } from "@/contexts/AuthContext"; 
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Popup from "./popup";
@@ -20,6 +21,38 @@ export default function LoginForm() {
   const [popupType, setPopupType] = useState("success");
 
   const router = useRouter();
+  const { userRole } = useAuth();
+
+  // Helper function to wait for role to be set and then redirect
+  const waitForRoleAndRedirect = async (expectedRole = null) => {
+    const maxAttempts = 50; // 5 seconds max wait
+    let attempts = 0;
+    
+    const checkRole = () => {
+      return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          attempts++;
+          
+          // Get role from localStorage as fallback
+          const storedRole = localStorage.getItem('userRole') || localStorage.getItem('userType');
+          
+          if (storedRole || attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            resolve(storedRole);
+          }
+        }, 100); // Check every 100ms
+      });
+    };
+    
+    const role = await checkRole();
+    
+    if (role) {
+      redirectBasedOnRole(role);
+    } else {
+      console.warn('Role not found after waiting, redirecting to home');
+      router.push("/");
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -30,7 +63,7 @@ export default function LoginForm() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      if (user.email === 'admin1@gmail.com' || user.email === 'admin2@gmail.com') {
+      if (user.email === 'admin1@gmail.com' || user.email === 'admin2@gmail.com' || user.email === 'estatias.services@gmail.com') {
         setPopupMessage("This email is reserved and cannot be used.");
         setPopupType("error");
         setShowPopup(true);
@@ -49,34 +82,32 @@ export default function LoginForm() {
       const token = await user.getIdToken();
       console.log("Retrieved token: ", token);
 
-      const userProfile = {
+      /*const userProfile = {
         displayName: user.displayName,
         email: user.email,
         photoURL: user.photoURL
       };
-      console.log("User profile: ", userProfile);
+      console.log("User profile: ", userProfile);*/
 
       try {
         const res = await axios.post("http://localhost:3000/hosts/google-host", { idToken: token });
         console.log("Response from google-host:", res.data);
 
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userProfile', JSON.stringify(userProfile));
-        localStorage.setItem('userType', 'host');
-        
         setPopupMessage("Successfully signed in with Google!");
         setPopupType("success");
         setShowPopup(true);
         
-        window.dispatchEvent(new Event('userLoggedIn'));
-        
-        router.push("/dashboard");
+        // Wait for Firebase auth context to update with custom claims
+        setTimeout(async () => {
+          await waitForRoleAndRedirect('host');
+        }, 1500);
         
       } catch (apiError) {
         console.error("API error:", apiError.response?.data || apiError);
         setPopupMessage(apiError.response?.data?.message || "Error connecting to the server");
         setPopupType("error");
         setShowPopup(true);
+        await completeSignOut();
       }
     } catch (err) {
       console.error("Google login error:", err);
@@ -108,28 +139,35 @@ export default function LoginForm() {
       const user = userCredential.user;
       const token = await user.getIdToken();
   
-      let response;
-  
-      if (isAdmin) {
-        // Envoi uniquement du token au backend
-        response = await axios.post("http://localhost:3000/admins/login", { idToken: token });
-  
-        const userRole = response.data?.user?.role; // Assure-toi que tu récupères bien le rôle
-  
-        // Backend a validé => maintenant on peut stocker
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('userType', 'admin');
-        localStorage.setItem('userEmail', email);
-        if (userRole) {
-          localStorage.setItem('userRole', userRole);
+       if (isAdmin) {
+        try {
+          // Send token to admin backend endpoint
+          const response = await axios.post("http://localhost:3000/admins/login", { 
+            idToken: token 
+          });
+          
+          console.log("Admin login response:", response.data);
+          
+          setPopupMessage("Admin login successful!");
+          setPopupType("success");
+          setShowPopup(true);
+          
+          // Wait for role to be set, then redirect
+          setTimeout(async () => {
+            await waitForRoleAndRedirect('admin');
+          }, 1500);
+          
+        } catch (apiError) {
+          console.error("Admin API error:", apiError.response?.data || apiError);
+          setPopupMessage(apiError.response?.data?.message || "Admin authentication failed");
+          setPopupType("error");
+          setShowPopup(true);
+          await completeSignOut();
         }
-  
-        // Redirection vers la page Admin
-        router.push("/adminn");
   
       } else {
         // Vérification pour les hôtes
-        if (email === 'admin1@gmail.com' || email === 'admin2@gmail.com') {
+        if (email === 'admin1@gmail.com' || email === 'admin2@gmail.com' || user.email === 'estatias.services@gmail.com') {
           setPopupMessage("This email is reserved and cannot be used.");
           setPopupType("error");
           setShowPopup(true);
@@ -139,21 +177,20 @@ export default function LoginForm() {
   
         try {
           // Envoi du token Firebase au backend pour l'authentification des hôtes
-          response = await axios.post("http://localhost:3000/hosts/login-host", {
+          const response = await axios.post("http://localhost:3000/hosts/login-host", {
             idToken: token,
           });
   
-          // Backend a validé => maintenant on peut stocker
-          localStorage.setItem('authToken', token);
-          localStorage.setItem('userType', 'host');
-          localStorage.setItem('userEmail', email);
+          console.log("Host login response:", response.data);
   
           setPopupMessage("Host login successful!");
           setPopupType("success");
           setShowPopup(true);
   
-          window.dispatchEvent(new Event('userLoggedIn'));
-          router.push("/dashboard");
+          // Wait for role to be set, then redirect
+          setTimeout(async () => {
+            await waitForRoleAndRedirect('host');
+          }, 1500);
   
         } catch (apiError) {
           console.error("API login error:", apiError.response?.data || apiError);
@@ -170,8 +207,14 @@ export default function LoginForm() {
   
       if (err.code === 'auth/invalid-credential') {
         setPopupMessage("Invalid credentials, please try again.");
+      } else if (err.code === 'auth/user-not-found') {
+        setPopupMessage("No account found with this email address.");
+      } else if (err.code === 'auth/wrong-password') {
+        setPopupMessage("Incorrect password.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setPopupMessage("Too many failed attempts. Please try again later.");
       } else {
-        setPopupMessage(err.response?.data?.message || "Login error: " + err.message);
+        setPopupMessage("Login error: " + err.message);
       }
   
       setPopupType("error");
@@ -181,6 +224,21 @@ export default function LoginForm() {
     }
   };  
   
+
+  // Helper function to redirect based on role (for Google login)
+  const redirectBasedOnRole = (role) => {
+    switch (role) {
+      case 'admin':
+        router.push("/adminn");
+        break;
+      case 'host':
+        router.push("/dashboard");
+        break;
+      default:
+        console.warn('Unknown role:', role, 'redirecting to home');
+        router.push("/"); // fallback
+    }
+  };
 
   const handleToggleLogin = () => setIsAdmin(!isAdmin);
 

@@ -24,7 +24,23 @@ export class HostPlanController {
   }
 
   @MessagePattern('activate_plan')
-  async activatePlan(@Payload() data: { hostId: string; plan: string }) {
+  async activatePlan(@Payload() data: { 
+    hostId: string; 
+    plan: string;
+    paymentIntentId?: string;
+    stripeCustomerId?: string;
+  }) {
     return this.hostPlanService.activatePlan(data);
+  }
+
+  // New message pattern for updating payment status
+  @MessagePattern('update_payment_status')
+  async updatePaymentStatus(@Payload() data: {
+    hostId: string;
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentIntentId?: string;
+    stripeCustomerId?: string;
+  }) {
+    return this.hostPlanService.updatePaymentStatus(data);
   }
 }
