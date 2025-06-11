@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Inject, HttpException, Get, Param, Res, Patch, Delete, Headers, UnauthorizedException, UploadedFile, HttpStatus, Query, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Inject, HttpException, Req, Get, Param, Res, Patch, Delete, Headers, UnauthorizedException, UploadedFile, HttpStatus, Query, Logger,  UseGuards } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ForgotPasswordDto } from './forgetpass.dto';
@@ -9,9 +9,13 @@ import { Express } from 'express';
 import { Response } from 'express';
 //import { AuthGuard } from '../guards/auth.guard';
 import * as jwt from 'jsonwebtoken';
+import { FirebaseAuthGuard } from '../firebase/firebase-auth.guards';
+import { RoleGuard } from '../auth/role.guard';
+import { Roles } from '../auth/roles.decorator';
 
 
 @Controller('hosts')
+//@UseGuards(FirebaseAuthGuard) // Apply authentication to all routes
 export class HostController {
   private readonly logger = new Logger(HostController.name);
   constructor(
@@ -332,6 +336,8 @@ private isValidEmail(email: string): boolean {
   }
 
   @Get('/dashboard/:hostId')
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('host')
   async getHostDashboard(
     @Param('hostId') hostId: string,
     @Headers('authorization') authorization: string
@@ -374,7 +380,89 @@ private isValidEmail(email: string): boolean {
     }
   }
 
+
+
+  @Get('profile/:hostId')
+@UseGuards(FirebaseAuthGuard, RoleGuard)
+@Roles('host', 'admin')
+async getHostProfile(
+  @Param('hostId') hostId: string,
+  @Headers('authorization') authorization: string
+) {
+  console.log(`[API Gateway] Request to get profile for hostId: ${hostId}`);
+  
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+
+  try {
+    const response = await firstValueFrom(
+      this.settingsClient.send(
+        { cmd: 'get_host_profile' },
+        { firebaseUid: hostId }
+      )
+    );
+
+    console.log('[API Gateway] Response from settings service:', response);
+    
+    if (response.statusCode !== 200) {
+      throw new HttpException(
+        response.error || 'Error fetching host profile',
+        response.statusCode
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('[API Gateway] Error fetching profile:', error);
+    throw new HttpException(
+      error.message || 'Failed to fetch host profile',
+      error.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+
+
+
+@Get('socials/:hostUid')
+// No auth guards for public access
+async getHostSocials(@Param('hostUid') hostUid: string) {
+  console.log(`[API Gateway] Request to get social links for hostUid: ${hostUid}`);
+  
+  try {
+    const response = await firstValueFrom(
+      this.settingsClient.send(
+        { cmd: 'get_host_socials' },
+        { firebaseUid: hostUid }
+      )
+    );
+
+    console.log('[API Gateway] Response from settings service:', response);
+        
+    if (response.statusCode !== 200) {
+      throw new HttpException(
+        response.error || 'Error fetching host social links',
+        response.statusCode
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('[API Gateway] Error fetching social links:', error);
+    throw new HttpException(
+      error.message || 'Failed to fetch host social links',
+      error.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
   @Patch('profile/:hostId')
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('host', 'admin')
   async updateHostProfile(
     @Param('hostId') hostId: string,
     @Body() updateProfileDto: any,
@@ -430,6 +518,62 @@ private isValidEmail(email: string): boolean {
     }
   }
   
+
+
+
+  @Patch('social/:hostId')
+@UseGuards(FirebaseAuthGuard, RoleGuard)
+@Roles('host', 'admin')
+async addSocial(
+  @Param('hostId') hostId: string,
+  @Body() socialLinksDto: any,
+  @Headers('authorization') authorization: string
+) {
+  console.log(`[API Gateway] Request to update social links for hostId: ${hostId}`);
+  console.log('[API Gateway] Social links data received:', socialLinksDto);
+       
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+
+  if (!socialLinksDto) {
+    throw new HttpException(
+      'Social links data is required',
+      HttpStatus.BAD_REQUEST
+    );
+  }
+       
+  try {
+    const response = await firstValueFrom(
+      this.settingsClient.send(
+        { cmd: 'update_host_social_links' },
+        { hostId, socialLinksDto }
+      )
+    );
+           
+    console.log('[API Gateway] Response from settings service:', response);
+     
+    if (response.statusCode !== 200) {
+      throw new HttpException(
+        response.error || 'Error updating social links',
+        response.statusCode
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('[API Gateway] Error updating social links:', error);
+    throw new HttpException(
+      error.message || 'Failed to update social links',
+      error.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+
   @Get('validate-reset-token')
   async validateResetToken(@Query('token') token: string) {
     if (!token) {
@@ -490,121 +634,172 @@ private isValidEmail(email: string): boolean {
   }
 
   @Post('plan')
-  async createHostPlan(
-    @Body() body: any,
-    @Headers('authorization') authorization: string
-  ) {
-    console.log('Received in HTTP controller:', body);
-    
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new HttpException(
-        'Authentication token is missing or invalid format',
-        HttpStatus.UNAUTHORIZED
-      );
-    }
-    
-    try {
-      // Ensure the message pattern matches what's expected in the microservice
-      const response = await firstValueFrom(
-        this.hostPlanClient.send('create_plan', body)
-      );
-      
-      console.log('Response from microservice:', response);
-      
-      if (!response || response.error) {
-        throw new HttpException(
-          response?.error || 'Error creating the plan',
-          response?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
-        );
-      }
-      
-      return response;
-    } catch (error) {
-      console.error('Error communicating with microservice:', error);
-      throw new HttpException(
-        error.message || 'Error creating the plan', 
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  @Get(':id/plan')
-  async getHostPlan(
-    @Param('id') hostId: string,
-    @Headers('authorization') authorization: string
-  ) {
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new HttpException(
-        'Authentication token is missing or invalid format',
-        HttpStatus.UNAUTHORIZED
-      );
-    }
-    
-    try {
-      // Format the payload as expected by the microservice
-      const payload = { firebaseUid: hostId };
-      
-      const response = await firstValueFrom(
-        this.hostPlanClient.send('get_plan_by_firebase_uid', payload)
-      );
-    
-      if (!response) {
-        throw new HttpException('No plan found for this user.', HttpStatus.NOT_FOUND);
-      }
-    
-      return response;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      console.error('Error retrieving plan:', error);
-      throw new HttpException(
-        error.message || 'Error retrieving plan', 
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
+async createHostPlan(
+  @Body() body: any,
+  @Headers('authorization') authorization: string
+) {
+  console.log('Received in HTTP controller:', body);
+  
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
   }
   
-  @Post(':id/activate-plan')
-  async activatePlan(
-    @Param('id') hostId: string,
-    @Body() body: any,
-    @Headers('authorization') authorization: string
-  ) {
-    if (!authorization || !authorization.startsWith('Bearer ')) {
+  try {
+    // Ensure the message pattern matches what's expected in the microservice
+    const response = await firstValueFrom(
+      this.hostPlanClient.send('create_plan', body)
+    );
+    
+    console.log('Response from microservice:', response);
+    
+    if (!response || response.error) {
       throw new HttpException(
-        'Authentication token is missing or invalid format',
-        HttpStatus.UNAUTHORIZED
+        response?.error || 'Error creating the plan',
+        response?.statusCode || HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
     
-    try {
-      // Prepare the payload with both hostId and plan information
-      const payload = {
-        hostId: hostId,
-        plan: body.plan || 'Default Plan' // Fallback if plan is not provided
-      };
-      
-      const response = await firstValueFrom(
-        this.hostPlanClient.send('activate_plan', payload)
-      );
-      
-      if (!response) {
-        throw new HttpException('Failed to activate plan', HttpStatus.BAD_REQUEST);
-      }
-      
-      return response;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      console.error('Error activating plan:', error);
-      throw new HttpException(
-        error.message || 'Error activating plan', 
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
+    return response;
+  } catch (error) {
+    console.error('Error communicating with microservice:', error);
+    throw new HttpException(
+      error.message || 'Error creating the plan', 
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
+}
+
+@Get(':id/plan')
+async getHostPlan(
+  @Param('id') hostId: string,
+  @Headers('authorization') authorization: string
+) {
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+  
+  try {
+    // Format the payload as expected by the microservice
+    const payload = { firebaseUid: hostId };
+    
+    const response = await firstValueFrom(
+      this.hostPlanClient.send('get_plan_by_firebase_uid', payload)
+    );
+    
+    if (!response) {
+      throw new HttpException('No plan found for this user.', HttpStatus.NOT_FOUND);
+    }
+    
+    return response;
+  } catch (error) {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+    console.error('Error retrieving plan:', error);
+    throw new HttpException(
+      error.message || 'Error retrieving plan', 
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+@Post(':id/activate-plan')
+@UseGuards(FirebaseAuthGuard, RoleGuard)
+@Roles('host')
+async activatePlan(
+  @Param('id') hostId: string,
+  @Body() body: any,
+  @Headers('authorization') authorization: string
+) {
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+  
+  try {
+    // Prepare the payload with payment information
+    const payload = {
+      hostId: hostId,
+      plan: body.plan || 'Default Plan',
+      paymentIntentId: body.paymentIntentId, // Add payment intent ID
+      stripeCustomerId: body.stripeCustomerId // Add customer ID
+    };
+    
+    const response = await firstValueFrom(
+      this.hostPlanClient.send('activate_plan', payload)
+    );
+    
+    if (!response) {
+      throw new HttpException('Failed to activate plan', HttpStatus.BAD_REQUEST);
+    }
+    
+    return response;
+  } catch (error) {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+    console.error('Error activating plan:', error);
+    throw new HttpException(
+      error.message || 'Error activating plan', 
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+// New endpoint for updating payment status
+@Post(':id/payment-status')
+@UseGuards(FirebaseAuthGuard, RoleGuard)
+@Roles('host')
+async updatePaymentStatus(
+  @Param('id') hostId: string,
+  @Body() body: {
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentIntentId?: string;
+    stripeCustomerId?: string;
+  },
+  @Headers('authorization') authorization: string
+) {
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new HttpException(
+      'Authentication token is missing or invalid format',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+  
+  try {
+    const payload = {
+      hostId: hostId,
+      ...body
+    };
+    
+    const response = await firstValueFrom(
+      this.hostPlanClient.send('update_payment_status', payload)
+    );
+    
+    if (!response) {
+      throw new HttpException('Failed to update payment status', HttpStatus.BAD_REQUEST);
+    }
+    
+    return response;
+  } catch (error) {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+    console.error('Error updating payment status:', error);
+    throw new HttpException(
+      error.message || 'Error updating payment status', 
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
 
   @Get('by-email/:email')
   async getHostByEmail(
@@ -759,11 +954,11 @@ private isValidEmail(email: string): boolean {
     }
   }
 
-  @Post('documents/update')
-  @UseInterceptors(AnyFilesInterceptor())
+  @Patch('documents/update')
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('host', 'admin')
   async updateHostDocuments(
     @Body() documentData: any,
-    @UploadedFiles() files: Array<Express.Multer.File>,
     @Headers('authorization') authorization: string
   ) {
     console.log('[API Gateway] Received document update request');
@@ -804,23 +999,12 @@ private isValidEmail(email: string): boolean {
 
       const hostId = hostResponse.data._id;
 
-      const processedFiles: Record<string, Express.Multer.File[]> = {};
-      if (files && files.length > 0) {
-        files.forEach(file => {
-          const fieldName = file.fieldname;
-          if (!processedFiles[fieldName]) {
-            processedFiles[fieldName] = [];
-          }
-          processedFiles[fieldName].push(file);
-        });
-      }
-
+      // Send the document data directly (no file processing needed since files are already in Firebase)
       const response = await firstValueFrom(
         this.settingsClient.send(
           { cmd: 'update_host_documents' },
           {
             hostId,
-            files: processedFiles,
             documentData
           }
         )
@@ -835,6 +1019,7 @@ private isValidEmail(email: string): boolean {
 
       return {
         statusCode: 200,
+        success: true,
         message: 'Documents updated successfully',
         data: response.data
       };
@@ -848,9 +1033,10 @@ private isValidEmail(email: string): boolean {
     }
   }
 
-  @Get(':hostId/documents')
+  // Update the route parameter name to be more descriptive
+  @Get(':firebaseUid/documents')
   async getHostDocuments(
-    @Param('hostId') hostId: string,
+    @Param('firebaseUid') firebaseUid: string, // Changed parameter name for clarity
     @Headers('authorization') authorization: string
   ) {
     if (!authorization || !authorization.startsWith('Bearer ')) {
@@ -862,7 +1048,7 @@ private isValidEmail(email: string): boolean {
     
     try {
       const response = await firstValueFrom(
-        this.hostClient.send('get_host_documents', hostId)
+        this.hostClient.send('get_host_documents', firebaseUid) // Sending firebaseUid
       );
       
       if (!response || response.error) {
@@ -916,21 +1102,18 @@ private isValidEmail(email: string): boolean {
   }
 
   @Post('delete-host')
-  async deleteUserAccount(
-    @Body() data: { idToken: string, firebaseUid: string }
-  ) {
-    // Validate data
-    if (!data.idToken) {
-      throw new HttpException('Token missing', HttpStatus.BAD_REQUEST);
-    }
+  @UseGuards(FirebaseAuthGuard, RoleGuard)
+  @Roles('host', 'admin')
+  async deleteUserAccount(@Req() req: Request) {
+  const firebaseUid = (req as any).user?.uid;
     
-    if (!data.firebaseUid) {
+    if (!firebaseUid) {
       throw new HttpException('Firebase UID missing', HttpStatus.BAD_REQUEST);
     }
-    
+
     try {
       const response = await firstValueFrom(
-        this.hostClient.send({ cmd: 'delete_host' }, data)
+        this.hostClient.send({ cmd: 'delete_host' }, { firebaseUid })
       );
       
       if (response.statusCode === 200) {

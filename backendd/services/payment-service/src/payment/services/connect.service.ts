@@ -97,39 +97,54 @@ export class ConnectService {
 
   async getConnectAccount(firebaseUid: string) {
     try {
-      const connectAccount = await this.connectAccountModel.findOne({ firebaseUid });
-      if (!connectAccount) {
+      this.logger.log(`Getting connect account for user: ${firebaseUid}`);
+      
+      if (!firebaseUid) {
         return {
-          statusCode: 404,
-          message: 'Connect account not found',
+          statusCode: 400,
+          message: 'Firebase UID is required',
+          data: null
         };
       }
 
-      // Get the latest account status from Stripe
-      const stripeAccount = await this.stripe.accounts.retrieve(
-        connectAccount.stripeConnectAccountId
-      );
+      const connectAccount = await this.connectAccountModel
+        .findOne({ firebaseUid })
+        .lean()
+        .exec();
 
-      // Update the database record
-      connectAccount.detailsSubmitted = stripeAccount.details_submitted;
-      connectAccount.payoutsEnabled = stripeAccount.payouts_enabled;
-      await connectAccount.save();
+      if (!connectAccount) {
+        this.logger.log(`No connect account found for user: ${firebaseUid}`);
+        return {
+          statusCode: 404,
+          message: 'Connect account not found',
+          data: null
+        };
+      }
+
+      // Transform the data to match expected structure
+      const accountData = {
+        accountId: connectAccount.stripeConnectAccountId,
+        detailsSubmitted: connectAccount.detailsSubmitted || false,
+        payoutsEnabled: connectAccount.payoutsEnabled || false,
+        bankAccount: connectAccount.bankAccount || null
+      };
+
+      this.logger.log(`Found connect account for user: ${firebaseUid}`);
 
       return {
         statusCode: 200,
-        data: {
-          accountId: connectAccount.stripeConnectAccountId,
-          detailsSubmitted: connectAccount.detailsSubmitted,
-          payoutsEnabled: connectAccount.payoutsEnabled,
-          bankAccount: connectAccount.bankAccount,
-          accountStatus: stripeAccount.requirements,
-        },
+        message: 'Connect account retrieved successfully',
+        data: accountData,
       };
+
     } catch (error) {
-      this.logger.error(`Failed to retrieve connect account: ${error.message}`, error.stack);
+      this.logger.error(`Failed to get connect account: ${error.message}`, error.stack);
+      
       return {
         statusCode: 500,
-        message: 'Failed to retrieve Connect account',
+        message: `Failed to get connect account: ${error.message}`,
+        data: null,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       };
     }
   }
@@ -469,5 +484,283 @@ export class ConnectService {
     }
   }
 
+
+
+
+  // Additional methods for Connect Service in Payment Microservice
+
+  async getHostTransactions(payload: {
+    firebaseUid: string;
+    timeframe?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      this.logger.log(`Processing getHostTransactions for user: ${payload.firebaseUid}`);
+      
+      const { firebaseUid, timeframe, status, limit = 50, offset = 0 } = payload;
+      
+      // Validate required parameters
+      if (!firebaseUid) {
+        this.logger.error('Firebase UID is required');
+        return {
+          statusCode: 400,
+          message: 'Firebase UID is required',
+          data: null
+        };
+      }
+
+      // Build query filters
+      const query: any = { hostId: firebaseUid };
+      
+      this.logger.log(`Building query with hostId: ${firebaseUid}`);
+      
+      // Apply status filter
+      if (status && status !== 'all') {
+        query.status = status.toUpperCase();
+        this.logger.log(`Applied status filter: ${status.toUpperCase()}`);
+      }
+      
+      // Apply timeframe filter
+      if (timeframe && timeframe !== 'allTime') {
+        const now = new Date();
+        let startDate: Date;
+        
+        switch (timeframe) {
+          case 'thisMonth':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            query.createdAt = { $gte: startDate };
+            break;
+          case 'lastMonth':
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            query.createdAt = { 
+              $gte: lastMonthStart, 
+              $lt: thisMonthStart 
+            };
+            break;
+          case 'last3Months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            query.createdAt = { $gte: startDate };
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            query.createdAt = { $gte: startDate };
+        }
+        
+        this.logger.log(`Applied timeframe filter: ${timeframe}, query:`, query.createdAt);
+      }
+
+      this.logger.log(`Final query:`, JSON.stringify(query));
+
+      // Get transactions with pagination
+      const transactions = await this.bookingPaymentModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(Number(limit))
+        .skip(Number(offset))
+        .lean() // Use lean() for better performance
+        .exec();
+
+      this.logger.log(`Found ${transactions.length} transactions`);
+
+      // Get total count for pagination
+      const totalCount = await this.bookingPaymentModel.countDocuments(query);
+      this.logger.log(`Total count: ${totalCount}`);
+
+      // Calculate summary statistics - separate queries for reliability
+      const [completedTransactions, pendingTransactions] = await Promise.all([
+        this.bookingPaymentModel
+          .find({ hostId: firebaseUid, status: 'PAID' })
+          .select('hostAmount')
+          .lean()
+          .exec(),
+        this.bookingPaymentModel
+          .find({ hostId: firebaseUid, status: 'PENDING' })
+          .select('hostAmount')
+          .lean()
+          .exec()
+      ]);
+
+      const totalRevenue = completedTransactions.reduce((sum, t) => {
+        const amount = t.hostAmount || 0;
+        return sum + (typeof amount === 'number' ? amount : 0);
+      }, 0);
+
+      const pendingRevenue = pendingTransactions.reduce((sum, t) => {
+        const amount = t.hostAmount || 0;
+        return sum + (typeof amount === 'number' ? amount : 0);
+      }, 0);
+
+      const responseData = {
+        transactions: transactions || [],
+        pagination: {
+          total: totalCount || 0,
+          limit: Number(limit),
+          offset: Number(offset),
+          hasMore: (Number(offset) + Number(limit)) < totalCount
+        },
+        summary: {
+          totalRevenue: totalRevenue || 0,
+          pendingRevenue: pendingRevenue || 0,
+          totalTransactions: completedTransactions.length || 0,
+          pendingTransactions: pendingTransactions.length || 0
+        }
+      };
+
+      this.logger.log(`Returning response with ${responseData.transactions.length} transactions`);
+
+      return {
+        statusCode: 200,
+        message: 'Transactions retrieved successfully',
+        data: responseData,
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to get host transactions: ${error.message}`, error.stack);
+      this.logger.error(`Error details:`, error);
+      
+      return {
+        statusCode: 500,
+        message: `Failed to get host transactions: ${error.message}`,
+        data: null,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      };
+    }
+  }
+
+  async requestManualPayout(payload: {
+    firebaseUid: string;
+    amount?: number;
+  }) {
+    try {
+      this.logger.log(`Processing manual payout request for user: ${payload.firebaseUid}`);
+      
+      const { firebaseUid, amount } = payload;
+      
+      if (!firebaseUid) {
+        return {
+          statusCode: 400,
+          message: 'Firebase UID is required',
+          data: null
+        };
+      }
+      
+      // Get host's Connect account
+      const connectAccount = await this.connectAccountModel
+        .findOne({ firebaseUid })
+        .lean()
+        .exec();
+
+      if (!connectAccount) {
+        this.logger.log(`Connect account not found for user: ${firebaseUid}`);
+        return {
+          statusCode: 404,
+          message: 'Connect account not found. Please set up your payout method first.',
+          data: null
+        };
+      }
+
+      if (!connectAccount.payoutsEnabled) {
+        return {
+          statusCode: 400,
+          message: 'Payouts are not enabled for this account. Please complete account setup.',
+          data: null
+        };
+      }
+
+      // Calculate available balance
+      const completedTransactions = await this.bookingPaymentModel
+        .find({
+          hostId: firebaseUid,
+          status: 'PAID'
+        })
+        .select('hostAmount')
+        .lean()
+        .exec();
+
+      const availableBalance = completedTransactions.reduce((sum, t) => {
+        const amount = t.hostAmount || 0;
+        return sum + (typeof amount === 'number' ? amount : 0);
+      }, 0);
+      
+      this.logger.log(`Available balance for ${firebaseUid}: ${availableBalance}`);
+      
+      if (availableBalance < 10000) { // $100 minimum in cents
+        return {
+          statusCode: 400,
+          message: 'Insufficient balance for payout. Minimum payout amount is $100.',
+          data: { availableBalance: availableBalance / 100 }
+        };
+      }
+
+      const payoutAmount = amount ? amount * 100 : availableBalance; // Convert to cents if amount provided
+      
+      if (payoutAmount > availableBalance) {
+        return {
+          statusCode: 400,
+          message: 'Payout amount exceeds available balance',
+          data: { 
+            requestedAmount: payoutAmount / 100,
+            availableBalance: availableBalance / 100
+          }
+        };
+      }
+
+      // Create transfer in Stripe (not payout, since this is for Connect accounts)
+      const transfer = await this.stripe.transfers.create({
+        amount: payoutAmount,
+        currency: 'usd',
+        destination: connectAccount.stripeConnectAccountId,
+        description: `Manual payout requested by host ${firebaseUid}`,
+        metadata: {
+          hostId: firebaseUid,
+          type: 'manual_payout',
+          requestedAt: new Date().toISOString()
+        }
+      });
+
+      // Log the payout request
+      this.logger.log(`Manual transfer created:`, {
+        transferId: transfer.id,
+        amount: payoutAmount,
+        hostId: firebaseUid,
+        connectAccountId: connectAccount.stripeConnectAccountId
+      });
+
+      return {
+        statusCode: 200,
+        message: 'Manual payout requested successfully',
+        data: {
+          transferId: transfer.id,
+          amount: payoutAmount / 100, // Convert back to dollars
+          currency: transfer.currency,
+          estimatedArrival: 'Within 2-3 business days',
+          status: 'requested'
+        },
+      };
+
+    } catch (error) {
+      this.logger.error(`Failed to request manual payout: ${error.message}`, error.stack);
+      
+      // Handle Stripe errors
+      if (error.type && error.type.startsWith('Stripe')) {
+        return {
+          statusCode: 400,
+          message: `Payout failed: ${error.message}`,
+          data: null
+        };
+      }
+
+      return {
+        statusCode: 500,
+        message: `Failed to request manual payout: ${error.message}`,
+        data: null,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      };
+    }
+  
+  }
   
 }

@@ -28,8 +28,23 @@ export class ConnectController {
 
   @MessagePattern('get_connect_account')
   async getConnectAccount(payload: { firebaseUid: string }) {
-    this.logger.log(`Getting connect account for user: ${payload.firebaseUid}`);
-    return this.connectService.getConnectAccount(payload.firebaseUid);
+    try {
+      this.logger.log(`Processing get_connect_account for user: ${payload.firebaseUid}`);
+      
+      const result = await this.connectService.getConnectAccount(payload.firebaseUid);
+      
+      this.logger.log(`Connect account service response status: ${result.statusCode}`);
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Error in getConnectAccount controller: ${error.message}`, error.stack);
+      return {
+        statusCode: 500,
+        message: 'Internal server error in getConnectAccount',
+        data: null,
+        error: error.message
+      };
+    }
   }
 
   @MessagePattern('refresh_account_link')
@@ -62,6 +77,63 @@ export class ConnectController {
   async getPayment(payload: { paymentId: string }) {
     this.logger.log(`Getting payment: ${payload.paymentId}`);
     return this.connectService.getPayment(payload.paymentId);
+  }
+
+
+  // Additional endpoints for Connect Controller in Payment Microservice
+
+  @MessagePattern('get_host_transactions')
+  async getHostTransactions(payload: {
+    firebaseUid: string;
+    timeframe?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    try {
+      this.logger.log(`Processing get_host_transactions for user: ${payload.firebaseUid}`);
+      this.logger.log(`Payload:`, JSON.stringify(payload));
+      
+      const result = await this.connectService.getHostTransactions(payload);
+      
+      this.logger.log(`Service response status: ${result.statusCode}`);
+      this.logger.log(`Service response message: ${result.message}`);
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Error in getHostTransactions controller: ${error.message}`, error.stack);
+      return {
+        statusCode: 500,
+        message: 'Internal server error in getHostTransactions',
+        data: null,
+        error: error.message
+      };
+    }
+  }
+
+  @MessagePattern('request_manual_payout')
+  async requestManualPayout(payload: {
+    firebaseUid: string;
+    amount?: number;
+  }) {
+    try {
+      this.logger.log(`Processing request_manual_payout for user: ${payload.firebaseUid}`);
+      this.logger.log(`Payout payload:`, JSON.stringify(payload));
+      
+      const result = await this.connectService.requestManualPayout(payload);
+      
+      this.logger.log(`Manual payout service response status: ${result.statusCode}`);
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Error in requestManualPayout controller: ${error.message}`, error.stack);
+      return {
+        statusCode: 500,
+        message: 'Internal server error in requestManualPayout',
+        data: null,
+        error: error.message
+      };
+    }
   }
 
  /* @MessagePattern('process_booking_payment')

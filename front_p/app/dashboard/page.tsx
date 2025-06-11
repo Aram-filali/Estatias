@@ -109,7 +109,7 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleNotifications = () => setShowNotifications(!showNotifications);
+  /*const toggleNotifications = () => setShowNotifications(!showNotifications);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!host || !authToken) return;
@@ -178,8 +178,10 @@ export default function DashboardPage() {
     };
     
     return iconMap[type] || null;
-  };
-  
+  };*/
+  const redirectToHomePage= async () => {
+    router.push("/");
+  }
 
   const redirectToHostWebsite = async () => {
     const auth = getAuth();
@@ -281,7 +283,7 @@ export default function DashboardPage() {
           <h1 className={styles.pageTitle}>Main Dashboard</h1>
         </div>
         <div className={styles.profileSection}>
-          <div className={styles.notificationIcon} onClick={toggleNotifications}>
+         {/*} <div className={styles.notificationIcon} onClick={toggleNotifications}>
             <FaBell />
             {host.notifications?.some(n => !n.isRead) && (
               <span className={styles.badge}>
@@ -320,7 +322,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
-          </div>
+          </div>*/}
           <div className={styles.profileInfo}>
             <span>{host.name}</span>
             <div className={styles.avatar}>{host.name?.charAt(0) || ''}</div>
@@ -401,7 +403,7 @@ export default function DashboardPage() {
           <div className={styles.actionButtonsContainer}>
             <button className={styles.actionButton} onClick={redirectToHostWebsite}>Go to Host Website</button>
             <button className={styles.actionButton}>View Booking Calendar</button>
-            <button className={styles.actionButton}>Update Pricing</button>
+            <button className={styles.actionButton} onClick={redirectToHomePage}>Go to HomePage</button>
             <button className={styles.actionButton}>Edit Website Content</button>
           </div>
         </section>

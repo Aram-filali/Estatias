@@ -19,6 +19,25 @@ export class HostPlan {
 
   @Prop({ required: true, default: true })
   isTrialActive: boolean;
+
+  // New payment tracking fields
+  @Prop({ required: false, default: false })
+  isPaid: boolean;
+
+  @Prop({ required: false })
+  paymentStatus: string; // 'pending', 'paid', 'failed', 'refunded'
+
+  @Prop({ required: false })
+  paymentDate: Date;
+
+  @Prop({ required: false })
+  stripeCustomerId: string;
+
+  @Prop({ required: false })
+  lastPaymentIntentId: string;
+
+  @Prop({ required: false })
+  subscriptionStartDate: Date;
 }
 
 export const HostPlanSchema = SchemaFactory.createForClass(HostPlan);

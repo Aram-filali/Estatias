@@ -316,10 +316,8 @@ export class HostService {
         }
     }*/
 
-    async deleteHost(idToken: string, firebaseUid: string): Promise<{ success: boolean; message: string }> {
+    async deleteHost( firebaseUid: string): Promise<{ success: boolean; message: string }> {
         try {
-            // Vérifier le token et récupérer l'utilisateur
-            const decodedToken = await this.firebaseAdminService.firebaseApp.auth().verifyIdToken(idToken);
             
             // Trouver l'utilisateur dans MongoDB
             const user = await this.hostModel.findOne({ firebaseUid }).exec();
@@ -327,10 +325,6 @@ export class HostService {
                 throw new NotFoundException('User not found in database');
             }
       
-            // Vérifier que l'UID Firebase correspond
-            if (decodedToken.uid !== firebaseUid) {
-                throw new UnauthorizedException('Unauthorized to delete this account');
-            }
       
             // Suppression des fichiers de Firebase Storage
             try {

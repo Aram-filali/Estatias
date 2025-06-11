@@ -7,6 +7,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Query,
   Logger,
   Headers,
 } from '@nestjs/common';
@@ -28,64 +29,46 @@ export class ConnectController {
 
   
 
-  private async callPaymentService(pattern: string, payload: any, operation: string) {
+  private async callPaymentService(pattern: string, data: any, operation: string) {
     try {
-      const result = await firstValueFrom(
-        this.paymentClient.send(pattern, payload).pipe(
-          timeout(10000),
-          catchError((error) => {
-            this.logger.error(`${operation} - Payment service error:`, {
-              code: error.code,
-              message: error.message,
-              pattern,
-              payload
-            });
-            
-            if (error.code === 'ECONNREFUSED') {
-              throw new HttpException(
-                'Payment service is currently unavailable. Please try again later.',
-                HttpStatus.SERVICE_UNAVAILABLE
-              );
-            }
-            
-            throw error;
-          })
-        )
-      );
+      this.logger.log(`Calling payment service - Pattern: ${pattern}, Operation: ${operation}`);
+      this.logger.log(`Data being sent:`, JSON.stringify(data));
 
-      // Handle microservice response format
-      if (result && typeof result === 'object') {
-        // Check if result has error status from microservice
-        if (result.status === 'error') {
-          this.logger.error(`${operation} - Microservice returned error:`, result);
-          throw new HttpException(
-            result.message || `${operation} failed`,
-            HttpStatus.INTERNAL_SERVER_ERROR
-          );
-        }
-        
-        // Check if result has statusCode (custom microservice response format)
-        if (result.statusCode && result.statusCode !== 200 && result.statusCode !== 201) {
-          throw new HttpException(
-            result.message || `${operation} failed`,
-            result.statusCode
-          );
-        }
-        
-        return result.data || result;
+      const result = await this.paymentClient.send(pattern, data).toPromise();
+      
+      this.logger.log(`Payment service raw response:`, JSON.stringify(result));
+
+      // Ensure we always return a properly structured response
+      if (!result) {
+        this.logger.error(`Payment service returned null/undefined for ${operation}`);
+        return {
+          statusCode: 500,
+          message: `No response from payment service for ${operation}`,
+          data: null
+        };
+      }
+
+      // If the result doesn't have statusCode, it might be the raw data
+      if (typeof result.statusCode === 'undefined') {
+        this.logger.warn(`Payment service response missing statusCode for ${operation}, wrapping result`);
+        return {
+          statusCode: 200,
+          message: `${operation} completed`,
+          data: result
+        };
       }
 
       return result;
+
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      this.logger.error(`Payment service call failed for ${operation}: ${error.message}`, error.stack);
       
-      this.logger.error(`${operation} failed:`, error);
-      throw new HttpException(
-        error.message || `${operation} failed`,
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      return {
+        statusCode: 500,
+        message: `Payment service error for ${operation}: ${error.message}`,
+        data: null,
+        error: error.message
+      };
     }
   }
 
@@ -151,20 +134,42 @@ export class ConnectController {
     @Param('hostId') hostId: string,
     @Headers('authorization') authorization: string
   ) {
-    if (!authorization || !authorization.startsWith('Bearer ')) {
+    try {
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Authentication token is missing or invalid format',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+
+      this.logger.log(`Getting connect account for host: ${hostId}`);
+
+      const result = await this.callPaymentService(
+        'get_connect_account',
+        { firebaseUid: hostId },
+        'Get Connect Account'
+      );
+
+      this.logger.log(`Connect account service response:`, JSON.stringify({
+        statusCode: result?.statusCode,
+        message: result?.message,
+        dataExists: !!result?.data
+      }));
+
+      return result;
+
+    } catch (error) {
+      this.logger.error(`Error in getConnectAccount: ${error.message}`, error.stack);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
       throw new HttpException(
-        'Authentication token is missing or invalid format',
-        HttpStatus.UNAUTHORIZED
+        'Failed to get connect account',
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
-
-    this.logger.log(`Getting connect account for host: ${hostId}`);
-    
-    return this.callPaymentService(
-      'get_connect_account', 
-      { firebaseUid: hostId }, 
-      'Get Connect Account'
-    );
   }
 
   @Post('account/:hostId/refresh')
@@ -212,6 +217,115 @@ export class ConnectController {
       { paymentId }, 
       'Get Payment'
     );
+  }
+
+
+  // Additional endpoints for API Gateway Connect Controller
+
+  @Get('transactions/:hostId')
+  async getHostTransactions(
+    @Param('hostId') hostId: string,
+    @Headers('authorization') authorization: string,
+    @Query('timeframe') timeframe?: string,
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string
+  ) {
+    try {
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Authentication token is missing or invalid format',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+
+      this.logger.log(`Getting transactions for host: ${hostId}`);
+      this.logger.log(`Query params - timeframe: ${timeframe}, status: ${status}, limit: ${limit}, offset: ${offset}`);
+
+      const payload = {
+        firebaseUid: hostId,
+        timeframe: timeframe || 'thisMonth',
+        status: status || 'all',
+        limit: limit ? parseInt(limit) : 50,
+        offset: offset ? parseInt(offset) : 0
+      };
+
+      this.logger.log(`Sending payload to payment service:`, JSON.stringify(payload));
+
+      const result = await this.callPaymentService(
+        'get_host_transactions',
+        payload,
+        'Get Host Transactions'
+      );
+
+      this.logger.log(`Payment service response:`, JSON.stringify({
+        statusCode: result?.statusCode,
+        message: result?.message,
+        dataExists: !!result?.data
+      }));
+
+      return result;
+
+    } catch (error) {
+      this.logger.error(`Error in getHostTransactions: ${error.message}`, error.stack);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      throw new HttpException(
+        'Failed to get host transactions',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Post('payout/:hostId')
+  async requestManualPayout(
+    @Param('hostId') hostId: string,
+    @Headers('authorization') authorization: string,
+    @Body() payoutRequest?: { amount?: number }
+  ) {
+    try {
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Authentication token is missing or invalid format',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+
+      this.logger.log(`Requesting manual payout for host: ${hostId}`);
+      this.logger.log(`Payout request body:`, JSON.stringify(payoutRequest));
+
+      const result = await this.callPaymentService(
+        'request_manual_payout',
+        {
+          firebaseUid: hostId,
+          amount: payoutRequest?.amount
+        },
+        'Request Manual Payout'
+      );
+
+      this.logger.log(`Manual payout service response:`, JSON.stringify({
+        statusCode: result?.statusCode,
+        message: result?.message,
+        dataExists: !!result?.data
+      }));
+
+      return result;
+
+    } catch (error) {
+      this.logger.error(`Error in requestManualPayout: ${error.message}`, error.stack);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      throw new HttpException(
+        'Failed to request manual payout',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
 

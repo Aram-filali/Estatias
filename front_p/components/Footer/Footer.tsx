@@ -58,9 +58,9 @@ const Footer: React.FC = () => {
           <div className={styles.grid}>
             {/* About Section */}
             <div>
-              <h3 className={styles.sectionTitle}>About Tour</h3>
+              <h3 className={styles.sectionTitle}>About Estatias</h3>
               <p className={styles.sectionText}>
-                Far far away, behind the word mountains, far from the countries Vokalia and Consonantia, there live the blind texts.
+                Empowering property owners with personalized websites. Built to simplify listing, booking, and managing real estate without the hassle, right from your fingertips.
               </p>
             </div>
 
