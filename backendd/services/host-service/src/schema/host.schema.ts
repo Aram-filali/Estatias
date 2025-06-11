@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { IsString, IsBoolean, IsEmail, IsOptional, ValidateIf, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsBoolean, IsEmail, IsOptional, ValidateIf, IsNumber, IsNotEmpty, IsUrl } from 'class-validator';
 
 export type HostDocument = Host & Document;
 
 @Schema({ collection: 'Hosts', timestamps: true })
 export class Host {
-  
+
   @Prop({ required: true })
   firebaseUid: string;
 
@@ -78,11 +78,6 @@ export class Host {
   @ValidateIf((o) => !o.isAgency)  
   address?: string;
 
-  /*@Prop({ required: true })
-  @IsString()
-  @IsNotEmpty()
-  password: string;*/
-
   @Prop({ required: true })
   @IsNumber()
   @IsNotEmpty()
@@ -125,15 +120,41 @@ export class Host {
   @IsString()
   @IsNotEmpty()
   status: string
-  
 
   @Prop()
   @IsNotEmpty()
   emailVerified: Boolean
 
+  // Social Media Links (Optional fields)
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  facebookUrl?: string;
+
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  instagramUrl?: string;
+
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  linkedinUrl?: string;
+
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  twitterUrl?: string;
+
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  youtubeUrl?: string;
+
+  @Prop()
+  @IsOptional()
+  @IsUrl()
+  tiktokUrl?: string;
 }
-
-
-
 
 export const HostSchema = SchemaFactory.createForClass(Host);

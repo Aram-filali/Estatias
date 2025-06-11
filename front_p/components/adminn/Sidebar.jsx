@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BarChart, List, Users, Home, Bell } from 'lucide-react';
 import styles from './Sidebar.module.css';
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, completeSignOut } from "@/contexts/firebaseConfig";
+
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -15,9 +18,20 @@ export default function Sidebar() {
     { name: 'Notifications', href: '/adminn/notifications', icon: Bell },
   ];
 
-  const handleLogout = () => {
-    // Add logout logic here (e.g., clear authentication, redirect to login)
-    console.log("Logging out...");
+  const handleLogout = async () => {
+    try {
+      await completeSignOut(); // Handles Firebase signOut + other cleanup
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userType");
+      localStorage.clear(); // Optional: if you want to fully wipe localStorage
+  
+      window.dispatchEvent(new Event('userLoggedOut'));
+  
+      // Redirect to home or login
+      router.push("/");
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    }
   };
 
   return (
@@ -53,8 +67,8 @@ export default function Sidebar() {
           </div>
         </div>
         <div className={styles.sidebarUserInfo}>
-          <p className={styles.sidebarUserName}>Admin 1</p>
-          <p className={styles.sidebarUserEmail}>admin1@realestate.com</p>
+          <p className={styles.sidebarUserName}>services team member</p>
+          <p className={styles.sidebarUserEmail}>estatias.services@mail.com</p>
         </div>
 
         <button onClick={handleLogout} className={styles.logoutButton}>

@@ -45,8 +45,6 @@ export class HostPlanService {
     }
 
     const websiteUrl = `${host.domainName}.resa.com`;
-    
-
 
     // Create the plan document
     const newPlan = new this.hostPlanModel({
@@ -55,6 +53,9 @@ export class HostPlanService {
       websiteUrl: websiteUrl,
       trialEndsAt,
       isTrialActive,
+      isPaid: false, // New field
+      paymentStatus: 'pending', // New field
+      stripeCustomerId: data.stripeCustomerId || null, // Store customer ID if available
     });
 
     try {
@@ -80,12 +81,31 @@ export class HostPlanService {
         websiteUrl: plan.websiteUrl,
         trialEndsAt: plan.trialEndsAt,
         isTrialActive: plan.isTrialActive,
-        status: plan.isTrialActive ? 'Trial Period' : 'Subscribed Plan',
+        isPaid: plan.isPaid,
+        paymentStatus: plan.paymentStatus,
+        paymentDate: plan.paymentDate,
+        stripeCustomerId: plan.stripeCustomerId,
+        subscriptionStartDate: plan.subscriptionStartDate,
+        status: this.getStatusText(plan),
       };
     } catch (error) {
       throw new Error(
         'Error retrieving plan by Firebase UID: ' + error.message,
       );
+    }
+  }
+
+  private getStatusText(plan: HostPlanDocument): string {
+    if (plan.isPaid) {
+      return 'Active Subscription';
+    } else if (plan.isTrialActive) {
+      return 'Trial Period';
+    } else if (plan.paymentStatus === 'failed') {
+      return 'Payment Failed';
+    } else if (plan.paymentStatus === 'pending') {
+      return 'Payment Pending';
+    } else {
+      return 'Inactive';
     }
   }
 
@@ -101,7 +121,13 @@ export class HostPlanService {
     console.log(`Updated ${result.modifiedCount} host(s) from trial to active.`);
   }
 
-  async activatePlan(data: { hostId: string, plan: string }): Promise<any> {
+  // Updated activatePlan method with payment tracking
+  async activatePlan(data: { 
+    hostId: string; 
+    plan: string;
+    paymentIntentId?: string;
+    stripeCustomerId?: string;
+  }): Promise<any> {
     try {
       const now = new Date();
       
@@ -117,22 +143,92 @@ export class HostPlanService {
         throw new Error('No subscription plan found for this host');
       }
       
-      // Update plan status
+      // Update plan with payment information
       hostPlan.isTrialActive = false;
-      // You can also update other fields as needed, like payment status, billing cycle dates, etc.
+      hostPlan.isPaid = true;
+      hostPlan.paymentStatus = 'paid';
+      hostPlan.paymentDate = now;
+      hostPlan.subscriptionStartDate = now;
+      
+      if (data.paymentIntentId) {
+        hostPlan.lastPaymentIntentId = data.paymentIntentId;
+      }
+      
+      if (data.stripeCustomerId) {
+        hostPlan.stripeCustomerId = data.stripeCustomerId;
+      }
       
       const updatedPlan = await hostPlan.save();
       
       return {
         firebaseUid: updatedPlan.firebaseUid,
         plan: updatedPlan.plan,
-        //websiteUrl: updatedPlan.websiteUrl,
+        websiteUrl: updatedPlan.websiteUrl,
         trialEndsAt: updatedPlan.trialEndsAt,
         isTrialActive: updatedPlan.isTrialActive,
-        status: 'Subscribed Plan',
+        isPaid: updatedPlan.isPaid,
+        paymentStatus: updatedPlan.paymentStatus,
+        paymentDate: updatedPlan.paymentDate,
+        subscriptionStartDate: updatedPlan.subscriptionStartDate,
+        status: 'Active Subscription',
       };
     } catch (error) {
       throw new Error('Error activating subscription plan: ' + error.message);
+    }
+  }
+
+  // New method to update payment status
+  async updatePaymentStatus(data: {
+    hostId: string;
+    paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+    paymentIntentId?: string;
+    stripeCustomerId?: string;
+  }): Promise<any> {
+    try {
+      const hostPlan = await this.hostPlanModel.findOne({
+        $or: [
+          { firebaseUid: data.hostId },
+          { hostId: data.hostId }
+        ]
+      }).exec();
+      
+      if (!hostPlan) {
+        throw new Error('No subscription plan found for this host');
+      }
+      
+      hostPlan.paymentStatus = data.paymentStatus;
+      
+      if (data.paymentStatus === 'paid') {
+        hostPlan.isPaid = true;
+        hostPlan.paymentDate = new Date();
+        hostPlan.isTrialActive = false;
+        if (!hostPlan.subscriptionStartDate) {
+          hostPlan.subscriptionStartDate = new Date();
+        }
+      } else if (data.paymentStatus === 'failed') {
+        hostPlan.isPaid = false;
+      }
+      
+      if (data.paymentIntentId) {
+        hostPlan.lastPaymentIntentId = data.paymentIntentId;
+      }
+      
+      if (data.stripeCustomerId) {
+        hostPlan.stripeCustomerId = data.stripeCustomerId;
+      }
+      
+      const updatedPlan = await hostPlan.save();
+      
+      return {
+        firebaseUid: updatedPlan.firebaseUid,
+        plan: updatedPlan.plan,
+        isPaid: updatedPlan.isPaid,
+        paymentStatus: updatedPlan.paymentStatus,
+        paymentDate: updatedPlan.paymentDate,
+        status: this.getStatusText(updatedPlan),
+      };
+    } catch (error) {
+      throw new Error('Error updating payment status: ' + error.message);
     }
   }
 }

@@ -501,16 +501,16 @@ async findHostByEmail(@Payload() data: { email: string }) {
   }
 
   @MessagePattern({ cmd: 'delete_host' })
-  async deleteHost(@Payload() data: { idToken: string, firebaseUid: string }) {
+  async deleteHost(@Payload() data: { firebaseUid: string }) {
     try {
-      if (!data.idToken || !data.firebaseUid) {
+      if ( !data.firebaseUid) {
         return {
           statusCode: HttpStatus.BAD_REQUEST,
-          error: 'Token and Firebase UID are required'
+          error: 'Firebase UID are required'
         };
       }
       
-      const result = await this.hostService.deleteHost(data.idToken, data.firebaseUid);
+      const result = await this.hostService.deleteHost(data.firebaseUid);
       
       return {
         statusCode: HttpStatus.OK,

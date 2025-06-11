@@ -203,11 +203,12 @@ export default function PaymentOnlinePage({ params }) {
         const responseData = await response.json();
         console.log('Success response:', responseData);
 
-        const { sessionUrl } = responseData;
+        const { sessionUrl } = responseData.data; // Changed from responseData.sessionUrl to responseData.data.sessionUrl
 
-        if (!sessionUrl) {
-        throw new Error('No payment session URL received');
-        }
+      if (!sessionUrl) {
+          console.error('Full response data:', JSON.stringify(responseData, null, 2));
+          throw new Error('No payment session URL received');
+      }
 
         // Redirect to Stripe Checkout
         window.location.href = sessionUrl;

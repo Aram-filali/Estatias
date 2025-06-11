@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { FirebaseAdminService } from './firebase';
+import { FirebaseAdminService } from './firebase';  
+import { FirebaseAuthGuard } from './firebase-auth.guards';  
+
 
 @Module({
-  imports: [ConfigModule], 
-  providers: [FirebaseAdminService],
-  exports: [FirebaseAdminService],
+  providers: [FirebaseAdminService,FirebaseAuthGuard],
+  exports: [FirebaseAdminService,FirebaseAuthGuard],  
 })
 export class FirebaseAdminModule {}

@@ -3,6 +3,13 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import styles from './HostSignupStep1.module.css';
+import _ProtectedRoute from 'components/ProtectedRoute';
+
+const ProtectedRoute = _ProtectedRoute as React.FC<{
+  allowedRoles?: string[];
+  redirectTo?: string;
+  children: ReactNode;
+}>;
 
 // Define props that will be passed to children
 interface LayoutProps {
@@ -42,6 +49,7 @@ export default function GetStartedLayout({ children }: LayoutProps) {
   const stepLabels = ['Account Setup', 'Property Details', 'Select Plan'];
 
   return (
+    <ProtectedRoute allowedRoles={['host']}>
     <div className={styles.container}>
       {/* Background */}
       <div className="fixed top-0 left-0 w-full h-full">
@@ -82,5 +90,6 @@ export default function GetStartedLayout({ children }: LayoutProps) {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -1,267 +1,430 @@
 //app/propertydetails/[id]/page.js
-"use client";
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import MapComponent from 'src/components/Map';
 import PropertyReview from 'src/components/PropertyReview';
 import BookingComponent from 'src/components/bookingComponent';
+import ImageGallery from 'src/components/ImageGallery';
 import styles from '../../../styles/propertyDetails.module.css';
 
-export default function PropertyDetails({ params }) {
-  // Use React.use to unwrap params
-  const { id } = React.use(params);
+// Server-side function to fetch property data
+async function getProperty(id) {
+  try {
+    console.log("Fetching property with ID:", id);
+    
+    // In production, use environment variable or config
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const response = await fetch(`${baseUrl}/properties/${id}`, {
+      // Add cache revalidation if needed
+      next: { revalidate: 3600 } // Revalidate every hour
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data) {
+      throw new Error("No data received");
+    }
+    
+    return data;
+  } catch (err) {
+    console.error("Fetch error:", err);
+    return null;
+  }
+}
+
+// Generate structured data for SEO
+function generateStructuredData(property) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yoursite.com" || "https://localhost:3002";
   
-  const [property, setProperty] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [allPhotos, setAllPhotos] = useState([]);
+  return {
+    "@context": "https://schema.org",
+    "@type": "LodgingBusiness",
+    "name": property.title,
+    "description": property.description,
+    "url": `${baseUrl}/propertydetails/${property.id}`,
+    "image": property.mainPhotos?.map(photo => `${baseUrl}${photo}`) || [],
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": property.address,
+      "addressLocality": property.city,
+      "addressRegion": property.state,
+      "addressCountry": property.country
+    },
+    "geo": property.coordinates ? {
+      "@type": "GeoCoordinates",
+      "latitude": property.coordinates.lat,
+      "longitude": property.coordinates.lng
+    } : undefined,
+    "amenityFeature": property.amenities ? Object.entries(property.amenities)
+      .filter(([_, available]) => available)
+      .map(([amenity, _]) => ({
+        "@type": "LocationFeatureSpecification",
+        "name": amenity
+      })) : [],
+    "numberOfRooms": property.bedrooms,
+    "occupancy": {
+      "@type": "QuantitativeValue",
+      "maxValue": property.maxGuest
+    },
+    "floorSize": property.size ? {
+      "@type": "QuantitativeValue",
+      "value": property.size,
+      "unitCode": "MTK"
+    } : undefined,
+    "aggregateRating": property.rating ? {
+      "@type": "AggregateRating",
+      "ratingValue": property.rating,
+      "reviewCount": property.reviewCount || 0
+    } : undefined,
+    "priceRange": property.priceRange || "$$"
+  };
+}
 
-  useEffect(() => {
-    const fetchProperty = async () => {
-      try {
-        console.log("Fetching property with ID:", id);
-        
-        // In a real app, this would be an environment variable or config
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-        const response = await fetch(`${baseUrl}/properties/${id}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data) {
-          throw new Error("No data received");
-        }
-        
-        setProperty(data);
-
-        const combinedPhotos = [
-          ...(data.mainPhotos || []),
-          ...(data.apartmentSpaces?.flatMap(space => space.photos || []) || [])
-        ];
-        setAllPhotos(combinedPhotos);
-
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+// Generate SEO metadata
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const property = await getProperty(id);
+  
+  if (!property) {
+    return {
+      title: 'Property Not Found | Estatias',
+      description: 'The requested property could not be found.'
     };
-
-    fetchProperty();
-  }, [id]);
-
-  const prevImage = () => {
-    if (!allPhotos?.length) return;
-    setCurrentImageIndex(prev => 
-      prev === 0 ? allPhotos.length - 1 : prev - 1
-    );
-  };
-
-  const nextImage = () => {
-    if (!allPhotos?.length) return;
-    setCurrentImageIndex(prev => 
-      prev === allPhotos.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  useEffect(() => {
-    if (!allPhotos?.length) return;
-    const intervalId = setInterval(nextImage, 5000);
-    return () => clearInterval(intervalId);
-  }, [currentImageIndex, allPhotos]);
-
-  if (loading) {
-    return <div className={styles.loading}>Loading property details...</div>;
   }
 
-  if (error) {
-    return <div className={styles.error}>Error: {error}</div>;
-  }
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yoursite.com" || "https://localhost:3002";
+  const propertyUrl = `${baseUrl}/propertydetails/${id}`;
+  
+  // Create rich, keyword-optimized title and description
+  const seoTitle = `${property.title} - ${property.bedrooms} Bed ${property.city} Rental | Book Now | Estatias`;
+  const seoDescription = `Book ${property.title} in ${property.city}, ${property.country}. ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms, sleeps ${property.maxGuest}. ${property.size}m² with premium amenities. Best rates guaranteed. ${property.description?.substring(0, 100)}...`;
+  
+  const keywords = [
+    property.city,
+    property.country,
+    property.state,
+    `${property.bedrooms} bedroom rental`,
+    `${property.bedrooms} bed apartment`,
+    `accommodation ${property.city}`,
+    `vacation rental ${property.city}`,
+    `holiday rental ${property.city}`,
+    `short term rental ${property.city}`,
+    `${property.city} accommodation`,
+    `book ${property.city}`,
+    `rent ${property.city}`,
+    property.title.split(' ').filter(word => word.length > 3),
+    ...(property.amenities ? Object.keys(property.amenities).filter(amenity => property.amenities[amenity]) : [])
+  ].filter(Boolean).join(', ');
+
+  return {
+    title: seoTitle,
+    description: seoDescription,
+    keywords: keywords,
+    authors: [{ name: 'Estatias' }],
+    creator: 'Estatias',
+    publisher: 'Estatias',
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      locale: 'en_US',
+      url: propertyUrl,
+      title: seoTitle,
+      description: seoDescription,
+      siteName: 'Estatias',
+      images: [
+        {
+          url: property.mainPhotos?.[0] ? `${baseUrl}${property.mainPhotos[0]}` : `${baseUrl}/default-property.jpg`,
+          width: 1200,
+          height: 630,
+          alt: `${property.title} - ${property.city} Accommodation`,
+        },
+        ...(property.mainPhotos?.slice(1, 4).map(photo => ({
+          url: `${baseUrl}${photo}`,
+          width: 800,
+          height: 600,
+          alt: `${property.title} interior`,
+        })) || [])
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: seoTitle,
+      description: seoDescription,
+      images: [property.mainPhotos?.[0] ? `${baseUrl}${property.mainPhotos[0]}` : `${baseUrl}/default-property.jpg`],
+      creator: '@Estatias',
+      site: '@Estatias',
+    },
+    alternates: {
+      canonical: propertyUrl,
+    },
+    other: {
+      'booking:type': 'property',
+      'booking:property_id': property.id,
+      'booking:city': property.city,
+      'booking:country': property.country,
+      'booking:bedrooms': property.bedrooms,
+      'booking:max_guests': property.maxGuest,
+    }
+  };
+}
+
+export default async function PropertyDetails({ params }) {
+  // Await params in server component
+  const { id } = await params;
+  
+  // Fetch property data on the server
+  const property = await getProperty(id);
 
   if (!property) {
-    return <div className={styles.notFound}>Property not found</div>;
+    return (
+      <div className={styles.bg}>
+        <Head>
+          <title>Property Not Found | Estatias</title>
+          <meta name="description" content="The requested property could not be found. Browse our other amazing accommodations." />
+          <meta name="robots" content="noindex,nofollow" />
+        </Head>
+        <div className={styles.container}>
+          <div className={styles.notFound}>Property not found</div>
+        </div>
+      </div>
+    );
   }
+
+  // Combine all photos for the gallery
+  const allPhotos = [
+    ...(property.mainPhotos || []),
+    ...(property.apartmentSpaces?.flatMap(space => space.photos || []) || [])
+  ];
+
+  const structuredData = generateStructuredData(property);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yoursite.com" || "https://localhost:3002";
 
   return (
     <div className={styles.bg}>
       <Head>
-        <title>{property.title} | Property Details</title>
-        <meta name="description" content={property.description} />
+        {/* Favicon and App Icons */}
+        <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="Estatias" />
+        <link rel="manifest" href="/site.webmanifest" />
+        
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="theme-color" content="#000000" />
+        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+        {/* Preload critical resources */}
+        {property.mainPhotos?.[0] && (
+          <link rel="preload" as="image" href={`${baseUrl}${property.mainPhotos[0]}`} />
+        )}
       </Head>
       
       <div className={styles.container}>
+        {/* Breadcrumb Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                {
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": baseUrl
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": property.city,
+                  "item": `${baseUrl}/city/${property.city.toLowerCase()}`
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 3,
+                  "name": property.title,
+                  "item": `${baseUrl}/propertydetails/${property.id}`
+                }
+              ]
+            })
+          }}
+        />
+
         <section className={styles.propertySection}>
           <div className={styles.sectionGrid1}>
-            <h2 className={styles.sectionTitle}>{property.title}</h2>
+            <header>
+              <h1 className={styles.sectionTitle}>
+                {property.title} - Premium {property.bedrooms} Bedroom Accommodation in {property.city}
+              </h1>
+              <div className={styles.propertyMeta}>
+                <span>{property.city}, {property.country}</span>
+                {property.rating && (
+                  <span>★ {property.rating} ({property.reviewCount || 0} reviews)</span>
+                )}
+              </div>
+            </header>
           </div>
           
-          {/* Property Image Gallery */}
-          <div className={styles.containerr}>
-            {/* Main Slider */}
-            <div className={styles.sliderContainer} style={{
-              maxWidth: '1200px',
-              height: 'auto',
-              aspectRatio: '18/7',
-              margin: '0 auto'
-            }}>
-              <div
-                className={styles.slider}
-                style={{
-                  transform: `translateX(-${currentImageIndex * 100}%)`,
-                  height: '100%'
-                }}
-              >
-                {allPhotos?.map((img, index) => (
-                  <div key={index} className={styles.slide} style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    flexShrink: 0
-                  }}>
-                    <Image
-                      src={img}
-                      alt={`Property image ${index + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1200px"
-                      style={{ 
-                        objectFit: 'contain',
-                        objectPosition: 'center'
-                      }}
-                      priority={index === 0}
-                      quality={100}
-                      unoptimized={true}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Thumbnail Navigation */}
-            <div className={styles.thumbnailNavContainer}>
-              <button 
-                onClick={prevImage} 
-                className={`${styles.navButton} ${styles.navButtonLeft}`}
-                aria-label="Previous image"
-              >
-                ←
-              </button>
-
-              {/* Thumbnails */}
-              <div className={styles.thumbnailContainer}>
-                {allPhotos?.map((img, index) => (
-                  <div
-                    key={index}
-                    className={`${styles.thumbnail} ${
-                      index === currentImageIndex ? styles.activeThumbnail : ""
-                    }`}
-                    onClick={() => setCurrentImageIndex(index)}
-                    role="button"
-                    aria-label={`View image ${index + 1}`}
-                  >
-                    <Image
-                      src={img}
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      sizes="120px"
-                      style={{ objectFit: 'cover' }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                onClick={nextImage} 
-                className={`${styles.navButton} ${styles.navButtonRight}`}
-                aria-label="Next image"
-              >
-                →
-              </button>
-            </div>
-          </div>
+          {/* Property Image Gallery - Client Component */}
+          <ImageGallery photos={allPhotos} propertyTitle={property.title} />
         </section>
 
         <section className={styles.propertySection}>
           <div className={styles.sectionGrid}>
-            <div>
-              <h2 className={styles.sectionTitle}>About</h2>
-              <p className={styles.sectionText}>
-                {property.description}
-              </p>
+            <article>
+              <h2 className={styles.sectionTitle}>About This {property.bedrooms} Bedroom {property.city} Rental</h2>
+              <div className={styles.sectionText}>
+                <p>
+                  {property.description}
+                </p>
+                <p>
+                  Experience the best of {property.city} from this perfectly located {property.bedrooms}-bedroom, 
+                  {property.bathrooms}-bathroom accommodation. Ideal for groups of up to {property.maxGuest} guests 
+                  seeking comfort and convenience in {property.city}, {property.country}.
+                </p>
+              </div>
               
-              <ul className={styles.propertyList}>
-                <li><span>✓</span> <span>{property.bedrooms} bedrooms, {property.bathrooms} bathrooms</span></li>
-                <li><span>✓</span> <span>Accommodates up to {property.maxGuest} guests</span></li>
-                {property.floorNumber!= null && (
-                  <li><span>✓</span> <span>Floor number: {property.floorNumber}</span></li>
-                )}
-                {property.lotSize!= null && (
-                  <li><span>✓</span> <span>Lot size: {property.lotSize} m²</span></li>
-                )}
-                <li><span>✓</span> <span>Size: {property.size} m²</span></li>
-              </ul>
+              <div className={styles.propertyHighlights}>
+                <h3>Property Highlights</h3>
+                <ul className={styles.propertyList}>
+                  <li><span>✓</span> <span>{property.bedrooms} spacious bedrooms, {property.bathrooms} full bathrooms</span></li>
+                  <li><span>✓</span> <span>Comfortably accommodates up to {property.maxGuest} guests</span></li>
+                  {property.floorNumber != null && (
+                    <li><span>✓</span> <span>Floor number: {property.floorNumber}</span></li>
+                  )}
+                  {property.lotSize != null && (
+                    <li><span>✓</span> <span>Lot size: {property.lotSize} m²</span></li>
+                  )}
+                  <li><span>✓</span> <span>Total size: {property.size} m² of living space</span></li>
+                  <li><span>✓</span> <span>Prime location in {property.city}</span></li>
+                  <li><span>✓</span> <span>Minimum stay: {property.minNight} nights</span></li>
+                </ul>
+              </div>
               
-              <h3 className={styles.featuresTitle}>Amenities</h3>
-              <div className={styles.featuresGrid}>
-                {property.amenities && Object.entries(property.amenities).map(([amenity, available]) => (
-                  available && (
-                    <div key={amenity} className={styles.featureItem}>
-                      <span className={styles.featureIcon}>✓</span>
-                      <span>{amenity}</span>
-                    </div>
-                  )
-                ))}
+              <div className={styles.amenitiesSection}>
+                <h3 className={styles.featuresTitle}>Premium Amenities & Features</h3>
+                <div className={styles.featuresGrid}>
+                  {property.amenities && Object.entries(property.amenities).map(([amenity, available]) => (
+                    available && (
+                      <div key={amenity} className={styles.featureItem}>
+                        <span className={styles.featureIcon}>✓</span>
+                        <span>{amenity}</span>
+                      </div>
+                    )
+                  ))}
+                </div>
               </div>
               
               <div className={styles.propertyCard}>
-                <h3 className={styles.propertyCardTitle}>Location Details</h3>
+                <h3 className={styles.propertyCardTitle}>Prime {property.city} Location</h3>
                 <div className={styles.propertyCardContent}>
                   <p className={styles.propertyCardText}>
-                    {property.address}, {property.city}, {property.state}, {property.country}
+                    Located at {property.address}, {property.city}, {property.state}, {property.country}. 
+                    This accommodation puts you in the heart of {property.city} with easy access to local 
+                    attractions, dining, and transportation.
                   </p>
                 </div>
               </div>
 
-              <div className={styles.propertyCard}>
-                <h3 className={styles.propertyCardTitle}>Policies</h3>
-                <div className={styles.propertyCardContent}>
-                  {property.policies && Object.entries(property.policies).map(([policy, description]) => (
-                    <div key={policy} className={styles.propertyCardItem}>
-                      <p className={styles.propertyCardText}>
-                        <strong>{policy}:</strong> {description}
-                      </p>
-                    </div>
-                  ))}
+              
+
+          <div className={styles.propertyCard}>
+            <h3 className={styles.propertyCardTitle}>House Rules & Policies</h3>
+            <div className={styles.propertyCardContent}>
+              {/* Handle boolean policies */}
+              {property.policies?.guests_allowed !== undefined && (
+                <div className={styles.propertyCardItem}>
+                  <p className={styles.propertyCardText}>
+                    <strong>Additional Guests:</strong> {property.policies.guests_allowed ? 'Allowed' : 'Not Allowed'}
+                  </p>
                 </div>
+              )}
+              
+              {property.policies?.parties_or_events !== undefined && (
+                <div className={styles.propertyCardItem}>
+                  <p className={styles.propertyCardText}>
+                    <strong>Parties or Events:</strong> {property.policies.parties_or_events ? 'Allowed' : 'Not Allowed'}
+                  </p>
+                </div>
+              )}
+              
+              {property.policies?.pets !== undefined && (
+                <div className={styles.propertyCardItem}>
+                  <p className={styles.propertyCardText}>
+                    <strong>Pets:</strong> {property.policies.pets ? 'Allowed' : 'Not Allowed'}
+                  </p>
+                </div>
+              )}
+              
+              {property.policies?.smoking !== undefined && (
+                <div className={styles.propertyCardItem}>
+                  <p className={styles.propertyCardText}>
+                    <strong>Smoking:</strong> {property.policies.smoking ? 'Allowed' : 'Not Allowed'}
+                  </p>
+                </div>
+              )}
+              
+              {/* Handle other non-boolean policies */}
+              {property.policies && Object.entries(property.policies).map(([policy, value]) => {
+                // Skip the boolean policies we've already handled
+                if (['guest_allowed', 'parties_or_event', 'pets', 'smoking'].includes(policy)) {
+                  return null;
+                }
+                
+                return (
+                  <div key={policy} className={styles.propertyCardItem}>
+                    <p className={styles.propertyCardText}>
+                      <strong>{policy.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {value}
+                    </p>
+                  </div>
+                  );
+                })}
               </div>
             </div>
+            </article>
             
             {/* Booking component - Right side */}
-            <div>
+            <aside>
               <BookingComponent 
                 propertyId={property.id}
                 maxGuest={property.maxGuest}
                 minNight={property.minNight}
                 maxNight={property.maxNight}
               />
-
-             
-            </div>
+            </aside>
           </div>
           
-            <PropertyReview propertyId={property.id} />
+          <PropertyReview propertyId={property.id} />
              
           <div className={styles.mapContainer}>
-            <h3 className={styles.locationTitle}>Location</h3>
+            <h3 className={styles.locationTitle}>Explore {property.city} - Interactive Location Map</h3>
             <MapComponent 
               address={`${property.address}, ${property.city}, ${property.country}`}
-               
             />
           </div>
         </section>

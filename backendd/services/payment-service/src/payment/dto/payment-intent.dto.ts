@@ -12,5 +12,5 @@ export class PaymentIntentDto {
 
   @IsNotEmpty()
   @IsString()
-  customerId: string;
+  hostUid: string;
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, memo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   FaHome, FaChartLine, FaCreditCard, FaBell, FaCog, 
@@ -16,7 +16,9 @@ import { faIdCard, faFileAlt, faUpload, faSave } from '@fortawesome/free-solid-s
 import stylesMy from './MyWebsite.module.css';
 import { HostData } from '../../../types/hostTypes';
 import DocumentCard from '../../../components/dashboard/documentCard';
+import SocialMediaTab from '../../../components/dashboard/SocialMediaTab'; // Adjust path as needed
 import { useDocumentsHandler } from '../../../src/handlers/useDocumentHandler';
+import countries from '@/utils/countries';
 
 interface UserProfile {
   firstname: string;
@@ -43,6 +45,13 @@ interface UpdateProfileDto {
   websiteUrl: string;
   notifications: Notification[];
   isAgency: boolean;
+   // Add social media fields
+  facebookUrl?: string;
+  instagramUrl?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
 }
 
 interface Notification {
@@ -54,12 +63,6 @@ interface Notification {
   actionUrl?: string;
 }
 
-// Interface for DocumentsTab component props
-interface DocumentsTabProps {
-  hostData: HostData;
-  authToken: string | null;
-  onUpdateDocuments: (updatedData: any) => Promise<boolean>;
-}
 
 // Interface pour les props du composant DocumentsTab
 interface DocumentsTabProps {
@@ -67,10 +70,13 @@ interface DocumentsTabProps {
   authToken: string | null;
 }
 
+
+
 // Composant DocumentsTab
+// Updated DocumentsTab component
 function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
   // Utiliser le handler personnalisé
-  const { handleUpdateDocuments, isLoading, error } = useDocumentsHandler(hostData, authToken);
+  const { handleUpdateDocuments, fetchDocuments, documentUrls, isLoading, error } = useDocumentsHandler(hostData, authToken);
 
   const apiClient = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
@@ -79,21 +85,31 @@ function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
     },
   });
   
-  const initialFormData = {
-    kbisOrId: hostData?.kbisOrId || '',
-    proxy: hostData?.proxy || '',
-    repId: hostData?.repId || '',
-    hasRepresentative: hostData?.hasRepresentative || false,
+  // Initialize formData with actual fetched data
+  const [formData, setFormData] = useState({
+    kbisOrId: '',
+    proxy: '',
+    repId: '',
+    hasRepresentative: false, // Will be updated when documents are fetched
     previews: {
       kbisOrId: '',
       proxy: '',
       repId: '',
     },
     isAgency: hostData?.isAgency || false,
-  };
+  });
     
-  const [formData, setFormData] = useState(initialFormData);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  // Update formData when documentUrls change (after fetch)
+  useEffect(() => {
+    if (documentUrls.kbisOrId || documentUrls.proxy || documentUrls.repId) {
+      setFormData(prev => ({
+        ...prev,
+        hasRepresentative: !!(documentUrls.proxy || documentUrls.repId), // Set to true if proxy or repId exists
+      }));
+    }
+  }, [documentUrls]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
@@ -126,9 +142,13 @@ function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
     } else if (error) {
       setStatusMessage(`Error: ${error}`);
     }
+
+    setTimeout(() => {
+      setStatusMessage(null);
+    }, 3000);
   };
 
-    const router = useRouter();
+  const router = useRouter();
 
   // Clean up object URLs when component unmounts
   useEffect(() => {
@@ -139,25 +159,59 @@ function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
     };
   }, [formData.previews]);
 
+  // Helper function to get document name from URL or file
+  const getDocumentName = (
+    formField: string | File | undefined, 
+    existingUrl: string | null | undefined
+  ): string => {
+    // If user selected a new file
+    if (formField instanceof File) {
+      return formField.name;
+    }
+    
+    // If there's an existing document URL, extract filename or show "Document uploaded"
+    if (existingUrl && typeof existingUrl === 'string' && existingUrl.trim() !== '') {
+      try {
+        // Try to extract filename from Firebase URL
+        const urlParts = existingUrl.split('/o/');
+        if (urlParts.length > 1) {
+          const pathWithQuery = urlParts[1];
+          const pathWithoutQuery = pathWithQuery.split('?')[0];
+          const decodedPath = decodeURIComponent(pathWithoutQuery);
+          const filename = decodedPath.split('/').pop();
+          if (filename) {
+            return filename;
+          }
+        }
+        // Fallback: show that document exists
+        return 'Document uploaded';
+      } catch (error) {
+        return 'Document uploaded';
+      }
+    }
+    
+    return 'No document uploaded';
+  };
 
   return (
-    <div className={stylesMy.documentsSection}>
+    <div className={stylesMy.contentArea}>
       <div className={stylesMy.sectionHeader}>
         <h2>Your Documents</h2>
       </div>
       
       {statusMessage && (
-        <div className={`${stylesMy.statusMessage} ${error ? stylesMy.errorMessage : stylesMy.successMessage}`}>
+        <div className={`${styles.successPopup} ${error ? styles.errorPopupContent : styles.successPopupContent}`}>
           {statusMessage}
         </div>
       )}
-      
+
       <div className={stylesMy.documentsList}>
         <DocumentCard 
           icon={faIdCard}
           title={hostData?.isAgency ? 'KBIS Document' : 'Identity Document'}
-          documentName={formData.kbisOrId instanceof File ? formData.kbisOrId.name : formData.kbisOrId || 'No document uploaded'}
+          documentName={getDocumentName(formData.kbisOrId, documentUrls.kbisOrId)}
           previewUrl={formData.previews.kbisOrId}
+          existingDocumentUrl={documentUrls.kbisOrId}
           fieldName="kbisOrId"
           onFileChange={handleFileChange}
         />
@@ -167,8 +221,9 @@ function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
             <DocumentCard 
               icon={faFileAlt}
               title="Proxy Document"
-              documentName={formData.proxy instanceof File ? formData.proxy.name : formData.proxy || 'No document uploaded'}
+              documentName={getDocumentName(formData.proxy, documentUrls.proxy)}
               previewUrl={formData.previews.proxy}
+              existingDocumentUrl={documentUrls.proxy}
               fieldName="proxy"
               onFileChange={handleFileChange}
             />
@@ -176,8 +231,9 @@ function DocumentsTab({ hostData, authToken }: DocumentsTabProps) {
             <DocumentCard 
               icon={faIdCard}
               title="Representative's ID Document"
-              documentName={formData.repId instanceof File ? formData.repId.name : formData.repId || 'No document uploaded'}
+              documentName={getDocumentName(formData.repId, documentUrls.repId)}
               previewUrl={formData.previews.repId}
+              existingDocumentUrl={documentUrls.repId}
               fieldName="repId"
               onFileChange={handleFileChange}
             />
@@ -236,6 +292,13 @@ export default function Settings() {
   const [host, setHost] = useState<UpdateProfileDto | null>(null);
   //const [loading, setLoading] = useState(true);
 
+
+
+  // Phone number handling states
+  const [phonePrefix, setPhonePrefix] = useState('+33');
+  const [selectedCountry, setSelectedCountry] = useState(countries.find(c => c.code === 'FR'));
+  const [isClient, setIsClient] = useState(false);
+
   const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 
@@ -246,12 +309,32 @@ export default function Settings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-      // Dans le composant principal Settings
+    // Dans le composant principal Settings
 
-    const [deleteError, setDeleteError] = useState("");
-    const [deleteSuccess, setDeleteSuccess] = useState("");
-    const [deleteLoading, setDeleteLoading] = useState(false);
-    const [showFinalConfirm, setShowFinalConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteSuccess, setDeleteSuccess] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showFinalConfirm, setShowFinalConfirm] = useState(false);
+
+
+
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+
+  // Update phone prefix when country changes
+  useEffect(() => {
+    if (!isClient || !host) return;
+    
+    const selectedCountry = countries.find(c => c.code === host.country);
+    if (selectedCountry) {
+      setSelectedCountry(selectedCountry);
+      setPhonePrefix(selectedCountry.prefix);
+    }
+  }, [host?.country, isClient]);
+
 
   useEffect(() => {
     const auth = getAuth();
@@ -288,6 +371,38 @@ export default function Settings() {
       setResetToken(token);
     }
   }, []);
+
+
+  // 2. Fix the handleChange function to use correct field names
+const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
+  
+  if (!host) return;
+  
+  let newValue: any = value;
+
+  if (name === 'phone') {
+    if (!phonePrefix) return;
+    let digits = value.replace(/\D/g, '');
+    const prefixDigits = phonePrefix.replace(/\D/g, '');
+    if (digits.startsWith(prefixDigits)) {
+      digits = digits.slice(prefixDigits.length);
+    }
+
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2 || i === 5 || i === 8) formatted += ' ';
+      formatted += digits[i];
+    }
+
+    newValue = formatted.trim();
+  }
+
+  setHost({
+    ...host,
+    [name]: newValue
+  });
+}, [host, phonePrefix]);
 
   const passwordHandleChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,6 +495,8 @@ export default function Settings() {
     }
   };
 
+
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -405,7 +522,7 @@ export default function Settings() {
         country: host.country,
         email: host.email,
         phoneNumber: host.phone,
-        notifications: host.notifications || [],
+        //notifications: host.notifications || [],
         websiteUrl: host.websiteUrl || ''
       };
   
@@ -439,6 +556,10 @@ export default function Settings() {
     }
   };
 
+
+
+  
+
   const handleUpdateDocuments = async (documentsData: any) => {
     // This would contain the logic to update documents
     // For now, just return a success
@@ -446,24 +567,71 @@ export default function Settings() {
   };
 
   const fetchHostData = async (hostId: string, token: string) => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/hosts/dashboard/${hostId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setHost(response.data.profile);
+  try {
+    const response = await axios.get(`${API_BASE_URL}/hosts/profile/${hostId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const profileData = response.data.profile;
+
+    console.log("Full response data:", response.data);
+    console.log("Profile data:", profileData);
+    console.log("phoneNumber from backend:", profileData.phoneNumber);
+    console.log("country from backend:", profileData.country);
+
+    // Format phone number for display
+    let formattedPhone = '';
+    if (profileData.phoneNumber) {
+      // Remove any existing formatting and country prefix
+      let digits = profileData.phoneNumber.replace(/\D/g, '');
       
-      // If isAgency is not defined in the response, default to false
-      if (response.data.profile.isAgency === undefined) {
-        setHost({
-          ...response.data.profile,
-          isAgency: false
-        });
+      // Find the country to get its prefix
+      const userCountry = countries.find(c => c.code === (profileData.country || 'FR'));
+      if (userCountry) {
+        const prefixDigits = userCountry.prefix.replace(/\D/g, '');
+        // Remove country prefix if it exists at the start
+        if (digits.startsWith(prefixDigits)) {
+          digits = digits.slice(prefixDigits.length);
+        }
       }
-    } catch (err) {
-      console.error("Error fetching host data:", err);
-      setError("Failed to load host data.");
+      
+      // Format the remaining digits
+      let formatted = '';
+      for (let i = 0; i < digits.length; i++) {
+        if (i === 2 || i === 5 || i === 8) formatted += ' ';
+        formatted += digits[i];
+      }
+      formattedPhone = formatted.trim();
     }
-  };
+
+    // Set host data with proper initialization
+    setHost({
+      id: profileData.id || profileData.firebaseUid,
+      name: profileData.name || `${profileData.firstname || ''} ${profileData.lastname || ''}`.trim(),
+      businessname: profileData.businessname || '',
+      headoffice: profileData.headoffice || '',
+      firstname: profileData.firstname || '',
+      lastname: profileData.lastname || '',
+      email: profileData.email || '',
+      phone: formattedPhone, // Use formatted phone
+      country: profileData.country || 'FR',
+      status: profileData.status || '',
+      websiteUrl: profileData.websiteUrl || '',
+      notifications: profileData.notifications || [],
+      isAgency: profileData.isAgency || false,
+      // Social media fields
+      facebookUrl: profileData.facebookUrl || '',
+      instagramUrl: profileData.instagramUrl || '',
+      linkedinUrl: profileData.linkedinUrl || '',
+      twitterUrl: profileData.twitterUrl || '',
+      youtubeUrl: profileData.youtubeUrl || '',
+      tiktokUrl: profileData.tiktokUrl || '',
+    });
+
+  } catch (err) {
+    console.error("Error fetching host data:", err);
+    setError("Failed to load host data.");
+  }
+};
 
   const fetchSubscriptionData = async (hostId: string, token: string) => {
     // Function placeholder as mentioned in your original code
@@ -474,80 +642,6 @@ export default function Settings() {
     }
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(prev => !prev);
-  };
-
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!host || !authToken) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n =>
-        n.id === notification.id ? { ...n, isRead: true } : n
-      ),
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: [notification.id],
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-
-    router.push(notification.actionUrl || '/dashboard/notifications');
-  };
-
-  const markAllAsRead = async () => {
-    if (!host || !authToken) return;
-
-    const unreadIds = host.notifications.filter(n => !n.isRead).map(n => n.id);
-    if (unreadIds.length === 0) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n => ({ ...n, isRead: true })),
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: unreadIds,
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error);
-    }
-  };
-
-  const getNotificationTypeIcon = (type?: string) => {
-    if (!type) return null;
-
-    const iconMap: Record<string, React.ReactNode> = {
-      booking: <div className={`${styles.notificationTypeIcon} ${styles.bookingIcon}`}>B</div>,
-      system: <div className={`${styles.notificationTypeIcon} ${styles.systemIcon}`}>S</div>,
-      payment: <div className={`${styles.notificationTypeIcon} ${styles.paymentIcon}`}>P</div>,
-    };
-
-    return iconMap[type] || null;
-  };
 
 
   const [deleteConfirm, setDeleteConfirm] = useState("");
@@ -587,10 +681,7 @@ const confirmFinalDelete = async () => {
 
     const response = await axios.post(
       `${API_BASE_URL}/hosts/delete-host`, 
-      {
-        idToken: token,
-        firebaseUid: currentUser.uid,
-      },
+      {},
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -614,6 +705,14 @@ const confirmFinalDelete = async () => {
     setDeleteLoading(false);
   }
 };
+
+
+// Add this callback function to handle updates from the SocialMediaTab
+const handleSocialUpdate = useCallback((updatedSocialData: any) => {
+  setHost(prev => prev ? { ...prev, ...updatedSocialData } : null);
+}, []);
+
+
   return (
     <div>
       {/* Success popup */}
@@ -630,53 +729,7 @@ const confirmFinalDelete = async () => {
           <h1 className={styles.pageTitle}>Profile Settings</h1>
         </div>
         <div className={styles.profileSection}>
-          <div className={styles.notificationIcon} onClick={toggleNotifications}>
-            <FaBell />
-            {host?.notifications?.some(n => !n.isRead) && (
-              <span className={styles.badge}>
-                {host.notifications.filter(n => !n.isRead).length}
-              </span>
-            )}
-            {showNotifications && (
-              <div className={styles.notificationPopup}>
-                <div className={styles.notificationPopupHeader}>
-                  <h3>Notifications</h3>
-                  <button
-                    className={styles.markAllReadButton}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markAllAsRead();
-                    }}
-                  >
-                    Mark all as read
-                  </button>
-                </div>
-                <div className={styles.notificationPopupList}>
-                  {host?.notifications?.length === 0 ? (
-                    <p>No notifications</p>
-                  ) : (
-                    host?.notifications?.slice(0, 5).map(notification => (
-                      <div
-                        key={notification.id}
-                        className={`${styles.notificationPopupItem} ${!notification.isRead ? styles.unread : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNotificationClick(notification);
-                        }}
-                      >
-                        {getNotificationTypeIcon(notification.type)}
-                        <div className={styles.notificationPopupContent}>
-                          <p>{notification.text}</p>
-                          <span className={styles.notificationPopupDate}>{notification.date}</span>
-                        </div>
-                        {!notification.isRead && <div className={styles.unreadIndicator}></div>}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+         
           <div className={styles.profileInfo}>
             <span>{host?.name}</span>
             <div className={styles.avatar}>{host?.name?.charAt(0) || ''}</div>
@@ -706,18 +759,18 @@ const confirmFinalDelete = async () => {
             <FaLock /> Password
           </button>
           <button 
-            className={`${styles.tabButton} ${activeTab === 'website' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('website')}
+            className={`${styles.tabButton} ${activeTab === 'social' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('social')}
           >
-            <FaGlobe /> Website
+            <FaGlobe /> Social Media
           </button>
 
-          <button 
+         {/* <button 
             className={`${styles.tabButton} ${activeTab === 'integrations' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('integrations')}
           >
             <FaPlug /> Integrations
-          </button>
+          </button>*/}
         </div>
 
         <div className={styles.settingsContent}>
@@ -726,22 +779,7 @@ const confirmFinalDelete = async () => {
               <h2 className={styles.sectionTitle}>Profile Settings</h2>
               
               <div className={styles.profileSettings}>
-                <div className={styles.profileImageSection}>
-                  <div className={styles.profileImageContainer}>
-                    {userProfile.profileImage ? (
-                      <img 
-                        src={userProfile.profileImage} 
-                        alt={host?.name || ''} 
-                        className={styles.profileImage} 
-                      />
-                    ) : (
-                      <div className={styles.profilePlaceholder}>
-                        {host?.name?.charAt(0) || ''}
-                      </div>
-                    )}
-                  </div>
-                  <button className={styles.uploadButton}>Upload Image</button>
-                </div>
+                
                 
                 <form className={styles.profileForm} onSubmit={handleProfileUpdate}>
                   {/* Show these fields only if NOT an agency */}
@@ -752,9 +790,10 @@ const confirmFinalDelete = async () => {
                         <input 
                           type="text" 
                           id="firstname"
+                          name="firstname"
                           placeholder="Enter your first name" 
                           value={host?.firstname || ''}
-                          onChange={(e) => setHost(host ? {...host, firstname: e.target.value} : null)}
+                          onChange={handleChange}
                         />
                       </div>
                       <div className={styles.formGroup}>
@@ -762,9 +801,10 @@ const confirmFinalDelete = async () => {
                         <input 
                           type="text" 
                           id="lastname" 
+                          name="lastname"
                           placeholder="Enter your last name"
                           value={host?.lastname || ''}
-                          onChange={(e) => setHost(host ? {...host, lastname: e.target.value} : null)}
+                          onChange={handleChange}
                         />
                       </div>
                     </>
@@ -778,9 +818,10 @@ const confirmFinalDelete = async () => {
                         <input 
                           type="text" 
                           id="businessname" 
+                          name="businessname"
                           placeholder="Enter your business name"
                           value={host?.businessname || ''}
-                          onChange={(e) => setHost(host ? {...host, businessname: e.target.value} : null)}
+                          onChange={handleChange}
                         />
                       </div>
                       <div className={styles.formGroup}>
@@ -788,34 +829,48 @@ const confirmFinalDelete = async () => {
                         <input 
                           type="text" 
                           id="headoffice" 
+                          name="headoffice"
                           placeholder="Enter your head office"
                           value={host?.headoffice || ''}
-                          onChange={(e) => setHost(host ? {...host, headoffice: e.target.value} : null)}
+                          onChange={handleChange}
                         />
                       </div>
                     </>
                   )}
                   
                   {/* Always show these fields */}
-                  <div className={styles.formGroup}>
-                    <label htmlFor="phone">Phone Number</label>
-                    <input 
-                      type="tel" 
-                      id="phone" 
-                      placeholder="Enter your phone number"
-                      value={host?.phone || ''}
-                      onChange={(e) => setHost(host ? {...host, phone: e.target.value} : null)}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="country">Country</label>
-                    <input 
-                      type="text" 
-                      id="country" 
-                      placeholder="Enter your country"
-                      value={host?.country || ''}
-                      onChange={(e) => setHost(host ? {...host, country: e.target.value} : null)}
-                    />
+                  <div className={styles.inputRow}>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="country">Country</label>
+                      <select 
+                        name="country" 
+                        value={host?.country || 'FR'}
+                        className={styles.select}
+                        onChange={handleChange}
+                      >
+                        {countries.map(country => (
+                          <option key={country.code} value={country.code}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className={styles.formGroup}>
+                      <label htmlFor="phone">Phone Number</label>
+                      
+                      <div className={styles.phoneInput}>
+                        <span className={styles.phonePrefix}>{phonePrefix}</span>
+                        <input 
+                          type="tel" 
+                          name="phone" 
+                          value={host?.phone || ''}
+                          placeholder="Phone Number" 
+                          className={`${styles.input} ${styles.phoneNumber}`}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
                   </div>
                   
                   <button type="submit" className={styles.primaryButton}>Save Changes</button>
@@ -961,46 +1016,16 @@ const confirmFinalDelete = async () => {
   </div>
 )}
             
-          {activeTab === 'website' && (
-            <div className={styles.settingsSection}>
-              <h2 className={styles.sectionTitle}>Website Settings</h2>
-              
-              <div className={styles.websiteSettings}>
-                <div className={styles.domainSection}>
-                  <h3>Domain Settings</h3>
-                  <div className={styles.currentDomain}>
-                    <span className={styles.domainLabel}>Current Website URL:</span>
-                    <span className={styles.domainValue}>
-                      {host?.websiteUrl || 'No website URL set'}
-                    </span>
-                    {host?.websiteUrl && (
-                      <a href={host.websiteUrl} target="_blank" rel="noopener noreferrer" className={styles.visitButton}>
-                        Visit Website
-                      </a>
-                    )}
-                  </div>
-                  
-                  <div className={styles.customDomainSection}>
-                    <h4>Custom Domain</h4>
-                    <p>Add your own domain to your website.</p>
-                    
-                    <div className={styles.formGroup}>
-                      <label htmlFor="customDomain">Domain Name</label>
-                      <input 
-                        type="text" 
-                        id="customDomain" 
-                        placeholder="yourdomain.com" 
-                      />
-                    </div>
-                    
-                    <button className={styles.primaryButton}>Add Domain</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+         {/* Social Media Tab */}
+          {activeTab === 'social' && (
+            <SocialMediaTab 
+              host={host}
+              authToken={authToken}
+              onUpdateHost={handleSocialUpdate}
+            />
           )}
             
-          {activeTab === 'integrations' && (
+          {/*activeTab === 'integrations' && (
             <div className={styles.settingsSection}>
               <h2 className={styles.sectionTitle}>Integrations</h2>
               
@@ -1068,14 +1093,33 @@ const confirmFinalDelete = async () => {
                 </div>
               </div>
             </div>
-          )}
+          )*/}
           
-          {activeTab === 'documents' && host && (
+          {activeTab === 'documents' && host && host.id && (
             <DocumentsTab 
-              hostData={host as unknown as HostData} 
+              hostData={{
+                firstName: host.firstname,
+                lastName: host.lastname,
+                address: host.headoffice || '',
+                firebaseUid: host.id, // This is the key mapping!
+                businessName: host.businessname,
+                businessId: '',
+                headOffice: host.headoffice,
+                email: host.email,
+                country: host.country,
+                phoneNumber: host.phone,
+                propertiesCount: '0',
+                isAgency: host.isAgency,
+                kbisOrId: null,
+                hasRepresentative: false,
+                proxy: null,
+                repId: null,
+              } as HostData} 
               authToken={authToken}
-              onUpdateDocuments={handleUpdateDocuments} 
             />
+          )}
+          {activeTab === 'documents' && (!host || !host.id) && (
+            <div>Loading host data...</div>
           )}
         </div>
       </div>
