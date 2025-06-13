@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { CreateHostDto } from './dto/create-host.dto';
+import { HostPlan, HostPlanDocument } from './schema/plan.schema'; // Add this import
 import { Host, HostDocument } from './schema/host.schema';
 import axios from 'axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -14,8 +15,10 @@ import { EmailService } from './forgetPassword/email.service';
 export class HostService {
     constructor(
         @InjectModel(Host.name) private readonly hostModel: Model<HostDocument>,
+        @InjectModel(HostPlan.name) private readonly hostPlanModel: Model<HostPlanDocument>, // Add this
         private readonly firebaseAdminService: FirebaseAdminService,
-        @Inject(forwardRef(() => EmailService)) private readonly emailService: EmailService,    ) {}
+        @Inject(forwardRef(() => EmailService)) private readonly emailService: EmailService,    
+      ) {}
 
     async createHost(createHostDto: CreateHostDto): Promise<Host> {
       const { email, password, firebaseUid } = createHostDto;
@@ -196,13 +199,55 @@ export class HostService {
         }
       }
       
-    async getHosts(): Promise<Host[]> {
-        return await this.hostModel.find().exec();
+    async getHosts(): Promise<any[]> {
+        try {
+            // Fetch all verified hosts
+            const hosts = await this.hostModel.find({ emailVerified: true }).exec();
+            
+            // For each host, fetch their plan data to get the website URL
+            const hostsWithPlanData = await Promise.all(
+                hosts.map(async (host) => {
+                    const hostPlan = await this.hostPlanModel.findOne({ 
+                        firebaseUid: host.firebaseUid 
+                    }).exec();
+                    
+                    return {
+                        ...host.toObject(),
+                        websiteUrl: hostPlan?.websiteUrl || null,
+                        plan: hostPlan?.plan || null
+                    };
+                })
+            );
+            
+            return hostsWithPlanData;
+        } catch (error) {
+            throw new InternalServerErrorException('Failed to fetch hosts with plan data');
+        }
     }
 
     async findByFirebaseId(firebaseUid: string) {
       return this.hostModel.findOne({ firebaseUid });
     }    
+
+    // Add this method to your Host Service
+
+  async updateHostStatus(hostId: string, status: string): Promise<Host> {
+    try {
+      const updatedHost = await this.hostModel.findByIdAndUpdate(
+        hostId,
+        { status: status },
+        { new: true } // Return the updated document
+      ).exec();
+
+       if (!updatedHost) {
+            throw new NotFoundException('Host not found.');
+        }
+      
+      return updatedHost;
+    } catch (error) {
+      throw new Error(`Failed to update host status: ${error.message}`);
+    }
+  }
 
     async getHostById(id: string): Promise<Host> {
         const host = await this.hostModel.findById(id).exec();

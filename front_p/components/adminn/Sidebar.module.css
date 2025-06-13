@@ -4,6 +4,7 @@
     width: 16rem; /* w-64 */
     background-color: white;
     border-right: 1px solid #e5e7eb; /* border-gray-200 */
+    margin-top: 60px;
   }
   
   .sidebarHeader {
