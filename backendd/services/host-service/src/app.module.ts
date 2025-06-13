@@ -10,27 +10,31 @@ import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from './forgetPassword/email.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UpdateProfileModule } from './dashboard/settings/updateProfile.module';
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule } from '@nestjs/config';
+import { HostPlan, HostPlanSchema } from './schema/plan.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Host.name, schema: HostSchema }]),
+    MongooseModule.forFeature([
+      { name: Host.name, schema: HostSchema },
+      { name: HostPlan.name, schema: HostPlanSchema },
+    ]),
     DatabaseModule,
-    FirebaseAdminModule, // Importez le module, pas le service directement
+    FirebaseAdminModule,
     HostPlanModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-secret',
       signOptions: { expiresIn: '1d' },
     }),
     forwardRef(() => EmailModule),
+    forwardRef(() => UpdateProfileModule), // Remove the duplicate regular import
     DashboardModule,
-    UpdateProfileModule,
-      ConfigModule.forRoot({
-      isGlobal: true, // Rend ConfigModule disponible partout
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
   ],
   controllers: [HostController],
-  providers: [HostService], // Retirez FirebaseAdminService d'ici
+  providers: [HostService],
   exports: [HostService],
 })
 export class HostModule {}

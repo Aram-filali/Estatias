@@ -302,6 +302,145 @@ private isValidEmail(email: string): boolean {
     }
   }
 
+
+
+// Add these methods to your existing API Gateway Host Controller
+
+@Get()
+  async getAllHosts(
+    @Headers('authorization') authorization: string
+  ) {
+    try {
+      // Validation du token d'authentification pour sécuriser l'endpoint
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Authentication token is missing or invalid format',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+
+      // Extract token for potential admin verification
+      const token = authorization.replace('Bearer ', '');
+    
+
+      console.log('Fetching hosts with plan data...');
+      
+      const response = await firstValueFrom(
+        this.hostClient.send({ cmd: 'get_hosts' }, {})
+      );
+
+      if (response.statusCode !== 200) {
+        console.error('Host service error:', response.error);
+        throw new HttpException(
+          response.error || 'Failed to retrieve hosts',
+          response.statusCode
+        );
+      }
+
+      console.log(`Successfully retrieved ${response.data?.length || 0} hosts`);
+      return response.data;
+      
+    } catch (error) {
+      console.error('Error in getAllHosts gateway:', error);
+      
+      // If it's already an HttpException, re-throw it
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      // Otherwise, throw a generic server error
+      throw new HttpException(
+        error.message || 'Error retrieving hosts',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+@Patch(':hostId/status')
+async updateHostStatus(
+  @Param('hostId') hostId: string,
+  @Body() updateStatusDto: { status: string },
+  @Headers('authorization') authorization: string
+) {
+  try {
+    // Validation du token d'authentification pour sécuriser l'endpoint
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      throw new HttpException(
+        'Authentication token is missing or invalid format',
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    // TODO: Add admin role verification here if needed
+    // You might want to verify that the authenticated user is an admin
+
+    // Validate status value
+    const validStatuses = ['approved', 'rejected', 'suspended', 'pending'];
+    if (!validStatuses.includes(updateStatusDto.status)) {
+      throw new HttpException(
+        'Invalid status value. Must be one of: active, suspended, pending',
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    const response = await firstValueFrom(
+      this.hostClient.send(
+        { cmd: 'update-host-status' }, 
+        { hostId, status: updateStatusDto.status }
+      )
+    );
+
+    if (response.statusCode !== 200) {
+      throw new HttpException(
+        response.error || 'Failed to update host status',
+        response.statusCode
+      );
+    }
+
+    return response.data;
+  } catch (error) {
+    throw new HttpException(
+      error.message || 'Error updating host status',
+      error.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+  
+  @Get(':firebaseUid')
+  async getHostByFirebaseId(
+    @Param('firebaseUid') firebaseUid: string,
+    @Headers('authorization') authorization: string
+  ) {
+    try {
+      // Validation du token d'authentification pour sécuriser l'endpoint
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Authentication token is missing or invalid format',
+          HttpStatus.UNAUTHORIZED
+        );
+      }
+      
+      const response = await firstValueFrom(
+        this.hostClient.send({ cmd: 'get-host-by-firebase-id' }, firebaseUid)
+      );
+
+      if (response.statusCode !== 200) {
+        throw new HttpException(
+          response.error || 'Hôte introuvable',
+          response.statusCode
+        );
+      }
+
+      return response.data;
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error retrieving host',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
   // Nouvel endpoint qui était manquant
   @Get('me')
   async getHostByToken(@Headers('authorization') authorization: string) {
@@ -599,39 +738,6 @@ async addSocial(
     }
   }
 
-  @Get(':firebaseUid')
-  async getHostByFirebaseId(
-    @Param('firebaseUid') firebaseUid: string,
-    @Headers('authorization') authorization: string
-  ) {
-    try {
-      // Validation du token d'authentification pour sécuriser l'endpoint
-      if (!authorization || !authorization.startsWith('Bearer ')) {
-        throw new HttpException(
-          'Authentication token is missing or invalid format',
-          HttpStatus.UNAUTHORIZED
-        );
-      }
-      
-      const response = await firstValueFrom(
-        this.hostClient.send({ cmd: 'get-host-by-firebase-id' }, firebaseUid)
-      );
-
-      if (response.statusCode !== 200) {
-        throw new HttpException(
-          response.error || 'Hôte introuvable',
-          response.statusCode
-        );
-      }
-
-      return response.data;
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Error retrieving host',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
 
   @Post('plan')
 async createHostPlan(

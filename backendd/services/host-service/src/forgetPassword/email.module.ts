@@ -10,13 +10,13 @@ import { FirebaseAdminModule } from '../firebase/firebase.module';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Host.name, schema: HostSchema }]),
-    FirebaseAdminModule, // Importez le module au lieu de déclarer le service
-    forwardRef(() => HostModule),
+    FirebaseAdminModule,
+    forwardRef(() => HostModule), // Import HostModule to get access to HostService
   ],
   controllers: [EmailController],
   providers: [
     EmailService,
-    // Retirez FirebaseAdminService d'ici
+    // Don't declare HostService here since it's provided by HostModule
   ],
   exports: [EmailService],
 })

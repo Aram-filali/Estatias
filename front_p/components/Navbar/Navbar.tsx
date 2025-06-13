@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { auth, completeSignOut } from "@/contexts/firebaseConfig";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,13 +34,13 @@ interface NavbarProps {}
 
 export const Navbar: React.FC<NavbarProps> = () => {
   const [tab, setTabs] = useState<number>(1);
-  const [user, setUser] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null); // Changed to store actual user object
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true); // Track loading state
   const [isFixed, setIsFixed] = useState<boolean>(false);
   const [isHidden, setIsHidden] = useState<boolean>(false);
   const navbarRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-
 
   const showColPages = pathname === "/" || pathname === "/contact" || pathname === "/unauthorized"||
   pathname.startsWith("/adminn");
@@ -61,45 +61,32 @@ export const Navbar: React.FC<NavbarProps> = () => {
     };
   }, [isFixed]);
 
-  // Function to check if user is authenticated
-  const checkUserAuthentication = () => {
-    // Use Firebase Auth to check user status
-    const currentUser = getAuth().currentUser;
-    console.log("Checking authentication, user:", currentUser);
-    setUser(!!currentUser); // Set user state based on authentication status
-  };
-
   useEffect(() => {
-    // Check authentication on initial load
-    checkUserAuthentication();
-
-    // Set up Firebase Auth state listener
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(true); // If user is authenticated
-      } else {
-        setUser(false); // If user is not authenticated
-      }
+    // Set up Firebase Auth state listener - this is the main authentication check
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth state changed:", currentUser);
+      setUser(currentUser); // Set the actual user object or null
+      setIsAuthLoading(false); // Authentication state has been determined
     });
 
-    // Add listener for custom 'userLoggedIn' event
+    // Add listener for custom events (optional, for additional triggers)
     const handleUserLogin = () => {
-      checkUserAuthentication();
+      // The onAuthStateChanged will handle this automatically
+      console.log("Custom userLoggedIn event triggered");
     };
 
     const handleUserLogout = () => {
-      setUser(false);
+      // The onAuthStateChanged will handle this automatically
+      console.log("Custom userLoggedOut event triggered");
     };
 
     window.addEventListener('userLoggedIn', handleUserLogin);
     window.addEventListener('userLoggedOut', handleUserLogout);
-    window.addEventListener('focus', checkUserAuthentication);
 
     return () => {
       unsubscribe(); // Clean up listener
       window.removeEventListener('userLoggedIn', handleUserLogin);
       window.removeEventListener('userLoggedOut', handleUserLogout);
-      window.removeEventListener('focus', checkUserAuthentication);
     };
   }, []);
 
@@ -131,22 +118,24 @@ export const Navbar: React.FC<NavbarProps> = () => {
   }, [pathname]);
 
   const handleLogout = async () => {
-  try {
-    await completeSignOut(); // Handles Firebase signOut + other cleanup
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userType");
-    localStorage.clear(); // Optional: if you want to fully wipe localStorage
+    try {
+      await completeSignOut(); // Handles Firebase signOut + other cleanup
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userType");
+      localStorage.clear(); // Optional: if you want to fully wipe localStorage
 
-    setUser(false);
-    window.dispatchEvent(new Event('userLoggedOut'));
+      // Note: setUser will be handled automatically by onAuthStateChanged
+      window.dispatchEvent(new Event('userLoggedOut'));
 
-    // Redirect to home or login
-    router.push("/");
-  } catch (error) {
-    console.error("Error during sign out:", error);
-  }
-};
+      // Redirect to home or login
+      router.push("/");
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    }
+  };
 
+  // Helper function to check if user is authenticated
+  const isAuthenticated = user !== null;
 
   return (
     <div
@@ -170,7 +159,8 @@ export const Navbar: React.FC<NavbarProps> = () => {
           <div className={styles.Buttons}>
             <ExploreDropdown />
             <div className={styles.authButtons}>
-              {!user ? (
+              {/* Show auth buttons only when user is NOT authenticated and not loading */}
+              {!isAuthenticated && !isAuthLoading && (
                 <>
                   {pathname !== "/create-site/signup" && pathname !== "/getStarted" && (
                     <Link href="/getStarted">
@@ -183,15 +173,16 @@ export const Navbar: React.FC<NavbarProps> = () => {
                     </Link>
                   )}
                 </>
-              ) : null}
+              )}
             </div>
 
-            {/* Move ProfileDropdown here outside of authButtons */}
-            {user && (
+            {/* ProfileDropdown - only show when user IS authenticated */}
+            {isAuthenticated && (
               <div className={styles.userProfile}>
                 <ProfileDropdown onLogout={handleLogout} />
               </div>
             )}
+            
             <div className={styles.langButton}>
               <LanguageDropdown />
             </div>

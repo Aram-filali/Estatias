@@ -14,7 +14,7 @@ export default function AdminLayout({ children }) {
   return (
      <ProtectedRoute allowedRoles={['admin']}>
    <div>
-      <div className={styles.topBar} />
+     
         <div className={styles.layoutContainer}>
           <Sidebar />
           <main className={styles.mainContent}>

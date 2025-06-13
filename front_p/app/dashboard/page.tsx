@@ -109,76 +109,7 @@ export default function DashboardPage() {
     }
   };
 
-  /*const toggleNotifications = () => setShowNotifications(!showNotifications);
-
-  const handleNotificationClick = async (notification: Notification) => {
-    if (!host || !authToken) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: [notification.id],
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (err) {
-      console.error("Error marking notification as read:", err);
-    }
-
-    router.push(notification.actionUrl || '/dashboard/notifications');
-  };
-
-  const markAllAsRead = async () => {
-    if (!host || !authToken) return;
-
-    const unreadIds = host.notifications.filter(n => !n.isRead).map(n => n.id);
-    if (unreadIds.length === 0) return;
-
-    setHost(prev => prev ? {
-      ...prev,
-      notifications: prev.notifications.map(n => ({ ...n, isRead: true }))
-    } : null);
-
-    try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        await axios.post(`${API_BASE_URL}/hosts/notifications/mark-read`, {
-          hostId: user.uid,
-          notificationIds: unreadIds,
-        }, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-      }
-    } catch (err) {
-      console.error("Error marking all notifications as read:", err);
-    }
-  };
-
-  const getNotificationTypeIcon = (type?: string) => {
-    if (!type) return null;
-    
-    const iconMap: Record<string, React.ReactNode> = {
-      booking: <div className={`${styles.notificationTypeIcon} ${styles.bookingIcon}`}>B</div>,
-      system: <div className={`${styles.notificationTypeIcon} ${styles.systemIcon}`}>S</div>,
-      payment: <div className={`${styles.notificationTypeIcon} ${styles.paymentIcon}`}>P</div>,
-    };
-    
-    return iconMap[type] || null;
-  };*/
+  
   const redirectToHomePage= async () => {
     router.push("/");
   }
