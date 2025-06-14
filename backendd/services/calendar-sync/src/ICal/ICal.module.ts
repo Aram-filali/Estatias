@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SyncService } from './sync.service';
-import { UnifiedCalendarSyncService } from './sync2.service';
-import { SyncScheduler } from './sync.scheduler';
+import { ICalSyncService } from './ICal.service';
 import { Property, PropertySchema } from '../schema/property.schema';
 import { SyncLog, SyncLogSchema } from '../schema/sync-log.schema';
-import { SyncQueue, SyncQueueSchema } from '../schema/sync-queue.schema'; // Add this import
+import { SyncQueue, SyncQueueSchema } from '../schema/sync-queue.schema';
+import { Availability, AvailabilitySchema } from '../schema/availability.schema'; // Add this import
 import { ScraperModule } from '../scraper/scraper.module';
 import { CalendarModule } from '../calendar/calendar.module';
-import { SyncController } from './sync.controller';
+import { ICalController } from './ICal.controller';
 
 @Module({
   imports: [
@@ -17,12 +16,14 @@ import { SyncController } from './sync.controller';
     MongooseModule.forFeature([
       { name: Property.name, schema: PropertySchema },
       { name: SyncLog.name, schema: SyncLogSchema },
-      { name: SyncQueue.name, schema: SyncQueueSchema }, // Add this line
+      { name: SyncQueue.name, schema: SyncQueueSchema },
+      { name: Availability.name, schema: AvailabilitySchema }, // Add this line
     ]),
     ScraperModule,
+    CalendarModule,
   ],
-  controllers: [SyncController],
-  providers: [SyncService],
-  exports: [SyncService],
+  controllers: [ICalController],
+  providers: [ICalSyncService],
+  exports: [ICalSyncService],
 })
-export class SyncModule {}
+export class ICalModule {}

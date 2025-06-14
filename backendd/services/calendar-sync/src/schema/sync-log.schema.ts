@@ -36,6 +36,28 @@ export class SyncLog {
   @Prop({ type: Date })
   completedAt?: Date;
 
+  // Add metadata property for storing additional sync information
+  @Prop({ 
+    type: Object, 
+    default: {},
+    _id: false // Prevent Mongoose from adding _id to nested objects
+  })
+  metadata?: {
+    syncType?: 'unified' | 'scraping' | 'ical';
+    sources?: string[];
+    config?: any;
+    result?: any;
+    [key: string]: any; // Allow additional metadata fields
+  };
+
+  // Add priority field for unified sync
+  @Prop({
+    type: String,
+    enum: ['HIGH', 'NORMAL', 'LOW'],
+    default: 'NORMAL'
+  })
+  priority?: 'HIGH' | 'NORMAL' | 'LOW';
+
   // Timestamp automatique de Mongoose (seulement createdAt)
   createdAt?: Date;
   updatedAt?: Date;
@@ -56,3 +78,7 @@ SyncLogSchema.virtual('property', {
 
 // Index pour optimiser les requêtes par propriété et date
 SyncLogSchema.index({ propertyId: 1, createdAt: -1 });
+
+// Index pour les requêtes de synchronisation unifiée
+SyncLogSchema.index({ 'metadata.syncType': 1, createdAt: -1 });
+SyncLogSchema.index({ status: 1, createdAt: -1 });

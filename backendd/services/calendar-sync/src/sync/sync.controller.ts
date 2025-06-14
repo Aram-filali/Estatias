@@ -1,8 +1,16 @@
 import { Controller, Logger } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
-import { SyncService, SyncStatusReport, SyncConflictResolution } from './sync.service';
+import { MessagePattern, Payload, Ctx, RpcException } from '@nestjs/microservices';
+import { SyncService } from './sync.service';
 import { SyncPriority } from '../common/constants';
-import { PropertyAvailabilityResult } from '../common/interfaces/calendar-data.interface';
+
+interface SyncPropertyPayload {
+  propertyId: string;
+  priority?: SyncPriority;
+  conflictResolution?: {
+    strategy: 'merge' | 'overwrite' | 'skip' | 'manual';
+    conflictedFields: string[];
+  };
+}
 
 @Controller()
 export class SyncController {
@@ -13,267 +21,232 @@ export class SyncController {
   /**
    * Synchroniser une propriété spécifique
    */
-  @MessagePattern('sync_property')
-  async syncProperty(@Payload() data: { 
-    id: number;
-    priority?: SyncPriority;
-    conflictResolution?: SyncConflictResolution;
-  }): Promise<PropertyAvailabilityResult> {
-    this.logger.log(`Synchronisation de la propriété ${data.id}`);
+  @MessagePattern('sync.property')
+  async syncProperty(
+    @Payload() data: SyncPropertyPayload,
+    @Ctx() context?: any // Optionnel pour éviter l'erreur
+  ) {
+    this.logger.log(`🔄 Réception demande sync pour propriété: ${data.propertyId}`);
     
-    return this.syncService.syncProperty(
-      data.id.toString(),
-      data.priority || SyncPriority.NORMAL,
-      data.conflictResolution || { strategy: 'merge', conflictedFields: [] }
-    );
+    try {
+      // Validation des données reçues
+      if (!data.propertyId) {
+        throw new RpcException({
+          success: false,
+          message: 'propertyId est requis',
+          error: 'MISSING_PROPERTY_ID'
+        });
+      }
+
+      // Appel du service de synchronisation
+      const result = await this.syncService.syncProperty(
+        data.propertyId,
+        data.priority || SyncPriority.NORMAL,
+        data.conflictResolution || {
+          strategy: 'merge',
+          conflictedFields: []
+        }
+      );
+
+      if (result.success) {
+        this.logger.log(`✅ Sync réussie pour propriété ${data.propertyId}`);
+        return {
+          success: true,
+          data: {
+            propertyId: data.propertyId,
+            availabilityCount: result.availabilities?.length || 0,
+            syncedAt: new Date().toISOString()
+          },
+          message: 'Synchronisation réussie'
+        };
+      } else {
+        this.logger.error(`❌ Sync échouée pour propriété ${data.propertyId}: ${result.error}`);
+        throw new RpcException({
+          success: false,
+          message: 'Échec de la synchronisation',
+          error: result.error || 'Erreur inconnue'
+        });
+      }
+
+    } catch (error) {
+      this.logger.error(`💥 Erreur lors du sync de ${data.propertyId}:`, error);
+      
+      // Si c'est déjà une RpcException, on la relance
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      // Sinon on crée une nouvelle RpcException
+      throw new RpcException({
+        success: false,
+        message: 'Erreur interne du microservice',
+        error: error.message || 'Erreur inconnue'
+      });
+    }
   }
 
   /**
-   * Synchroniser toutes les propriétés
+   * Synchroniser toutes les propriétés avec priorité
    */
-  @MessagePattern('sync_all')
-  async syncAll(@Payload() data: { 
-    force: boolean;
-  }): Promise<{
-    total: number;
-    success: number;
-    failed: number;
-    skipped: number;
-    byPriority: Record<SyncPriority, number>;
-  }> {
-    this.logger.log(`Synchronisation de toutes les propriétés (force: ${data.force})`);
+  @MessagePattern('sync.all.properties')
+  async syncAllProperties(
+    @Payload() data: { forceAll?: boolean },
+    @Ctx() context?: any
+  ) {
+    this.logger.log(`🔄 Réception demande sync toutes propriétés (forceAll: ${data.forceAll})`);
     
-    return this.syncService.syncAllPropertiesWithPriority(data.force);
+    try {
+      const result = await this.syncService.syncAllPropertiesWithPriority(
+        data.forceAll || false
+      );
+
+      this.logger.log(`✅ Sync globale terminée: ${result.success} succès, ${result.failed} échecs`);
+      
+      return {
+        success: true,
+        data: result,
+        message: `Synchronisation terminée: ${result.success} réussies, ${result.failed} échouées`
+      };
+
+    } catch (error) {
+      this.logger.error('💥 Erreur lors du sync global:', error);
+      
+      throw new RpcException({
+        success: false,
+        message: 'Erreur lors de la synchronisation globale',
+        error: error.message || 'Erreur inconnue'
+      });
+    }
   }
 
   /**
-   * Obtenir le statut de synchronisation
+   * Obtenir le statut d'une synchronisation
    */
-  @MessagePattern('sync_status')
-  async getSyncStatus(@Payload() data: {}): Promise<{
-    activeSyncs: SyncStatusReport[];
-    recentStats: any;
-  }> {
-    this.logger.log('Récupération du statut de synchronisation');
-    
-    const activeSyncs = this.syncService.getAllActiveSyncStatuses();
-    const recentStats = await this.syncService.getRecentSyncStatus(24);
-    
-    return {
-      activeSyncs,
-      recentStats,
-    };
+  @MessagePattern('sync.status')
+  async getSyncStatus(
+    @Payload() data: { propertyId: string },
+    @Ctx() context?: any
+  ) {
+    try {
+      const status = this.syncService.getSyncStatus(data.propertyId);
+      
+      return {
+        success: true,
+        data: status,
+        message: status ? 'Statut trouvé' : 'Aucune synchronisation en cours'
+      };
+
+    } catch (error) {
+      this.logger.error(`Erreur lors de la récupération du statut pour ${data.propertyId}:`, error);
+      
+      throw new RpcException({
+        success: false,
+        message: 'Erreur lors de la récupération du statut',
+        error: error.message
+      });
+    }
   }
 
   /**
-   * Déclencher une synchronisation manuelle
+   * Annuler une synchronisation
    */
-  @MessagePattern('trigger_manual_sync')
-  async triggerManualSync(@Payload() data: { 
-    id: number;
-  }): Promise<PropertyAvailabilityResult> {
-    this.logger.log(`Synchronisation manuelle de la propriété ${data.id}`);
-    
-    return this.syncService.syncProperty(
-      data.id.toString(),
-      SyncPriority.HIGH, // Priorité haute pour les syncs manuelles
-      { strategy: 'overwrite', conflictedFields: [] } // Écrasement pour les syncs manuelles
-    );
+  @MessagePattern('sync.cancel')
+  async cancelSync(
+    @Payload() data: { propertyId: string },
+    @Ctx() context?: any
+  ) {
+    try {
+      const cancelled = await this.syncService.cancelSync(data.propertyId);
+      
+      return {
+        success: true,
+        data: { cancelled },
+        message: cancelled ? 'Synchronisation annulée' : 'Aucune synchronisation à annuler'
+      };
+
+    } catch (error) {
+      this.logger.error(`Erreur lors de l'annulation pour ${data.propertyId}:`, error);
+      
+      throw new RpcException({
+        success: false,
+        message: 'Erreur lors de l\'annulation',
+        error: error.message
+      });
+    }
   }
 
   /**
-   * Obtenir le statut détaillé d'une propriété
+   * Obtenir les statistiques de synchronisation
    */
-  @MessagePattern('get_property_sync_status')
-  async getPropertySyncStatus(@Payload() data: { 
-    id: number;
-  }): Promise<{
-    currentStatus: SyncStatusReport | null;
-    recentLogs: any[];
-    lastSyncResult: any;
-  }> {
-    const propertyId = data.id.toString();
-    this.logger.log(`Statut de synchronisation pour la propriété ${propertyId}`);
-    
-    const currentStatus = this.syncService.getSyncStatus(propertyId);
-    const recentLogs = await this.syncService.getSyncLogs(propertyId, 10);
-    
-    return {
-      currentStatus,
-      recentLogs,
-      lastSyncResult: recentLogs[0] || null,
-    };
-  }
+  @MessagePattern('sync.stats')
+  async getSyncStats(@Ctx() context?: any) {
+    try {
+      const [platformStats, recentStatus] = await Promise.all([
+        this.syncService.getSyncStatsByPlatform(),
+        this.syncService.getRecentSyncStatus(24)
+      ]);
 
-  /**
-   * Annuler une synchronisation en cours
-   */
-  @MessagePattern('cancel_sync')
-  async cancelSync(@Payload() data: { 
-    id: number;
-  }): Promise<{ success: boolean; message: string }> {
-    const propertyId = data.id.toString();
-    this.logger.log(`Annulation de la synchronisation pour la propriété ${propertyId}`);
-    
-    const cancelled = await this.syncService.cancelSync(propertyId);
-    
-    return {
-      success: cancelled,
-      message: cancelled 
-        ? 'Synchronisation annulée avec succès' 
-        : 'Aucune synchronisation en cours trouvée'
-    };
-  }
+      return {
+        success: true,
+        data: {
+          platformStats,
+          recentStatus,
+          activeSyncs: this.syncService.getAllActiveSyncStatuses()
+        },
+        message: 'Statistiques récupérées'
+      };
 
-  /**
-   * Obtenir les statistiques de synchronisation par plateforme
-   */
-  @MessagePattern('get_sync_stats_by_platform')
-  async getSyncStatsByPlatform(@Payload() data: {}): Promise<Record<string, Record<string, number>>> {
-    this.logger.log('Récupération des statistiques par plateforme');
-    
-    return this.syncService.getSyncStatsByPlatform();
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des stats:', error);
+      
+      throw new RpcException({
+        success: false,
+        message: 'Erreur lors de la récupération des statistiques',
+        error: error.message
+      });
+    }
   }
 
   /**
    * Tester le scraping d'une URL publique
    */
-  @MessagePattern('test_public_url_scraping')
-  async testPublicUrlScraping(@Payload() data: { 
-    url: string; 
-    platform: string;
-  }): Promise<{
-    success: boolean;
-    message: string;
-    availabilityCount?: number;
-  }> {
-    this.logger.log(`Test de scraping pour ${data.url} (${data.platform})`);
-    
-    return this.syncService.testPublicUrlScraping(data.url, data.platform);
-  }
+  @MessagePattern('sync.test.url')
+  async testPublicUrl(
+    @Payload() data: { publicUrl: string; platform: string },
+    @Ctx() context?: any
+  ) {
+    try {
+      if (!data.publicUrl || !data.platform) {
+        throw new RpcException({
+          success: false,
+          message: 'publicUrl et platform sont requis',
+          error: 'MISSING_PARAMETERS'
+        });
+      }
 
-  /**
-   * Obtenir le taux de succès récent
-   */
-  @MessagePattern('get_recent_success_rate')
-  async getRecentSuccessRate(@Payload() data: { 
-    hours?: number;
-  }): Promise<{
-    totalSyncs: number;
-    successfulSyncs: number;
-    failedSyncs: number;
-    inProgressSyncs: number;
-    successRate: number;
-  }> {
-    const hours = data.hours || 24;
-    this.logger.log(`Taux de succès sur les ${hours} dernières heures`);
-    
-    return this.syncService.getRecentSyncStatus(hours);
-  }
+      const result = await this.syncService.testPublicUrlScraping(
+        data.publicUrl,
+        data.platform
+      );
 
-  /**
-   * Nettoyer les anciens logs de synchronisation
-   */
-  @MessagePattern('cleanup_old_sync_logs')
-  async cleanupOldSyncLogs(@Payload() data: { 
-    daysToKeep?: number;
-  }): Promise<{ deletedCount: number; message: string }> {
-    const daysToKeep = data.daysToKeep || 30;
-    this.logger.log(`Nettoyage des logs de plus de ${daysToKeep} jours`);
-    
-    const result = await this.syncService.cleanOldSyncLogs(daysToKeep);
-    
-    return {
-      ...result,
-      message: `${result.deletedCount} anciens logs supprimés`
-    };
-  }
+      return {
+        success: result.success,
+        data: result,
+        message: result.message
+      };
 
-  /**
-   * Obtenir la file d'attente de synchronisation
-   */
-  @MessagePattern('get_sync_queue')
-  async getSyncQueue(@Payload() data: {}): Promise<{
-    pending: number;
-    processing: number;
-    completed: number;
-    failed: number;
-  }> {
-    this.logger.log('Récupération de l\'état de la file d\'attente');
-    
-    // Cette méthode devrait être ajoutée au SyncService
-    // Pour l'instant, on retourne un placeholder
-    return {
-      pending: 0,
-      processing: 0,
-      completed: 0,
-      failed: 0,
-    };
-  }
-
-  /**
-   * Redémarrer les synchronisations échouées
-   */
-  @MessagePattern('retry_failed_syncs')
-  async retryFailedSyncs(@Payload() data: { 
-    maxRetries?: number;
-  }): Promise<{
-    retriedCount: number;
-    successCount: number;
-    message: string;
-  }> {
-    const maxRetries = data.maxRetries || 5;
-    this.logger.log(`Nouvelle tentative pour les synchronisations échouées (max: ${maxRetries})`);
-    
-    // Cette fonctionnalité devrait être implémentée dans le SyncService
-    // Pour l'instant, on retourne un placeholder
-    return {
-      retriedCount: 0,
-      successCount: 0,
-      message: 'Fonctionnalité de retry à implémenter'
-    };
-  }
-
-  /**
-   * Configurer la résolution de conflits par défaut
-   */
-  @MessagePattern('set_default_conflict_resolution')
-  async setDefaultConflictResolution(@Payload() data: {
-    strategy: 'merge' | 'overwrite' | 'skip' | 'manual';
-    conflictedFields?: string[];
-  }): Promise<{ success: boolean; message: string }> {
-    this.logger.log(`Configuration de la résolution de conflits: ${data.strategy}`);
-    
-    // Cette configuration devrait être stockée et utilisée par défaut
-    // Pour l'instant, on confirme juste la réception
-    return {
-      success: true,
-      message: `Stratégie de résolution configurée: ${data.strategy}`
-    };
-  }
-
-  /**
-   * Obtenir les métriques de performance de synchronisation
-   */
-  @MessagePattern('get_sync_performance_metrics')
-  async getSyncPerformanceMetrics(@Payload() data: {
-    period?: 'day' | 'week' | 'month';
-  }): Promise<{
-    averageDuration: number;
-    successRate: number;
-    throughput: number;
-    errorsByType: Record<string, number>;
-  }> {
-    const period = data.period || 'day';
-    this.logger.log(`Métriques de performance sur la période: ${period}`);
-    
-    // Cette fonctionnalité nécessiterait une implémentation dans le SyncService
-    // Pour l'instant, on retourne des métriques factices
-    return {
-      averageDuration: 0,
-      successRate: 0,
-      throughput: 0,
-      errorsByType: {},
-    };
+    } catch (error) {
+      this.logger.error('Erreur lors du test URL:', error);
+      
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      
+      throw new RpcException({
+        success: false,
+        message: 'Erreur lors du test de l\'URL',
+        error: error.message
+      });
+    }
   }
 }

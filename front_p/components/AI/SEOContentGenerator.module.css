@@ -1,71 +1,70 @@
 /* Trigger Button */
 .triggerButton2 {
-  margin-left: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(to right, #8b5cf6, #ec4899);
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  transition: all 0.2s ease-in-out;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  margin-left: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  background: linear-gradient(to right, #8b5cf6, #ec4899) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  transition: all 0.2s ease-in-out !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  cursor: pointer !important;
 }
 
 .triggerButton2:hover {
-  background: linear-gradient(to right, #7c3aed, #db2777);
+  background: linear-gradient(to right, #7c3aed, #db2777) !important;
 }
 
 /* Modal Overlay */
 .modalOverlay2 {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 50 !important;
+  padding: 1rem !important;
 }
 
 .modalContainer2 {
-  background-color: white;
-  border-radius: 0.5rem;
-  max-width: 56rem;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  background-color: white !important;
+  border-radius: 0.5rem !important;
+  max-width: 56rem !important;
+  width: 100% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
 }
 
 /* Header */
 .headerContainer2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 1.5rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
 }
 
 .headerTitle2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
 }
 
 .headerSubtitle2 {
-  color: #6b7280;
-  margin-top: 0.25rem;
+  color: #6b7280 !important;
+  margin-top: 0.25rem !important;
 }
 
 .closeButton211 {
   padding: 0.5rem !important;
   border: none !important;
   background: none !important;
-  
-  border-radius: 9999px;
+  border-radius: 9999px !important;
   transition: background-color 0.2s ease-in-out !important;
   cursor: pointer !important;
 }
@@ -76,278 +75,278 @@
 
 /* Content */
 .contentContainer2 {
-  padding: 1.5rem;
+  padding: 1.5rem !important;
 }
 
 /* Current Content Display */
 .currentContentContainer2 {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
+  margin-bottom: 1.5rem !important;
+  padding: 1rem !important;
+  background-color: #f9fafb !important;
+  border-radius: 0.5rem !important;
 }
 
 .currentContentTitle2 {
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: #1f2937;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+  color: #1f2937 !important;
 }
 
 .currentContentItem2 {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem !important;
 }
 
 .currentContentItem2:last-child {
-  margin-bottom: 0;
+  margin-bottom: 0 !important;
 }
 
 .currentContentLabel2 {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
 }
 
 .currentContentText2 {
-  color: #1f2937;
+  color: #1f2937 !important;
 }
 
 /* Suggestions */
 .suggestionsContainer2 {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem !important;
 }
 
 .suggestionsTitle2 {
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-  color: #1f2937;
+  font-weight: 500 !important;
+  margin-bottom: 0.75rem !important;
+  color: #1f2937 !important;
 }
 
 .suggestionsGrid2 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
 }
 
 .suggestionTag2 {
-  padding: 0.25rem 0.75rem;
-  background-color: #dbeafe;
-  color: #1e40af;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  padding: 0.25rem 0.75rem !important;
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+  border-radius: 9999px !important;
+  font-size: 0.875rem !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease-in-out !important;
 }
 
 .suggestionTag2:hover {
-  background-color: #bfdbfe;
+  background-color: #bfdbfe !important;
 }
 
 /* User Input */
 .inputContainer2 {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem !important;
 }
 
 .inputLabel2 {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.5rem;
+  display: block !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .textarea2 {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  resize: none;
-  transition: all 0.2s ease-in-out;
+  width: 100% !important;
+  padding: 0.75rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+  resize: none !important;
+  transition: all 0.2s ease-in-out !important;
 }
 
 .textarea2:focus {
-  outline: none;
-  ring: 2px solid #8b5cf6;
-  border-color: transparent;
+  outline: none !important;
+  ring: 2px solid #8b5cf6 !important;
+  border-color: transparent !important;
 }
 
 .errorMessage2 {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #dc2626;
-  font-size: 0.875rem;
+  margin-top: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  color: #dc2626 !important;
+  font-size: 0.875rem !important;
 }
 
 /* Generate Button */
 .generateButton2 {
-  width: 100%;
-  background: linear-gradient(to right, #8b5cf6, #ec4899);
-  color: white;
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  transition: all 0.2s ease-in-out;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  width: 100% !important;
+  background: linear-gradient(to right, #8b5cf6, #ec4899) !important;
+  color: white !important;
+  padding: 0.75rem 1rem !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  transition: all 0.2s ease-in-out !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  cursor: pointer !important;
 }
 
 .generateButton2:hover:not(:disabled) {
-  background: linear-gradient(to right, #7c3aed, #db2777);
+  background: linear-gradient(to right, #7c3aed, #db2777) !important;
 }
 
 .generateButton2:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
 /* Generated Content */
 .generatedContentContainer2 {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  margin-top: 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
 }
 
 .contentBlock2 {
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  padding: 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
 }
 
 .contentBlockHeader2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .contentBlockTitle2 {
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
 }
 
 .copyButton2 {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: #8b5cf6;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: color 0.2s ease-in-out;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  font-size: 0.875rem !important;
+  color: #8b5cf6 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: color 0.2s ease-in-out !important;
 }
 
 .copyButton2:hover {
-  color: #7c3aed;
+  color: #7c3aed !important;
 }
 
 .contentText2 {
-  color: #111827;
+  color: #111827 !important;
 }
 
 .titleText2 {
-  font-weight: 500;
+  font-weight: 500 !important;
 }
 
 .characterCount2 {
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: #6b7280;
+  margin-top: 0.5rem !important;
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
 }
 
 /* SEO Keywords */
 .keywordsContainer2 {
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  padding: 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
 }
 
 .keywordsTitle2 {
-  font-weight: 500;
-  color: #1f2937;
-  margin-bottom: 0.5rem;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .keywordsGrid2 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
 }
 
 .keywordTag2 {
-  padding: 0.25rem 0.5rem;
-  background-color: #dcfce7;
-  color: #166534;
-  font-size: 0.75rem;
-  border-radius: 9999px;
+  padding: 0.25rem 0.5rem !important;
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+  font-size: 0.75rem !important;
+  border-radius: 9999px !important;
 }
 
 /* Action Buttons */
 .actionButtonsContainer2 {
-  display: flex;
-  gap: 0.75rem;
-  padding-top: 1rem;
+  display: flex !important;
+  gap: 0.75rem !important;
+  padding-top: 1rem !important;
 }
 
 .applyButton2 {
-  flex: 1;
-  background-color: #16a34a;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  flex: 1 !important;
+  background-color: #16a34a !important;
+  color: white !important;
+  padding: 0.5rem 1rem !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease-in-out !important;
 }
 
 .applyButton2:hover {
-  background-color: #15803d;
+  background-color: #15803d !important;
 }
 
 .generateNewButton2 {
-  padding: 0.5rem 1rem;
-  color: #6b7280;
-  border: 1px solid #d1d5db;
-  background-color: white;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  padding: 0.5rem 1rem !important;
+  color: #6b7280 !important;
+  border: 1px solid #d1d5db !important;
+  background-color: white !important;
+  border-radius: 0.375rem !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease-in-out !important;
 }
 
 .generateNewButton2:hover {
-  background-color: #f9fafb;
+  background-color: #f9fafb !important;
 }
 
 /* Icon styling */
 .icon2 {
-  width: 1rem;
-  height: 1rem;
+  width: 1rem !important;
+  height: 1rem !important;
 }
 
 .iconLarge2 {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
   color: black !important;
 }
 
 .iconYellow2 {
-  color: #eab308;
+  color: #eab308 !important;
 }
 
 .iconSpin2 {
-  animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite !important;
 }
 
 @keyframes spin {
   from {
-    transform: rotate(0deg);
+    transform: rotate(0deg) !important;
   }
   to {
-    transform: rotate(360deg);
+    transform: rotate(360deg) !important;
   }
 }

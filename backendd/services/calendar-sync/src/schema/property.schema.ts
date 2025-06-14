@@ -35,6 +35,25 @@ export class Property {
   @Prop({ default: false })
   active: boolean;
 
+  // Add the icalUrl property
+  @Prop({ 
+    type: String,
+    required: false,
+    validate: {
+      validator: function(url: string) {
+        if (!url) return true; // Optional field, so empty is valid
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      message: 'icalUrl must be a valid URL'
+    }
+  })
+  icalUrl?: string;
+
   @Prop({ type: Date })
   lastSynced?: Date;
 
@@ -68,3 +87,69 @@ PropertySchema.virtual('syncLogs', {
 // Pour inclure les virtuals lors de la sérialisation JSON
 PropertySchema.set('toJSON', { virtuals: true });
 PropertySchema.set('toObject', { virtuals: true });
+
+
+// src/schema/property.schema.ts
+/*import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+
+export type PropertyDocument = Property & Document;
+
+@Schema({ timestamps: true })
+export class Property {
+  @Prop({ required: true })
+  siteId: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true })
+  publicUrl: string;
+
+  @Prop()
+  icalUrl?: string;
+
+  @Prop({ required: true })
+  platform: string; // 'airbnb', 'booking', 'hometogo', etc.
+
+  @Prop()
+  description?: string;
+
+  @Prop()
+  address?: string;
+
+  @Prop()
+  city?: string;
+
+  @Prop()
+  country?: string;
+
+  @Prop({ type: Number })
+  price?: number;
+
+  @Prop()
+  currency?: string;
+
+  @Prop({ default: true })
+  isActive: boolean;
+
+  @Prop({ default: Date.now })
+  lastSyncAt?: Date;
+
+  @Prop()
+  lastSyncStatus?: string; // 'success', 'failed', 'pending'
+
+  @Prop()
+  syncError?: string;
+
+  @Prop({ type: Object })
+  metadata?: Record<string, any>;
+
+  @Prop({ default: Date.now })
+  createdAt: Date;
+
+  @Prop({ default: Date.now })
+  updatedAt: Date;
+}
+
+export const PropertySchema = SchemaFactory.createForClass(Property);*/

@@ -1,0 +1,528 @@
+/* Overlay and Popup */
+.syncOverlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  padding: 1rem !important;
+}
+
+.syncPopup {
+  background-color: white !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  max-width: 35rem !important;
+  width: 90% !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  animation: popupSlideIn 0.3s ease-out !important;
+}
+
+@keyframes popupSlideIn {
+  from {
+    opacity: 0 !important;
+    transform: scale(0.9) translateY(-20px) !important;
+  }
+  to {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+  }
+}
+
+/* Header */
+.syncHeader {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 1.25rem !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  background-color: #f8fafc !important;
+  border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+.syncTitle {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.syncIcon {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+.syncCloseButton {
+  color: #9ca3af !important;
+  transition: color 0.2s !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0.25rem !important;
+  border-radius: 0.375rem !important;
+}
+
+.syncCloseButton:hover {
+  color: #4b5563 !important;
+  background-color: #f3f4f6 !important;
+}
+
+.syncCloseIcon {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+/* Content */
+.syncContent {
+  padding: 1.25rem !important;
+}
+
+/* Intro Section */
+.syncIntroSection {
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.syncIntroContent {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncIntroTitle {
+  font-size: 1.125rem !important;
+  font-weight: 500 !important;
+}
+
+.syncIntroText {
+  color: #4b5563 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+.syncPlatformSection {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncPlatformTitle {
+  font-weight: 500 !important;
+}
+
+.syncPlatformGrid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+}
+
+.syncPlatformButton {
+  padding: 1rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  transition: border-color 0.2s !important;
+  text-align: left !important;
+  background: white !important;
+  cursor: pointer !important;
+}
+
+.syncPlatformButton:hover {
+  border-color: #3b82f6 !important;
+}
+
+.syncPlatformName {
+  font-weight: 500 !important;
+}
+
+.syncPlatformDescription {
+  font-size: 0.875rem !important;
+  color: #4b5563 !important;
+}
+
+/* URL Input Section */
+.syncUrlSection {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.syncUrlHeader {
+  text-align: center !important;
+}
+
+.syncUrlTitle {
+  font-size: 1.125rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.syncUrlDescription {
+  color: #4b5563 !important;
+}
+
+.syncUrlForm {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncInputGroup {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncInputLabel {
+  display: block !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.syncInputIcon {
+  width: 1rem !important;
+  height: 1rem !important;
+  margin-right: 0.5rem !important;
+}
+
+.syncInput {
+  width: 100% !important;
+  padding: 0.5rem 0.75rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s !important;
+}
+
+.syncInput:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #3b82f6 !important;
+  border-color: transparent !important;
+}
+
+.syncButtonGroup {
+  display: flex !important;
+  gap: 0.75rem !important;
+}
+
+.syncSecondaryButton {
+  flex: 1 !important;
+  padding: 0.5rem 1rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  background: white !important;
+  transition: background-color 0.2s !important;
+  cursor: pointer !important;
+  color: #4b5563 !important;
+}
+
+.syncSecondaryButton:hover {
+  background-color: #f9fafb !important;
+}
+
+.syncPrimaryButton {
+  flex: 1 !important;
+  padding: 0.5rem 1rem !important;
+  background-color: #2563eb !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  transition: background-color 0.2s !important;
+  cursor: pointer !important;
+}
+
+.syncPrimaryButton:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.syncPrimaryButton:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Price Section */
+.syncPriceSection {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.syncPriceHeader h3 {
+  font-size: 1.125rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.syncPriceDescription {
+  color: #4b5563 !important;
+  margin-bottom: 1rem !important;
+}
+
+.syncPriceContent {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncPriceModeSection {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncPriceModeLabel {
+  display: block !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.syncPriceModeGrid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.75rem !important;
+}
+
+.syncPriceModeButton {
+  padding: 0.75rem !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s !important;
+  background: white !important;
+  cursor: pointer !important;
+}
+
+.syncPriceModeButton:hover {
+  border-color: #d1d5db !important;
+}
+
+.syncPriceModeButtonActive {
+  border-color: #3b82f6 !important;
+  background-color: #eff6ff !important;
+}
+
+.syncPriceModeName {
+  font-weight: 500 !important;
+  color: #4b5563 !important;
+}
+
+.syncPriceModeDescription {
+  font-size: 0.875rem !important;
+  color: #4b5563 !important;
+}
+
+/* Bulk Pricing */
+.syncBulkPricing {
+  padding: 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncBulkPricingTitle {
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.syncBulkPricingIcon {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.syncBulkPricingForm {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.syncCheckboxGroup {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncCheckboxLabel {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.syncCheckbox {
+  border-radius: 0.25rem !important;
+}
+
+.syncCheckboxText {
+  font-size: 0.875rem !important;
+}
+
+/* Individual Pricing */
+.syncIndividualPricing {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncIndividualPricingTitle {
+  font-weight: 500 !important;
+}
+
+.syncIndividualPricingList {
+  max-height: 15rem !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.syncIndividualPricingItem {
+  padding: 1rem !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.syncIndividualPricingHeader {
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.syncAvailabilityBadge {
+  margin-left: 0.5rem !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  border-radius: 0.25rem !important;
+}
+
+.syncAvailabilityBadgeAvailable {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+.syncAvailabilityBadgeOccupied {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+}
+
+.syncIndividualPricingInputs {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.75rem !important;
+}
+
+.syncSmallInputGroup {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.syncSmallInputLabel {
+  display: block !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.syncSmallInput {
+  width: 100% !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.875rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.25rem !important;
+  transition: all 0.2s !important;
+}
+
+.syncSmallInput:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 1px #3b82f6 !important;
+}
+
+/* Final Button Group */
+.syncFinalButtonGroup {
+  display: flex !important;
+  gap: 0.75rem !important;
+  padding-top: 1rem !important;
+}
+
+.syncSuccessButton {
+  flex: 1 !important;
+  padding: 0.5rem 1rem !important;
+  background-color: #059669 !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  transition: background-color 0.2s !important;
+  cursor: pointer !important;
+}
+
+.syncSuccessButton:hover {
+  background-color: #047857 !important;
+}
+
+/* Demo Container */
+.syncDemoContainer {
+  padding: 1.5rem !important;
+  max-width: 64rem !important;
+  margin: 0 auto !important;
+}
+
+.syncDemoCard {
+  background-color: white !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  padding: 1.5rem !important;
+}
+
+.syncDemoTitle {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.syncDemoButtonContainer {
+  margin-bottom: 1.5rem !important;
+}
+
+.syncDemoButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem 1rem !important;
+  background-color: #2563eb !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  border: none !important;
+  transition: background-color 0.2s !important;
+  cursor: pointer !important;
+}
+
+.syncDemoButton:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.syncDemoButtonIcon {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.syncDemoDescription {
+  color: #4b5563 !important;
+}

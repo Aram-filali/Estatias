@@ -1,58 +1,84 @@
+// src/schema/availability.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { Property } from './property.schema';
+import { Document } from 'mongoose';
 
-export type AvailabilityDocument = Availability & Document;
+// Interface pour un élément de disponibilité individuel
+export interface AvailabilityItem {
+  date: Date;
+  isAvailable: boolean;
+  price?: number;
+  currency?: string;
+  minStay?: number;
+  notes?: string;
+  metadata?: Record<string, any>;
+  lastUpdated: Date;
+}
 
-@Schema({ timestamps: true })
-export class Availability {
-  /*@Prop({ type: Types.ObjectId, ref: 'Property', required: true, index: true })
-  propertyId: Types.ObjectId;*/
-
-  @Prop({  required: true })
-  propertyId: string
-
-  @Prop({ required: true })
-  siteId: string
-
-  @Prop({ type: Date, required: true, index: true })
+// Schéma pour un élément de disponibilité
+@Schema({ _id: false }) // Pas besoin d'_id pour les sous-documents
+export class AvailabilityItemSchema implements AvailabilityItem {
+  @Prop({ required: true, type: Date })
   date: Date;
 
   @Prop({ required: true })
   isAvailable: boolean;
 
-  @Prop({ required: true })
-  source: string;
-
-  @Prop({ type: Date, required: true })
-  lastUpdated: Date;
-
-  @Prop()
+  @Prop({ type: Number })
   price?: number;
 
   @Prop()
   currency?: string;
 
+  @Prop({ type: Number })
+  minStay?: number;
+
   @Prop()
-  minimumStay?: number;
+  notes?: string;
 
-  // Timestamps automatiques de Mongoose
-  createdAt?: Date;
-  updatedAt?: Date;
+  @Prop({ type: Object })
+  metadata?: Record<string, any>;
 
-  // Virtual pour la relation avec Property
-  property?: Property;
+  @Prop({ type: Date, default: Date.now })
+  lastUpdated: Date;
+}
+
+const AvailabilityItemSchemaFactory = SchemaFactory.createForClass(AvailabilityItemSchema);
+
+@Schema({ timestamps: true })
+export class Availability {
+  @Prop({ required: true })
+  propertyId: string;
+
+  @Prop({ required: true })
+  siteId: string;
+
+  @Prop({ required: true })
+  source: string; // 'ical', 'scraping', 'manual'
+
+  // Tableau des disponibilités pour cette propriété et cette source
+  @Prop({ 
+    type: [AvailabilityItemSchemaFactory],
+    default: [] 
+  })
+  availabilities: AvailabilityItem[];
+
+  @Prop({ type: Date, default: Date.now })
+  lastUpdated: Date;
+
+  @Prop({ default: Date.now })
+  createdAt: Date;
+
+  @Prop({ default: Date.now })
+  updatedAt: Date;
 }
 
 export const AvailabilitySchema = SchemaFactory.createForClass(Availability);
 
-// Ajout de la relation virtuelle
-AvailabilitySchema.virtual('property', {
-  ref: 'Property',
-  localField: 'propertyId',
-  foreignField: '_id',
-  justOne: true,
-});
+// Export the document type AFTER the schema definition
+export type AvailabilityDocument = Availability & Document;
 
-// Index composé pour optimiser les requêtes
-AvailabilitySchema.index({ propertyId: 1, date: 1 });
+// Index pour optimiser les requêtes
+AvailabilitySchema.index({ propertyId: 1, source: 1 }, { unique: true }); // Une seule entrée par propriété/source
+AvailabilitySchema.index({ 'availabilities.date': 1 });
+AvailabilitySchema.index({ propertyId: 1, 'availabilities.date': 1 });
+AvailabilitySchema.index({ siteId: 1 });
