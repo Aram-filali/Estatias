@@ -91,7 +91,7 @@
   }
   
   .removeButton {
-    background-color: #e74c3c;
+    background-color: #e74c3c !important;
     color: white;
     padding: 8px 15px;
     border: none;
