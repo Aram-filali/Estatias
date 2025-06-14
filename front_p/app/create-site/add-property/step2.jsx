@@ -1829,25 +1829,25 @@ return (
 
 
 const handleSEOBoost = async (generatedContent = {}) => {
+  console.log('=== DÉBUT handleSEOBoost ===');
+  console.log('Contenu généré reçu:', generatedContent);
+  console.log('FormData actuel:', {
+    title: formData.title,
+    description: formData.description
+  });
+  
   setShowSEOBoostPopup(false);
   
   try {
-    console.log('=== DÉBUT handleSEOBoost ===');
-    console.log('Contenu généré reçu:', generatedContent);
-    console.log('FormData actuel:', {
-      title: formData.title,
-      description: formData.description
-    });
-    
-    // Utiliser directement formData car il est déjà mis à jour par les callbacks
+    // 🔥 CORRECTION : Utiliser le contenu généré au lieu du formData actuel
     const overrideData = {
-      title: formData.title || '',
-      description: formData.description || ''
+      title: generatedContent.title || formData.title || '',
+      description: generatedContent.description || formData.description || ''
     };
     
     console.log('Données override finales:', overrideData);
     
-    // Passer les données override à handleActualSubmit
+    // Passer les données générées à handleActualSubmit
     await handleActualSubmit(overrideData);
     
   } catch (error) {
@@ -1860,7 +1860,7 @@ const handleSEOBoost = async (generatedContent = {}) => {
   }
 };
 
-// CORRECTION : Ajouter une fonction pour mettre à jour formData quand l'IA génère du contenu
+// ✅ CORRECTION : Ces fonctions mettent à jour le formData pour l'affichage UI
 const handleTitleGenerated = (title) => {
   console.log('=== TITRE GÉNÉRÉ ===', title);
   setFormData(prev => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import styles from './ListingForm.module.css';
 import "./mainphoto.css";
@@ -16,7 +16,9 @@ import { useFirebaseAuth } from './useFirebaseAuth';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { app } from './firebaseConfig'; 
+import { app } from './firebaseConfig';
+import AvailabilityManager from './AvailabilityManager';
+import SEOBoostPopup from './AI/SEOBoost';
 
 export default function ListingForm({ initialData, onSubmit, onCancel }) {
   const { user, loading } = useFirebaseAuth();
@@ -28,6 +30,13 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
   const [userLocation, setUserLocation] = useState(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSEOBoostPopup, setShowSEOBoostPopup] = useState(false);
+  const [pendingSubmissionData, setPendingSubmissionData] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSyncPopup, setShowSyncPopup] = useState(false);
+  const [syncData, setSyncData] = useState(null);
+  const [isSyncedAvailabilities, setIsSyncedAvailabilities] = useState(false);
 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -132,33 +141,39 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     }
   }, [user, loading]);
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        ...initialData,
-        paymentMethods: initialData.paymentMethods || {
-          "credit card": false,
-          "debit card": false,
-          "paypal": false,
-          "cash": false,
-          "check": false,
-          "bank transfer": false,
-        },
-      });
-      
-      if (initialData.mainPhotos && initialData.mainPhotos.length > 0) {
-        setMainPhotos(initialData.mainPhotos);
-      }
-      
-      if (initialData.apartmentSpaces && initialData.apartmentSpaces.length > 0) {
-        setApartmentSpaces(initialData.apartmentSpaces);
-      }
-      
-      if (initialData.availabilities && initialData.availabilities.length > 0) {
-        setAvailabilities(initialData.availabilities);
-      }
+useEffect(() => {
+  if (initialData) {
+    const initialPaymentMethods = {
+      "credit card": false,
+      "debit card": false,
+      "paypal": false,
+      "cash": false,
+      "check": false,
+      "bank transfer": false,
+      ...initialData.paymentMethods
+    };
+
+    setFormData({
+      ...initialData,
+      paymentMethods: initialPaymentMethods,
+      means_of_payment: initialData.means_of_payment || Object.entries(initialPaymentMethods)
+        .filter(([_, isChecked]) => isChecked)
+        .map(([method]) => method)
+    });
+    
+    if (initialData.mainPhotos && initialData.mainPhotos.length > 0) {
+      setMainPhotos(initialData.mainPhotos);
     }
-  }, [initialData]);
+    
+    if (initialData.apartmentSpaces && initialData.apartmentSpaces.length > 0) {
+      setApartmentSpaces(initialData.apartmentSpaces);
+    }
+    
+    if (initialData.availabilities && initialData.availabilities.length > 0) {
+      setAvailabilities(initialData.availabilities);
+    }
+  }
+}, [initialData]);
 
   useEffect(() => {
     const updateMap = () => {
@@ -187,7 +202,7 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
   }, [formData.address, formData.city, formData.state]);
 
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
+    const { name, value, type, checked } = e.target;
     
     if (type === 'checkbox') {
       const category = name.split('.')[0];
@@ -197,9 +212,17 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
         ...formData,
         [category]: {
           ...formData[category],
-          [field]: e.target.checked
+          [field]: checked
         }
       });
+  
+      // Clear payment error when a payment method checkbox is selected
+      if (category === 'paymentMethods') {
+        setErrors(prev => ({
+          ...prev,
+          paymentMethods: ''
+        }));
+      }
     } else {
       setFormData({
         ...formData,
@@ -210,33 +233,20 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     }
   };
 
-  const handlePaymentChange = (e) => {
-    const { name, checked } = e.target;
-    
-    setFormData(prevState => {
-      const updatedPaymentMethods = {
-        ...prevState.paymentMethods,
-        [name]: checked,
-      };
-      
-      const updatedMeansOfPayment = checked
-        ? [...prevState.means_of_payment, name]
-        : prevState.means_of_payment.filter(method => method !== name);
-      
-      return {
-        ...prevState,
-        paymentMethods: updatedPaymentMethods,
-        means_of_payment: updatedMeansOfPayment,
-      };
-    });
+const handlePaymentChange = (e) => {
+  const { name, checked } = e.target;
   
-    if (checked) {
-      setErrors(prev => ({
-        ...prev,
-        paymentMethods: ''
-      }));
-    }
-  };
+  setFormData(prev => {
+    const updatedPaymentMethods = checked
+      ? [...prev.means_of_payment, name]
+      : prev.means_of_payment.filter(method => method !== name);
+    
+    return {
+      ...prev,
+      means_of_payment: updatedPaymentMethods
+    };
+  });
+};
 
   const handleAmenitiesChange = (e) => {
     const { name, checked } = e.target;
@@ -469,76 +479,76 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-  
-    if (errors.title || errors.place || errors.description || errors.type || errors.phone || errors.email) {
-      setCurrentTab('basic info');
-      setIsSubmitting(false);
-      toast.error('Please complete all required fields');
-      return;
-    }
-    
-    if (loading) {
-      console.error('Authentication loading in progress...');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (!firebaseUserId) {
-      console.error('Firebase ID not available, you must be logged in');
-      toast.error('You must be logged in to create a property');
-      setIsSubmitting(false);
-      return;
-    }
-  
+  const handleAvailabilitiesChange = useCallback((newAvailabilities) => {
+    setAvailabilities(newAvailabilities);
+    setFormData(prev => ({
+      ...prev,
+      availabilities: newAvailabilities
+    }));
+  }, [setFormData]);
+
+  const handleRemoveAvailability = useCallback((index) => {
+    setAvailabilities(prev => {
+      const newAvailabilities = [...prev];
+      newAvailabilities.splice(index, 1);
+      return newAvailabilities;
+    });
+  }, []);
+
+  const handleActualSubmit = async (overrideData = {}) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+
     try {
-      const loadingToastId = toast.loading("Uploading images to Firebase...");
-  
-      try {
-        await Promise.all([
-          ...deletedMainPhotos.map(url => deleteFirebaseFile(url)),
-          ...deletedSpacePhotos.map(({photoUrl}) => deleteFirebaseFile(photoUrl))
-        ]);
-      } catch (error) {
-        console.error("Error deleting old photos:", error);
+      const finalFormData = {
+        ...formData,
+        ...overrideData
+      };
+
+      const mainPhotoUrls = [];
+      for (let i = 0; i < mainPhotos.length; i++) {
+        const photo = mainPhotos[i];
+        if (photo instanceof File) {
+          const downloadURL = await uploadFileToFirebase(photo, `properties/${firebaseUserId}/main`);
+          mainPhotoUrls.push(downloadURL);
+        } else if (typeof photo === 'string') {
+          mainPhotoUrls.push(photo);
+        }
+        setUploadProgress(Math.round((i + 1) / mainPhotos.length * 50));
       }
-  
-      const mainPhotoUrls = await Promise.all(
-        mainPhotos.map(photo => 
-          typeof photo === 'string' ? photo : uploadFileToFirebase(photo, `properties/${firebaseUserId}/main`)
-        )
-      );
-  
+
       const apartmentSpacesWithUrls = await Promise.all(
         apartmentSpaces.map(async (space, index) => {
-          const photoUrls = await Promise.all(
-            (space.photos || []).map(photo => 
-              typeof photo === 'string' ? photo : uploadFileToFirebase(photo, `properties/${firebaseUserId}/spaces/${space.space_id || `space-${index}`}`)
-            )
-          );
-  
+          const spacePhotoUrls = [];
+
+          if (space.photos && Array.isArray(space.photos)) {
+            for (let j = 0; j < space.photos.length; j++) {
+              const photo = space.photos[j];
+              if (photo instanceof File) {
+                const downloadURL = await uploadFileToFirebase(
+                  photo,
+                  `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
+                );
+                spacePhotoUrls.push(downloadURL);
+              } else if (typeof photo === 'string') {
+                spacePhotoUrls.push(photo);
+              }
+            }
+          }
+
           return {
-            space_id: space.space_id || `space-${index}-${Date.now()}`,
+            space_id: space.space_id || `space-${i}-${Date.now()}`,
             type: space.type || '',
             area: !isNaN(parseFloat(space.area)) ? parseFloat(space.area) : 0,
-            photos: photoUrls.filter(url => url)
+            photos: spacePhotoUrls
           };
         })
       );
-  
-      toast.update(loadingToastId, { 
-        render: "Saving property data...",
-        type: 'info',
-        isLoading: true 
-      });
-  
+
       const propertyData = {
         firebaseUid: firebaseUserId, 
-        title: formData.title.trim(),
-        place: formData.place.trim(),
-        description: formData.description.trim(),
+        title: finalFormData.title.trim(),
+        description: finalFormData.description.trim(),
         availabilities: availabilities.map(avail => ({
           start_time: avail.start_time || '',
           end_time: avail.end_time || '',
@@ -546,40 +556,39 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           touristTax: !isNaN(parseFloat(avail.touristTax)) && avail.touristTax > 0 ? parseFloat(avail.touristTax) : 0,
         })),
         mainPhotos: mainPhotoUrls,
-        type: formData.type.trim(),
+        type: finalFormData.type.trim(),
         apartmentSpaces: apartmentSpacesWithUrls,
-        address: formData.address.trim(),
-        country: formData.country.trim(),
-        state: formData.state.trim(),
-        city: formData.city.trim(),
-        size: isNaN(parseFloat(formData.size)) ? 0 : parseFloat(formData.size),
-        lotSize: isNaN(parseFloat(formData.lotSize)) ? 0 : parseFloat(formData.lotSize),
-        floorNumber: isNaN(parseInt(formData.floorNumber, 10)) ? 0 : parseInt(formData.floorNumber, 10),
-        numberOfBalconies: isNaN(parseInt(formData.numberOfBalconies, 10)) ? 0 : parseInt(formData.numberOfBalconies, 10),
-        rooms: isNaN(parseInt(formData.rooms, 10)) ? 0 : parseInt(formData.rooms, 10),
-        bedrooms: isNaN(parseInt(formData.bedrooms, 10)) ? 0 : parseInt(formData.bedrooms, 10),
-        bathrooms: isNaN(parseInt(formData.bathrooms, 10)) ? 0 : parseInt(formData.bathrooms, 10),
-        beds_Number: isNaN(parseInt(formData.beds_Number, 10)) ? 0 : parseInt(formData.beds_Number, 10),
-        maxGuest: isNaN(parseInt(formData.maxGuest, 10)) ? 0 : parseInt(formData.maxGuest, 10),
-        minNight: isNaN(parseInt(formData.minNight, 10)) ? 0 : parseInt(formData.minNight, 10),
-        maxNight: isNaN(parseInt(formData.maxNight, 10)) ? 0 : parseInt(formData.maxNight, 10),
-        amenities: formData.amenities,
-        policies: formData.policies,
-        means_of_payment: formData.means_of_payment,
-        phone: formData.phone ?? '',
-        email: formData.email ?? '',
-        website: formData.website ?? '',
+        address: finalFormData.address.trim(),
+        country: finalFormData.country.trim(),
+        city: finalFormData.city.trim(),
+        size: isNaN(parseFloat(finalFormData.size)) ? 0 : parseFloat(finalFormData.size),
+        lotSize: isNaN(parseFloat(finalFormData.lotSize)) ? 0 : parseFloat(finalFormData.lotSize),
+        floorNumber: isNaN(parseInt(finalFormData.floorNumber, 10)) ? 0 : parseInt(finalFormData.floorNumber, 10),
+        numberOfBalconies: isNaN(parseInt(finalFormData.numberOfBalconies, 10)) ? 0 : parseInt(finalFormData.numberOfBalconies, 10),
+        rooms: isNaN(parseInt(finalFormData.rooms, 10)) ? 0 : parseInt(finalFormData.rooms, 10),
+        bedrooms: isNaN(parseInt(finalFormData.bedrooms, 10)) ? 0 : parseInt(finalFormData.bedrooms, 10),
+        bathrooms: isNaN(parseInt(finalFormData.bathrooms, 10)) ? 0 : parseInt(finalFormData.bathrooms, 10),
+        beds_Number: isNaN(parseInt(finalFormData.beds_Number, 10)) ? 0 : parseInt(finalFormData.beds_Number, 10),
+        maxGuest: isNaN(parseInt(finalFormData.maxGuest, 10)) ? 0 : parseInt(finalFormData.maxGuest, 10),
+        minNight: isNaN(parseInt(finalFormData.minNight, 10)) ? 0 : parseInt(finalFormData.minNight, 10),
+        maxNight: isNaN(parseInt(finalFormData.maxNight, 10)) ? 0 : parseInt(finalFormData.maxNight, 10),
+        amenities: finalFormData.amenities,
+        policies: finalFormData.policies,
+        means_of_payment: finalFormData.means_of_payment,
+        phone: finalFormData.phone ?? '',
+        email: finalFormData.email ?? '',
+        website: finalFormData.website ?? '',
         deletedMainPhotos: deletedMainPhotos,
         deletedSpacePhotos: deletedSpacePhotos.map(item => ({
           spaceId: item.spaceId,
           photoUrls: [item.photoUrl]
         }))
       };
-  
+
       const isUpdate = !!initialData?._id;
       const endpoint = isUpdate ? `http://localhost:3000/properties/${initialData._id || initialData.id}` : 'http://localhost:3000/properties';
       const method = isUpdate ? 'patch' : 'post';
-  
+
       const response = await axios[method](
         endpoint,
         propertyData,
@@ -588,8 +597,7 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           method: isUpdate ? 'PATCH' : 'POST'
         }
       );
-  
-      toast.dismiss(loadingToastId);
+
       toast.success(`Property ${isUpdate ? 'updated' : 'created'} successfully!`);
       
       setTimeout(() => {
@@ -600,8 +608,43 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
       console.error('Error submitting form:', error);
       toast.error(`Error ${initialData ? 'updating' : 'creating'} property. Please try again.`);
     } finally {
-      setIsSubmitting(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
+  };
+
+  const handleSEOBoost = async (generatedContent = {}) => {
+    setShowSEOBoostPopup(false);
+    
+    try {
+      const overrideData = {
+        title: generatedContent.title || formData.title || '',
+        description: generatedContent.description || formData.description || ''
+      };
+      
+      await handleActualSubmit(overrideData);
+    } catch (error) {
+      console.error('Error during SEO boost:', error);
+      toast.error('Error during submission. Please try again.');
+    }
+  };
+
+  const handleTitleGenerated = (title) => {
+    setFormData(prev => ({ ...prev, title }));
+  };
+
+  const handleDescriptionGenerated = (description) => {
+    setFormData(prev => ({ ...prev, description }));
+  };
+
+  const handleSkipSEO = async () => {
+    setShowSEOBoostPopup(false);
+    await handleActualSubmit();
+  };
+
+  const handleClosePopup = () => {
+    setShowSEOBoostPopup(false);
+    setPendingSubmissionData(null);
   };
 
   const shouldShowLotSize = () => {
@@ -694,6 +737,19 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     );
   };
 
+  const renderAvailability = () => {
+    return (
+      <section className={styles.section}>
+        <div className={styles.availabilityContainer}>
+          <AvailabilityManager 
+            onAvailabilitiesChange={handleAvailabilitiesChange}
+            initialAvailabilities={availabilities}
+          />
+        </div>
+      </section>
+    );
+  };
+
   const renderLocationSection = () => {
     return (
       <section className={styles.section}> 
@@ -719,16 +775,6 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           required
         />
         {errors.country && <span className={styles.error}>{errors.country}</span>}
-
-        <input
-          type="text"
-          placeholder="State"
-          name="state"
-          value={formData.state}
-          onChange={handleChange}
-          required
-        />
-        {errors.state && <span className={styles.error}>{errors.state}</span>}
 
         <input
           type="text"
@@ -776,18 +822,6 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           required
         />
         {errors.title && <span className={styles.error}>{errors.title}</span>}
-      </div>
-
-      <div className={styles.formGroup}>
-        <label>Place*</label>
-        <input
-          type="text"
-          name="place"
-          value={formData.place}
-          onChange={handleChange}
-          required
-        />
-        {errors.place && <span className={styles.error}>{errors.place}</span>}
       </div>
 
       <div className={styles.formGroup}>
@@ -887,7 +921,6 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           {mainPhotos.length < 3 && (
             <span className={styles.error}>Minimum 3 photos required</span>
           )}
-           {/*{renderMainPhotos()}*/}
         </div>
 
         <div className={styles.formGroup}>
@@ -993,16 +1026,6 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           {errors.beds_Number && <span className={styles.error}>{errors.beds_Number}</span>}
         </div>
 
-        <div className={styles.formGroup}>
-          <label>Tourist Tax ($)</label>
-          <input
-            type="number"
-            name="touristTax"
-            value={currentAvailability.touristTax}
-            onChange={handleAvailabilityChange}
-            min="0"
-          />
-        </div>
 
         <div className={styles.formGroup}>
           <label>Max Guests*</label>
@@ -1041,48 +1064,7 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label>Price per night ($)*</label>
-          <input
-            type="number"
-            name="price"
-            value={currentAvailability.price}
-            onChange={handleAvailabilityChange}
-            min="1"
-            required
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label>Availability Dates*</label>
-          <CalendarPicker onDateSelect={handleDateSelect} />
-          <button 
-            type="button" 
-            onClick={handleAddAvailability}
-            className={styles.addButton}
-            disabled={!currentAvailability.start_time || !currentAvailability.end_time || !currentAvailability.price || !currentAvailability.touristTax}
-          >
-            Add Availability
-          </button>
-
-          <div className={styles.availabilityList}>
-            <h3>Added Availabilities:</h3>
-            {availabilities.length > 0 ? (
-              <ul>
-                {availabilities.map((availability, index) => (
-                  <li key={index}>
-                    {`Start: ${new Date(availability.start_time).toLocaleDateString()}, `}
-                    {`End: ${new Date(availability.end_time).toLocaleDateString()}, `}
-                    {`Price: $${availability.price}`}
-                    {`Tourist Tax: ${availability.touristTax}`}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No availabilities added yet</p>
-            )}
-          </div>
-        </div>
+        {renderAvailability()}
       </div>
     );
   };
@@ -1329,85 +1311,86 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     </div>
   );
 
-  const renderPaymentTab = () => {
-    return (
-      <div className={styles.tabContent}>
-        <h3>Payment Methods<span className={styles.required}>*</span></h3>
-        <p className={styles.helpText}>Please select at least one payment method</p>
-        
-        <div className={styles.checkboxGroup}>
-          <label>
-            <input
-              type="checkbox"
-              name="credit card"
-              checked={formData.paymentMethods["credit card"]}
-              onChange={handlePaymentChange}
-            />
-            <FaCreditCard size={20} style={{ marginRight: '8px' }} />
-            Credit Card
-          </label>
-    
-          <label>
-            <input
-              type="checkbox"
-              name="debit card"
-              checked={formData.paymentMethods["debit card"]}
-              onChange={handlePaymentChange}
-            />
-            <FaCreditCard size={20} style={{ marginRight: '8px' }} />
-            Debit Card
-          </label>
-    
-          <label>
-            <input
-              type="checkbox"
-              name="paypal"
-              checked={formData.paymentMethods["paypal"]}
-              onChange={handlePaymentChange}
-            />
-            <FaPaypal size={20} style={{ marginRight: '8px' }} />
-            PayPal
-          </label>
-    
-          <label>
-            <input
-              type="checkbox"
-              name="cash"
-              checked={formData.paymentMethods["cash"]}
-              onChange={handlePaymentChange}
-            />
-            <FaMoneyBillAlt size={20} style={{ marginRight: '8px' }} />
-            Cash
-          </label>
-    
-          <label>
-            <input
-              type="checkbox"
-              name="check"
-              checked={formData.paymentMethods["check"]}
-              onChange={handlePaymentChange}
-            />
-            <CiMoneyCheck1 size={25} style={{ marginRight: '8px' }} />
-            Check
-          </label>
-    
-          <label>
-            <input
-              type="checkbox"
-              name="bank transfer"
-              checked={formData.paymentMethods["bank transfer"]}
-              onChange={handlePaymentChange}
-            />
-            <FaUniversity size={20} style={{ marginRight: '8px' }} />
-            Bank Transfer
-          </label>
-        </div>
-        {errors.paymentMethods && (
-          <span className={styles.error}>{errors.paymentMethods}</span>
-        )}
+const renderPaymentTab = () => {
+  return (
+    <div className={styles.tabContent}>
+      <h3>Payment Methods<span className={styles.required}>*</span></h3>
+      <p className={styles.helpText}>Please select at least one payment method</p>
+      
+      <div className={styles.checkboxGroup}>
+        <label>
+          <input
+            type="checkbox"
+            name="credit card"
+            checked={formData.means_of_payment.includes("credit card")}
+            onChange={handlePaymentChange}
+          />
+          <FaCreditCard size={20} style={{ marginRight: '8px' }} />
+          Credit Card
+        </label>
+  
+        <label>
+          <input
+            type="checkbox"
+            name="debit card"
+            checked={formData.means_of_payment.includes("debit card")}
+            onChange={handlePaymentChange}
+          />
+          <FaCreditCard size={20} style={{ marginRight: '8px' }} />
+          Debit Card
+        </label>
+  
+        <label>
+          <input
+            type="checkbox"
+            name="paypal"
+            checked={formData.means_of_payment.includes("paypal")}
+            onChange={handlePaymentChange}
+          />
+          <FaPaypal size={20} style={{ marginRight: '8px' }} />
+          PayPal
+        </label>
+  
+        <label>
+          <input
+            type="checkbox"
+            name="cash"
+            checked={formData.means_of_payment.includes("cash")}
+            onChange={handlePaymentChange}
+          />
+          <FaMoneyBillAlt size={20} style={{ marginRight: '8px' }} />
+          Cash
+        </label>
+  
+        <label>
+          <input
+            type="checkbox"
+            name="check"
+            checked={formData.means_of_payment.includes("check")}
+            onChange={handlePaymentChange}
+          />
+          <CiMoneyCheck1 size={25} style={{ marginRight: '8px' }} />
+          Check
+        </label>
+  
+        <label>
+          <input
+            type="checkbox"
+            name="bank transfer"
+            checked={formData.means_of_payment.includes("bank transfer")}
+            onChange={handlePaymentChange}
+          />
+          <FaUniversity size={20} style={{ marginRight: '8px' }} />
+          Bank Transfer
+        </label>
       </div>
-    );
-  };
+      {errors.paymentMethods && (
+        <span className={styles.error}>{errors.paymentMethods}</span>
+      )}
+    </div>
+  );
+};
+
 
   const renderSpacePhotos = (spaceIndex) => {
     const space = apartmentSpaces[spaceIndex];
@@ -1542,6 +1525,7 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     }
   };
 
+ 
   const handleNext = () => {
     const currentIndex = tabs.indexOf(currentTab);
     if (currentIndex < tabs.length - 1) {
@@ -1556,14 +1540,16 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     }
   };
 
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    const isValid = validatePaymentTab();
+    if (isValid) {
+      setShowSEOBoostPopup(true);
+    }
+  };
+
   return (
     <div className={styles.formContainer}>
-      <div className={styles.formHeader}>
-        <h2>{initialData ? 'Edit Listing' : 'Create New Listing'}</h2>
-        <button onClick={onCancel} className={styles.closeButton}>
-          <X size={24} />
-        </button>
-      </div>
 
       <div className={styles.tabs}>
         {tabs.map(tab => (
@@ -1577,49 +1563,38 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
         ))}
       </div>
 
-      <form onSubmit={(e) => {
-      e.preventDefault();
-      
-      if (currentTab === tabs[tabs.length - 1]) {
-        handleSubmit(e);
-      }
-    }} className={styles.formContent}>
-      {renderTabContent()}
+      <form onSubmit={handleFormSubmit} className={styles.formContent}>
+        {renderTabContent()}
 
-      <div className={styles.formActions}>
-  {currentTab !== tabs[0] && (
-    <button
-      type="button"
-      onClick={handleBack}
-      className={styles.secondaryButton}
-    >
-      Back
-    </button>
-  )}
-  
-  {currentTab !== tabs[tabs.length - 1] ? (
-    <button
-      type="button"
-      onClick={handleNext}
-      className={styles.primaryButton}
-    >
-      Next
-    </button>
-  ) : (
-    <button
-      type="button"  
-      onClick={(e) => {
-        if (validatePaymentTab()) {
-          handleSubmit(e);
-        }
-      }}
-      className={styles.primaryButton}
-    >
-      Submit listing
-    </button>
-  )}
-</div>
-    </form>
-  </div>
-);
+        <div className={styles.formActions}>
+          {currentTab !== tabs[0] && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className={styles.secondaryButton}
+            >
+              Back
+            </button>
+          )}
+          
+          {currentTab !== tabs[tabs.length - 1] ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className={styles.primaryButton}
+            >
+              Next
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={styles.primaryButton}
+            >
+              Submit listing
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
 }
