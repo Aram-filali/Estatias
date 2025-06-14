@@ -343,3 +343,115 @@
     width: 16px;
     margin-right: 4px;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  /* Add these styles to your existing HostsPage.module.css */
+
+/* Status Colors */
+.statusPending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.statusApproved {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.statusSuspended {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.statusRejected {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Action Buttons Container */
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Button Styles */
+.approveButton {
+  background-color: #059669;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.approveButton:hover {
+  background-color: #047857;
+}
+
+.rejectButton {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.rejectButton:hover {
+  background-color: #4b5563;
+}
+
+.suspendButton {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.suspendButton:hover {
+  background-color: #b91c1c;
+}
+
+/* Disabled state for View All Listings button */
+.viewButton:disabled {
+  background-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.viewButton:disabled:hover {
+  background-color: #d1d5db;
+}

@@ -3,6 +3,7 @@ import React from "react";
 import styles from "./Footer.module.css"; // Import the CSS module
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useRouter } from 'next/navigation';
 
 import {
   FaTwitter,
@@ -107,7 +108,7 @@ const Footer: React.FC = () => {
       {/* Footer Bottom */}
       
       <div className={styles.footerBottom} >
-        <p className={styles.footerText}>
+        <p className={styles.footerLink}>
           Copyright &copy; {currentYear}. All Rights Reserved. &mdash; 
           Powered By <a href="https://www.onrtech.fr/" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>ONRTECH</a>
         </p>
