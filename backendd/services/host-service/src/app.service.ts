@@ -10,6 +10,8 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase/firebase';
 import * as validator from 'validator';
 import { EmailService } from './forgetPassword/email.service';
+import { NotificationService } from './notification/notification.service';
+
 
 @Injectable()
 export class HostService {
@@ -17,6 +19,7 @@ export class HostService {
         @InjectModel(Host.name) private readonly hostModel: Model<HostDocument>,
         @InjectModel(HostPlan.name) private readonly hostPlanModel: Model<HostPlanDocument>, // Add this
         private readonly firebaseAdminService: FirebaseAdminService,
+        @Inject(forwardRef(() => NotificationService)) private readonly notificationService: NotificationService,    
         @Inject(forwardRef(() => EmailService)) private readonly emailService: EmailService,    
       ) {}
 
@@ -241,6 +244,15 @@ export class HostService {
 
        if (!updatedHost) {
             throw new NotFoundException('Host not found.');
+        }
+
+        // Send notification email after successful status update
+        try {
+          await this.notificationService.sendStatusUpdateEmail(hostId, status);
+          console.log(`✅ Notification sent for host ${hostId} status update: ${status}`);
+        } catch (notificationError) {
+          // Log the error but don't fail the status update
+          console.error('⚠️ Failed to send notification email:', notificationError);
         }
       
       return updatedHost;
