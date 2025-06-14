@@ -302,7 +302,35 @@ async findHostByEmail(@Payload() data: { email: string }) {
   async getHosts() {
     try {
       const hosts = await this.hostService.getHosts();
-      return { statusCode: 200, data: hosts };
+      return { 
+        statusCode: 200, 
+        data: hosts,
+        message: 'Hosts retrieved successfully'
+      };
+    } catch (err) {
+      console.error('Error in getHosts controller:', err);
+      return { 
+        statusCode: err.status || 500, 
+        data: null, 
+        error: err.message || 'Failed to retrieve hosts'
+      };
+    }
+  }
+
+  // Add this method to your Host Controller in the microservice
+
+  @MessagePattern({ cmd: 'update-host-status' })
+  async updateHostStatus(data: { hostId: string; status: string }) {
+    try {
+      const { hostId, status } = data;
+      
+      const updatedHost = await this.hostService.updateHostStatus(hostId, status);
+      
+      if (!updatedHost) {
+        return { statusCode: 404, data: null, error: 'Host not found' };
+      }
+      
+      return { statusCode: 200, data: updatedHost };
     } catch (err) {
       return { statusCode: err.status || 500, data: null, error: err.message };
     }

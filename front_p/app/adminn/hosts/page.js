@@ -1,82 +1,213 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Phone, ExternalLink } from 'lucide-react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import styles from './HostsPage.module.css';
 
 export default function Hosts() {
-  const [hosts, setHosts] = useState([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah@seasideproperties.com",
-      phone: "+1 (555) 123-4567",
-      joinDate: "2025-01-15",
-      activeListings: 12,
-      totalWebsites: 1,
-      status: "active",
-      verificationStatus: "verified",
-      lastActive: "2025-04-10"
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "mchen@urbanliving.com",
-      phone: "+1 (555) 987-6543",
-      joinDate: "2025-02-03",
-      activeListings: 8,
-      totalWebsites: 1,
-      status: "active",
-      verificationStatus: "verified",
-      lastActive: "2025-04-09"
-    },
-    {
-      id: 3,
-      name: "Lisa Rodriguez",
-      email: "lisa@sunsetvillas.com",
-      phone: "+1 (555) 234-5678",
-      joinDate: "2025-01-22",
-      activeListings: 5,
-      totalWebsites: 1,
-      status: "active",
-      verificationStatus: "verified",
-      lastActive: "2025-04-08"
-    },
-    {
-      id: 4,
-      name: "John Smith",
-      email: "john@smithproperties.com",
-      phone: "+1 (555) 345-6789",
-      joinDate: "2025-03-10",
-      activeListings: 3,
-      totalWebsites: 1,
-      status: "suspended",
-      verificationStatus: "verified",
-      lastActive: "2025-04-02"
-    },
-    {
-      id: 5,
-      name: "Emily Davis",
-      email: "emily@cityscaperealty.com",
-      phone: "+1 (555) 456-7890",
-      joinDate: "2025-02-28",
-      activeListings: 7,
-      totalWebsites: 1,
-      status: "active",
-      verificationStatus: "pending",
-      lastActive: "2025-04-07"
-    }
-  ]);
-
+  const [hosts, setHosts] = useState([]);
   const [selectedHost, setSelectedHost] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [authToken, setAuthToken] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const router = useRouter();
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-  const handleStatusChange = (id, newStatus) => {
-    setHosts(hosts.map(host => 
-      host.id === id ? {...host, status: newStatus} : host
-    ));
-    if (selectedHost && selectedHost.id === id) {
-      setSelectedHost({...selectedHost, status: newStatus});
+  // Authentication effect
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          setAuthToken(token);
+          console.log('Admin authenticated:', user.uid);
+        } catch (err) {
+          console.error("Error getting authentication token:", err);
+          setError("Authentication error. Please try logging in again.");
+        }
+      } else {
+        setError("You must be logged in to view the admin dashboard.");
+        setLoading(false);
+        router.push('/login');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  // Fetch hosts when auth token is available
+  useEffect(() => {
+    if (authToken) {
+      fetchHosts();
+    }
+  }, [authToken]);
+
+  const fetchHosts = async () => {
+    if (!authToken) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/hosts`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform the backend data to match the frontend structure
+      const transformedHosts = data.map(host => ({
+        id: host._id || host.id,
+        name: host.isAgency ? host.businessName : `${host.firstName || ''} ${host.lastName || ''}`.trim(),
+        email: host.email,
+        phone: host.phoneNumber,
+        joinDate: new Date(host.createdAt || Date.now()).toISOString().split('T')[0],
+        activeListings: host.propertiesCount || 0,
+        totalWebsites: host.websiteUrl ? 1 : 0,
+        status: host.status?.toLowerCase() || 'pending',
+        verificationStatus: host.emailVerified ? 'verified' : 'pending',
+        lastActive: new Date(host.updatedAt || Date.now()).toISOString().split('T')[0],
+        websiteUrl: host.websiteUrl,
+        // Keep original data for detailed view
+        originalData: host
+      }));
+
+      setHosts(transformedHosts);
+    } catch (err) {
+      console.error('Error fetching hosts:', err);
+      setError('Failed to load hosts. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const updateHostStatus = async (hostId, newStatus) => {
+    if (!authToken) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/hosts/${hostId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Update local state
+      setHosts(hosts.map(host => 
+        host.id === hostId ? {...host, status: newStatus} : host
+      ));
+      
+      if (selectedHost && selectedHost.id === hostId) {
+        setSelectedHost({...selectedHost, status: newStatus});
+      }
+    } catch (err) {
+      console.error('Error updating host status:', err);
+      setError('Failed to update host status. Please try again.');
+    }
+  };
+
+  const handleStatusChange = (id, newStatus) => {
+    updateHostStatus(id, newStatus);
+  };
+
+  // Helper function to get status color class
+  const getStatusColorClass = (status) => {
+    switch (status) {
+      case 'approved':
+        return styles.statusApproved;
+      case 'suspended':
+        return styles.statusSuspended;
+      case 'rejected':
+        return styles.statusRejected;
+      case 'pending':
+      default:
+        return styles.statusPending;
+    }
+  };
+
+  // Helper function to get available actions based on current status
+  const getAvailableActions = (currentStatus) => {
+    switch (currentStatus) {
+      case 'pending':
+        return [
+          { status: 'approved', label: 'Approve Host', className: styles.approveButton },
+          { status: 'rejected', label: 'Reject Host', className: styles.rejectButton }
+        ];
+      case 'approved':
+        return [
+          { status: 'suspended', label: 'Suspend Host', className: styles.suspendButton }
+        ];
+      case 'suspended':
+        return [
+          { status: 'approved', label: 'Reactivate Host', className: styles.approveButton }
+        ];
+      case 'rejected':
+        return [
+          { status: 'approved', label: 'Approve Host', className: styles.approveButton }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  // Helper function to format website URL for display and linking
+  const formatWebsiteUrl = (url) => {
+    if (!url) return null;
+    
+    // If URL doesn't start with http:// or https://, add https://
+    const formattedUrl = url.startsWith('http://') || url.startsWith('https://') 
+      ? url 
+      : `https://${url}`;
+    
+    return formattedUrl;
+  };
+
+  // Filter hosts based on search and status
+  const filteredHosts = hosts.filter(host => {
+    const matchesSearch = host.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         host.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || host.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loadingState}>
+          <p>Loading hosts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorState}>
+          <p>{error}</p>
+          <button onClick={fetchHosts} className={styles.retryButton}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -87,15 +218,19 @@ export default function Hosts() {
             type="text"
             placeholder="Search hosts..."
             className={styles.searchInput}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
           <select
             className={styles.select}
-            defaultValue="all"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Hosts</option>
-            <option value="active">Active</option>
+            <option value="pending">Pending Approval</option>
+            <option value="approved">Approved</option>
             <option value="suspended">Suspended</option>
-            <option value="pending">Pending Verification</option>
+            <option value="rejected">Rejected</option>
           </select>
         </div>
       </div>
@@ -113,7 +248,7 @@ export default function Hosts() {
                     Status
                   </th>
                   <th scope="col" className={styles.tableHeader}>
-                    Listings
+                    Properties
                   </th>
                   <th scope="col" className={styles.tableHeader}>
                     Last Active
@@ -121,7 +256,7 @@ export default function Hosts() {
                 </tr>
               </thead>
               <tbody className={styles.tableBody}>
-                {hosts.map((host) => (
+                {filteredHosts.map((host) => (
                   <tr 
                     key={host.id} 
                     onClick={() => setSelectedHost(host)}
@@ -139,11 +274,7 @@ export default function Hosts() {
                       </div>
                     </td>
                     <td className={styles.tableCell}>
-                      <span className={`${styles.status} ${
-                        host.status === 'active' ? styles.statusActive : 
-                        host.status === 'suspended' ? styles.statusSuspended : 
-                        styles.statusPending
-                      }`}>
+                      <span className={`${styles.status} ${getStatusColorClass(host.status)}`}>
                         {host.status.charAt(0).toUpperCase() + host.status.slice(1)}
                       </span>
                     </td>
@@ -167,21 +298,17 @@ export default function Hosts() {
                 <h3 className={styles.profileTitle}>
                   Host Profile
                 </h3>
-                {selectedHost.status === 'active' ? (
-                  <button
-                    onClick={() => handleStatusChange(selectedHost.id, 'suspended')}
-                    className={styles.suspendButton}
-                  >
-                    Suspend Host
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleStatusChange(selectedHost.id, 'active')}
-                    className={styles.activateButton}
-                  >
-                    Activate Host
-                  </button>
-                )}
+                <div className={styles.actionButtons}>
+                  {getAvailableActions(selectedHost.status).map((action) => (
+                    <button
+                      key={action.status}
+                      onClick={() => handleStatusChange(selectedHost.id, action.status)}
+                      className={action.className}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className={styles.detailList}>
                 <dl>
@@ -212,29 +339,43 @@ export default function Hosts() {
                     <dd className={styles.detailValue}>{selectedHost.joinDate}</dd>
                   </div>
                   <div className={`${styles.detailItem} ${styles.detailItemGray}`}>
-                    <dt className={styles.detailLabel}>Websites</dt>
+                    <dt className={styles.detailLabel}>Type</dt>
                     <dd className={styles.detailValue}>
-                      {selectedHost.totalWebsites > 0 ? (
+                      {selectedHost.originalData?.isAgency ? 'Agency' : 'Individual'}
+                    </dd>
+                  </div>
+                  <div className={`${styles.detailItem} ${styles.detailItemWhite}`}>
+                    <dt className={styles.detailLabel}>Domain</dt>
+                    <dd className={styles.detailValue}>
+                      {selectedHost.originalData?.domainName || 'Not assigned'}
+                    </dd>
+                  </div>
+                  <div className={`${styles.detailItem} ${styles.detailItemGray}`}>
+                    <dt className={styles.detailLabel}>Website URL</dt>
+                    <dd className={styles.detailValue}>
+                      {selectedHost.websiteUrl ? (
                         <div className={styles.detailValueFlex}>
-                          <span>{selectedHost.totalWebsites} website(s)</span>
-                          <button className={styles.externalLink}>
+                          <span>{selectedHost.websiteUrl}</span>
+                          <a 
+                            href={formatWebsiteUrl(selectedHost.websiteUrl)} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className={styles.externalLink}
+                          >
                             <ExternalLink className={styles.externalLinkIcon} />
-                            View
-                          </button>
+                            Visit
+                          </a>
                         </div>
                       ) : (
-                        "No websites"
+                        "No website URL"
                       )}
                     </dd>
                   </div>
                   <div className={`${styles.detailItem} ${styles.detailItemWhite}`}>
-                    <dt className={styles.detailLabel}>Verification</dt>
+                    <dt className={styles.detailLabel}>Status</dt>
                     <dd className={styles.detailValue}>
-                      <span className={`${styles.status} ${
-                        selectedHost.verificationStatus === 'verified' ? styles.statusActive : 
-                        styles.statusPending
-                      }`}>
-                        {selectedHost.verificationStatus.charAt(0).toUpperCase() + selectedHost.verificationStatus.slice(1)}
+                      <span className={`${styles.status} ${getStatusColorClass(selectedHost.status)}`}>
+                        {selectedHost.status.charAt(0).toUpperCase() + selectedHost.status.slice(1)}
                       </span>
                     </dd>
                   </div>
@@ -244,6 +385,7 @@ export default function Hosts() {
                 <button
                   type="button"
                   className={styles.viewButton}
+                  disabled={selectedHost.status !== 'approved'}
                 >
                   View All Listings
                 </button>
