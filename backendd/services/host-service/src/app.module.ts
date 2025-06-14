@@ -9,6 +9,8 @@ import { HostPlanModule } from './plan/plan.module';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from './forgetPassword/email.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { NotificationModule } from './notification/notification.module'; // Add this import
+import { NotificationService } from './notification/notification.service'; // Add this import
 import { UpdateProfileModule } from './dashboard/settings/updateProfile.module';
 import { ConfigModule } from '@nestjs/config';
 import { HostPlan, HostPlanSchema } from './schema/plan.schema';
@@ -27,6 +29,7 @@ import { HostPlan, HostPlanSchema } from './schema/plan.schema';
       signOptions: { expiresIn: '1d' },
     }),
     forwardRef(() => EmailModule),
+    forwardRef(() => NotificationModule),
     forwardRef(() => UpdateProfileModule), // Remove the duplicate regular import
     DashboardModule,
     ConfigModule.forRoot({
