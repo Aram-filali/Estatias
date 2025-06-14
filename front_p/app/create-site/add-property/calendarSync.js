@@ -234,25 +234,51 @@ const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
     }));
   };
 
-  const handleComplete = () => {
-    const finalData = syncedDates
-      .filter(dateItem => dateItem.available)
-      .map((dateItem, index) => {
-        const pricing = priceMode === 'bulk' ? bulkPricing : (individualPricing[index] || {});
-        
-        return {
-          start_time: new Date(dateItem.date).toISOString(),
-          end_time: new Date(new Date(dateItem.date).getTime() + 24 * 60 * 60 * 1000).toISOString(),
-          price: pricing.price || "",
-          otherPlatformPrice: pricing.useComparison ? pricing.otherPlatformPrice || "" : "",
-          touristTax: pricing.touristTax || "",
-          isPrice: pricing.useComparison || false
-        };
-      });
-    
-    onSyncComplete(finalData);
-    handleClose();
+const saveSyncData = () => {
+  const syncData = {
+    platform: selectedPlatform,
+    url: syncUrl,
+    syncedDates: syncedDates,
+    priceMode: priceMode,
+    bulkPricing: bulkPricing,
+    individualPricing: individualPricing,
+    timestamp: new Date().toISOString()
   };
+
+  // Retourner les données sans localStorage
+  console.log('Calendar sync data prepared:', syncData);
+  return syncData;
+};
+
+const handleComplete = () => {
+  // Sauvegarder les données avant de les passer au parent
+  const syncData = saveSyncData();
+  
+  const finalData = syncedDates
+    .filter(dateItem => dateItem.available)
+    .map((dateItem, index) => {
+      const pricing = priceMode === 'bulk' ? bulkPricing : (individualPricing[index] || {});
+      
+      return {
+        start_time: new Date(dateItem.date).toISOString(),
+        end_time: new Date(new Date(dateItem.date).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+        price: pricing.price || "",
+        otherPlatformPrice: pricing.useComparison ? pricing.otherPlatformPrice || "" : "",
+        touristTax: pricing.touristTax || "",
+        isPrice: pricing.useComparison || false
+      };
+    });
+  
+  // Passer les données formatées ET les données de sync au parent
+  onSyncComplete({
+    availabilities: finalData,
+    syncData: syncData,
+    // Ajouter une propriété pour indiquer que c'est une sync
+    isSyncedData: true
+  });
+  
+  handleClose();
+};
 
   const handleClose = () => {
     setStep('intro');
@@ -284,6 +310,7 @@ const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
       });
     }
   };
+
 
   if (!isOpen) return null;
 
@@ -398,15 +425,11 @@ const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
             <div className={styles.syncPriceSection}>
               <div className={styles.syncPriceHeader}>
                 <h3 className={styles.syncPriceTitle}>Price Configuration</h3>
-                  <p className={styles.syncPriceDescription}>
+                <p className={styles.syncPriceDescription}>
                   Your available dates have been successfully imported.  
                   You can now configure the prices and tourist taxes for the {syncedDates.filter(d => d.available).length} first ones, and set up the rest whenever you're ready.
                 </p>
               </div>
-                  {/*<p className={styles.syncPriceDescription}>
-                    {syncedDates.filter(d => d.available).length} available dates have been imported.  
-                    You can now set the prices and tourist taxes for these dates, and configure the rest whenever you like.
-                  </p>*/}
 
               <div className={styles.syncPriceContent}>
                 <div className={styles.syncPriceModeSection}>

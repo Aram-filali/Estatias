@@ -294,36 +294,36 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
   };
 
   // Fonction pour gérer la synchronisation réussie
-  const handleSyncSuccess = (syncedData) => {
-    // Traiter les données synchronisées
-    console.log("Synchronized data:", syncedData);
+const handleSyncSuccess = (syncedData) => {
+  // Traiter les données synchronisées
+  console.log("Synchronized data:", syncedData);
+  
+  // Vérifier si nous avons des données valides
+  if (syncedData && syncedData.availabilities && syncedData.availabilities.length > 0) {
+    // Les données sont déjà dans le bon format depuis CalendarSyncPopup
+    const formattedAvailabilities = syncedData.availabilities.map(item => ({
+      start_time: item.start_time,
+      end_time: item.end_time,
+      price: item.price,
+      otherPlatformPrice: item.otherPlatformPrice,
+      touristTax: item.touristTax,
+      isPrice: item.isPrice
+    }));
     
-    // Convertir les données synchronisées au format attendu par AvailabilityManager
-    if (syncedData && syncedData.length > 0) {
-      const formattedAvailabilities = syncedData
-        .filter(item => item.available) // Ne garder que les périodes disponibles
-        .map(item => {
-          const pricing = item.pricing || {};
-          return {
-            start_time: new Date(item.start).toISOString(),
-            end_time: new Date(item.end).toISOString(),
-            price: pricing.price || "",
-            otherPlatformPrice: pricing.otherPlatformPrice || "",
-            touristTax: pricing.touristTax || "",
-            isPrice: pricing.useComparison || false
-          };
-        });
-      
-      // Ajouter les nouvelles disponibilités synchronisées
-      setAvailabilities(prevAvailabilities => [
-        ...prevAvailabilities,
-        ...formattedAvailabilities
-      ]);
-    }
+    // Ajouter les nouvelles disponibilités synchronisées
+    setAvailabilities(prevAvailabilities => [
+      ...prevAvailabilities,
+      ...formattedAvailabilities
+    ]);
     
-    // Fermer la popup
-    setShowCalendarSyncPopup(false);
-  };
+    console.log("Added availabilities:", formattedAvailabilities);
+  } else {
+    console.log("No availabilities to add");
+  }
+  
+  // Fermer la popup
+  setShowCalendarSyncPopup(false);
+};
 
   return (
     <section className={styles.availManagerSection}>

@@ -49,7 +49,6 @@ export default function GetStartedLayout({ children }: LayoutProps) {
   const stepLabels = ['Account Setup', 'Property Details', 'Select Plan'];
 
   return (
-    <ProtectedRoute allowedRoles={['host']}>
     <div className={styles.container}>
       {/* Background */}
       <div className="fixed top-0 left-0 w-full h-full">
@@ -90,6 +89,5 @@ export default function GetStartedLayout({ children }: LayoutProps) {
         </div>
       </div>
     </div>
-    </ProtectedRoute>
   );
 }

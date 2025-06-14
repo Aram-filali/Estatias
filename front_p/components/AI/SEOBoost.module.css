@@ -1,0 +1,523 @@
+/* Overlay */
+.overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 1000 !important;
+  animation: fadeIn 0.3s ease-out !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0 !important;
+  }
+  to {
+    opacity: 1 !important;
+  }
+}
+
+/* Main Popup */
+.popup {
+  background: linear-gradient(135deg, #66d8ea 0%, #49869c 100%) !important;
+  border-radius: 24px !important;
+  padding: 30px !important;
+  max-width: 900px !important;
+  width: 95% !important;
+  height: 90vh !important;
+  max-height: 700px !important;
+  position: relative !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3) !important;
+  animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transform-origin: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.popup.closing {
+  animation: slideOut 0.3s ease-in !important;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.8) translateY(50px) !important;
+    opacity: 0 !important;
+  }
+  to {
+    transform: scale(1) translateY(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: scale(1) translateY(0) !important;
+    opacity: 1 !important;
+  }
+  to {
+    transform: scale(0.8) translateY(-50px) !important;
+    opacity: 0 !important;
+  }
+}
+
+/* Background Animation */
+.backgroundAnimation {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+.floatingElement {
+  position: absolute !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50% !important;
+  animation: float 6s ease-in-out infinite !important;
+}
+
+.floatingElement:nth-child(1) {
+  width: 80px !important;
+  height: 80px !important;
+  top: 10% !important;
+  left: 10% !important;
+  animation-delay: 0s !important;
+}
+
+.floatingElement:nth-child(2) {
+  width: 60px !important;
+  height: 60px !important;
+  top: 60% !important;
+  right: 10% !important;
+  animation-delay: 2s !important;
+}
+
+.floatingElement:nth-child(3) {
+  width: 100px !important;
+  height: 100px !important;
+  bottom: 10% !important;
+  left: 20% !important;
+  animation-delay: 4s !important;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) !important;
+    opacity: 0.3 !important;
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg) !important;
+    opacity: 0.6 !important;
+  }
+}
+
+/* Close Button */
+.closeButton {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 35px !important;
+  height: 35px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  z-index: 10 !important;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Header */
+.header {
+  text-align: center !important;
+  margin-bottom: 25px !important;
+  position: relative !important;
+  z-index: 5 !important;
+  flex-shrink: 0 !important;
+}
+
+.iconContainer {
+  position: relative !important;
+  display: inline-block !important;
+  margin-bottom: 10px !important;
+}
+
+.mainIcon {
+  width: 45px !important;
+  height: 45px !important;
+  color: #ffd700 !important;
+  animation: sparkle 2s ease-in-out infinite !important;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)) !important;
+}
+
+.iconGlow {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 65px !important;
+  height: 65px !important;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.3), transparent) !important;
+  border-radius: 50% !important;
+  animation: pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg) !important;
+  }
+  50% {
+    transform: scale(1.1) rotate(10deg) !important;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1) !important;
+    opacity: 0.5 !important;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2) !important;
+    opacity: 0.8 !important;
+  }
+}
+
+.title {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: white !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.highlight {
+  background: linear-gradient(45deg, #ffd700, #ffed4e) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  animation: shimmer 3s ease-in-out infinite !important;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    filter: brightness(1) !important;
+  }
+  50% {
+    filter: brightness(1.2) !important;
+  }
+}
+
+.subtitle {
+  font-size: 0.95rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin: 10px 0 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Benefits Grid */
+.benefitsGrid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 15px !important;
+  margin-bottom: 25px !important;
+  flex-shrink: 0 !important;
+}
+
+.benefitCard {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 12px !important;
+  padding: 15px !important;
+  text-align: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  animation: slideUp 0.6s ease-out both !important;
+}
+
+.benefitCard:hover {
+  transform: translateY(-3px) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px) !important;
+    opacity: 0 !important;
+  }
+  to {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+.benefitIconContainer {
+  width: 40px !important;
+  height: 40px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto 10px !important;
+  transition: all 0.3s ease !important;
+}
+
+.benefitCard:hover .benefitIconContainer {
+  background: rgba(255, 215, 0, 0.3) !important;
+  transform: scale(1.1) !important;
+}
+
+.benefitIcon {
+  width: 20px !important;
+  height: 20px !important;
+  color: white !important;
+}
+
+.benefitTitle {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: white !important;
+  margin: 0 0 5px !important;
+}
+
+.benefitDescription {
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+
+/* Stats */
+.statsContainer {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 30px !important;
+  margin-bottom: 25px !important;
+  flex-shrink: 0 !important;
+}
+
+.stat {
+  text-align: center !important;
+  animation: fadeInUp 0.8s ease-out both !important;
+}
+
+.stat:nth-child(1) { animation-delay: 0.2s !important; }
+.stat:nth-child(2) { animation-delay: 0.4s !important; }
+.stat:nth-child(3) { animation-delay: 0.6s !important; }
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(15px) !important;
+    opacity: 0 !important;
+  }
+  to {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+  }
+}
+
+.statValue {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: #ffd700 !important;
+  line-height: 1 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.statLabel {
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin-top: 3px !important;
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 15px !important;
+  margin-bottom: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+.boostButton {
+  background: linear-gradient(45deg, #ffd700, #ffed4e) !important;
+  color: #333 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 15px 25px !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3) !important;
+}
+
+.boostButton::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent) !important;
+  transition: left 0.5s ease !important;
+}
+
+.boostButton:hover::before {
+  left: 100% !important;
+}
+
+.boostButton:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4) !important;
+}
+
+.boostButton:active {
+  transform: translateY(0) !important;
+}
+
+.buttonIcon {
+  width: 18px !important;
+  height: 18px !important;
+  animation: zap 1s ease-in-out infinite !important;
+}
+
+@keyframes zap {
+  0%, 100% { transform: scale(1) !important; }
+  50% { transform: scale(1.1) !important; }
+}
+
+.arrowIcon {
+  width: 16px !important;
+  height: 16px !important;
+  transition: transform 0.3s ease !important;
+}
+
+.boostButton:hover .arrowIcon {
+  transform: translateX(3px) !important;
+}
+
+.skipButton {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 10px !important;
+  padding: 12px 20px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  min-height: 44px !important;
+}
+
+.skipButton:hover {
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Footer Note */
+.footerNote {
+  text-align: center !important;
+  font-size: 0.8rem !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 0 !important;
+  font-style: italic !important;
+  flex-shrink: 0 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .popup {
+    padding: 25px 15px !important;
+    width: 98% !important;
+    height: 92vh !important;
+    max-height: none !important;
+  }
+  
+  .title {
+    font-size: 1.7rem !important;
+  }
+  
+  .benefitsGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .statsContainer {
+    gap: 20px !important;
+  }
+  
+  .statValue {
+    font-size: 1.7rem !important;
+  }
+  
+  .actionButtons {
+    gap: 12px !important;
+  }
+  
+  .boostButton {
+    padding: 14px 20px !important;
+    font-size: 0.95rem !important;
+  }
+  
+  .skipButton {
+    padding: 10px 16px !important;
+    min-height: 42px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .popup {
+    padding: 20px 12px !important;
+    height: 95vh !important;
+  }
+  
+  .title {
+    font-size: 1.5rem !important;
+  }
+  
+  .subtitle {
+    font-size: 0.85rem !important;
+  }
+  
+  .statsContainer {
+    flex-direction: row !important;
+    gap: 15px !important;
+  }
+  
+  .statValue {
+    font-size: 1.5rem !important;
+  }
+  
+  .skipButton {
+    padding: 10px 14px !important;
+    min-height: 40px !important;
+  }
+}
