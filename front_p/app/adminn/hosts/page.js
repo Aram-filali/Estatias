@@ -1,9 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Mail, Phone, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Mail, Phone, ExternalLink, FileText, Download, Eye } from 'lucide-react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import styles from './HostsPage.module.css';
+import { useHostDocuments } from '@/src/hooks/useHostDocuments'; // Adjust path as needed
+import { DocumentsList } from 'components/DocumentsList';
+
 
 export default function Hosts() {
   const [hosts, setHosts] = useState([]);
@@ -13,6 +16,17 @@ export default function Hosts() {
   const [authToken, setAuthToken] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const {
+    documentUrls,
+    isLoading: documentsLoading,
+    error: documentsError,
+    fetchDocuments,
+    clearDocuments,
+    hasDocuments,
+    getDocumentDisplayName,
+    handleDocumentAction
+  } = useHostDocuments(authToken);
+
   const router = useRouter();
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -45,6 +59,15 @@ export default function Hosts() {
       fetchHosts();
     }
   }, [authToken]);
+
+  // Fetch documents when a host is selected
+  useEffect(() => {
+    if (selectedHost && authToken) {
+      fetchDocuments(selectedHost.originalData.firebaseUid);
+    } else {
+      clearDocuments(); // Clear documents when no host is selected
+    }
+  }, [selectedHost, authToken, fetchDocuments, clearDocuments]);
 
   const fetchHosts = async () => {
     if (!authToken) return;
@@ -90,6 +113,8 @@ export default function Hosts() {
       setLoading(false);
     }
   };
+
+ 
 
   const updateHostStatus = async (hostId, newStatus) => {
     if (!authToken) return;
@@ -177,6 +202,69 @@ export default function Hosts() {
     
     return formattedUrl;
   };
+/*
+  // Helper function to get document type display name
+  const getDocumentDisplayName = (docType) => {
+    switch (docType) {
+      case 'kbisOrId':
+        return selectedHost?.originalData?.isAgency ? 'KBIS Document' : 'ID Document';
+      case 'proxy':
+        return 'Proxy Document';
+      case 'repId':
+        return 'Representative ID';
+      default:
+        return docType;
+    }
+  };
+
+  // Helper function to handle document viewing/downloading
+  const handleDocumentAction = (url, action = 'view') => {
+    if (!url) return;
+    
+    if (action === 'view') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else if (action === 'download') {
+      // Create a temporary link to trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = true;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };*/
+/*
+  // Component to render document items
+  const DocumentItem = ({ docType, url }) => {
+    if (!url) return null;
+
+    return (
+      <div className={styles.documentItem}>
+        <div className={styles.documentInfo}>
+          <FileText className={styles.documentIcon} />
+          <span className={styles.documentName}>
+            {getDocumentDisplayName(docType)}
+          </span>
+        </div>
+        <div className={styles.documentActions}>
+          <button
+            onClick={() => handleDocumentAction(url, 'view')}
+            className={styles.documentActionButton}
+            title="View Document"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={() => handleDocumentAction(url, 'download')}
+            className={styles.documentActionButton}
+            title="Download Document"
+          >
+            <Download size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };*/
 
   // Filter hosts based on search and status
   const filteredHosts = hosts.filter(host => {
@@ -371,12 +459,21 @@ export default function Hosts() {
                       )}
                     </dd>
                   </div>
-                  <div className={`${styles.detailItem} ${styles.detailItemWhite}`}>
-                    <dt className={styles.detailLabel}>Status</dt>
+                  
+                  {/* Documents Section - Replacing Status */}
+                  <div className={`${styles.detailItem} ${styles.detailItemWhite} ${styles.documentsSection}`}>
+                    <dt className={styles.detailLabel}>Documents</dt>
                     <dd className={styles.detailValue}>
-                      <span className={`${styles.status} ${getStatusColorClass(selectedHost.status)}`}>
-                        {selectedHost.status.charAt(0).toUpperCase() + selectedHost.status.slice(1)}
-                      </span>
+                      <DocumentsList
+                        documentUrls={documentUrls}
+                        isAgency={selectedHost.originalData?.isAgency || false}
+                        getDocumentDisplayName={getDocumentDisplayName}
+                        handleDocumentAction={handleDocumentAction}
+                        styles={styles}
+                        isLoading={documentsLoading}
+                        error={documentsError}
+                        onRetry={() => fetchDocuments(selectedHost.originalData.firebaseUid)}
+                      />
                     </dd>
                   </div>
                 </dl>
