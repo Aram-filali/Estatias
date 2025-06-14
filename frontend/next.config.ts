@@ -49,6 +49,10 @@ const nextConfig: NextConfig = {
       {
         source: '/:hostId/:path*',
         destination: '/:path*'
+      },
+      {
+        source: '/preview/:hostId',
+        destination: '/preview/:hostId'
       }
     ];
   },

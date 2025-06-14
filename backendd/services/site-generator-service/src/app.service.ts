@@ -34,8 +34,8 @@ export class SiteGeneratorService implements OnApplicationShutdown {
   private sitesDatabase: Map<string, SiteInfo> = new Map();
   
   // Configuration adaptée pour Render
-  private startPort = process.env.PORT ? parseInt(process.env.PORT) + 1 : 10000;
-  private endPort = process.env.PORT ? parseInt(process.env.PORT) + 50 : 10050;
+ private startPort = process.env.PORT ? parseInt(process.env.PORT) : 10000;
+private endPort = process.env.PORT ? parseInt(process.env.PORT) + 5 : 10005;
   private usedPorts: Set<number> = new Set();
   private siteTimeouts: Map<string, NodeJS.Timeout> = new Map();
   
@@ -545,7 +545,7 @@ private async scanExistingSites(): Promise<void> {
       
       return {
         message: result.message,
-        url: `${baseUrl}/preview/${domainName}`
+        url: `${process.env.RENDER_EXTERNAL_URL}/preview/${hostId}`
       };
     } catch (error) {
       this.logger.error(`Failed to generate site for ${hostId}: ${error.message}`);
@@ -613,7 +613,7 @@ private async scanExistingSites(): Promise<void> {
       const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
       const domainName = host?.domainName || hostId;
       
-      await this.startPreview(hostId, siteInfo.outputPath, port);
+      await this.startPreview(hostId, siteInfo.outputPath);
       
       // URL pour Render
       const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
@@ -1226,7 +1226,16 @@ private async generateFromTemplates(outputDir: string, hostData: any): Promise<v
   }
 }
 
-private async startPreview(hostId: string, siteDir: string, port: number): Promise<void> {
+private async startPreview(hostId: string, siteDir: string): Promise<void> {
+
+  const port = parseInt(process.env.PORT || '3000'); // Render fournit PORT
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+
+  const env = {
+    PORT: port.toString(),
+    NEXT_PUBLIC_API_URL: this.apiServerUrl,
+    NEXT_PUBLIC_BASE_URL: baseUrl // Utilisé dans les templates
+  };
   return new Promise(async (resolve, reject) => {
     try {
       const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -1235,15 +1244,14 @@ private async startPreview(hostId: string, siteDir: string, port: number): Promi
       const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
       const domainName = host?.domainName || hostId;
       
-      const env = {
-        ...process.env,
-        PORT: port.toString(),
-        NODE_ENV: 'development',
-        NEXT_PUBLIC_HOST_ID: hostId,
-        NEXT_PUBLIC_DOMAIN_NAME: domainName,
-        NEXT_PUBLIC_API_URL: this.apiServerUrl,
-        NEXT_PUBLIC_BASE_URL: `http://${domainName}.localhost:${port}` // Include port in URL
-      };
+        const env = {
+          ...process.env,
+          PORT: port.toString(),
+          NODE_ENV: 'production', // Changez à 'production' pour Render
+          NEXT_PUBLIC_HOST_ID: hostId,
+          NEXT_PUBLIC_API_URL: this.apiServerUrl,
+          NEXT_PUBLIC_BASE_URL: process.env.RENDER_EXTERNAL_URL
+        };
 
       this.logger.log(`🌐 Starting dev server for ${hostId} (${domainName}) on port ${port}...`);
       
