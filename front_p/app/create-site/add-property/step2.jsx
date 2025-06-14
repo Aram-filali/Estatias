@@ -18,6 +18,8 @@ import AvailabilityManager from './AvailabilityManager';
 import { IoArrowBack, IoArrowForward } from 'react-icons/io5';
 import styles from './label.module.css';
 import SEOContentGenerator from '../../../components/AI/aicomponent';
+import SEOBoostPopup from '../../../components/AI/SEOBoost';
+
 
 // Fix the interface to make nextStep required
 
@@ -30,15 +32,6 @@ SearchPage2.defaultProps = {
     saveUserData: undefined,
     userData: undefined
   };
-
-
-  const handleTitleGenerated = (newTitle) => {
-  setFormData(prev => ({ ...prev, title: newTitle }));
-};
-
-const handleDescriptionGenerated = (newDescription) => {
-  setFormData(prev => ({ ...prev, description: newDescription }));
-};
   
   export default function SearchPage2({ 
     nextStep, 
@@ -183,6 +176,7 @@ const handleDescriptionGenerated = (newDescription) => {
   });
 
 
+
 // Fix 1: Correction de handleInputChange pour éliminer la validation en temps réel des méthodes de paiement 
 const handleInputChange = (e) => {
   const { name, value, type, checked } = e.target;
@@ -242,6 +236,61 @@ const handleInputChange = (e) => {
       [name]: errorMessage
     }));
   }
+};
+
+const [showSyncPopup, setShowSyncPopup] = useState(false);
+
+// 2. Fixed handleSyncComplete function with proper error handling
+const handleSyncComplete = (syncResult) => {
+  console.log('🔄 Sync completed with data:', syncResult);
+  
+  try {
+    // Stocker les données de synchronisation
+    if (syncResult && syncResult.syncData) {
+      console.log('📊 Setting sync data:', syncResult.syncData);
+      setSyncData(syncResult.syncData);
+      setIsSyncedAvailabilities(true);
+    }
+    
+    // Mettre à jour les availabilities
+    if (syncResult && syncResult.availabilities && Array.isArray(syncResult.availabilities)) {
+      console.log('📅 Setting availabilities:', syncResult.availabilities);
+      setAvailabilities(syncResult.availabilities);
+    }
+    
+    // Fermer le popup de sync
+    setShowSyncPopup(false);
+    
+    // Afficher une notification de succès
+    if (typeof safeSetNotification === 'function') {
+      safeSetNotification({
+        show: true,
+        message: `${syncResult.availabilities?.length || 0} dates synchronisées avec succès !`,
+        type: 'success'
+      });
+    }
+    
+    // Force re-render by updating a timestamp or trigger
+    console.log('✅ Sync complete, data should now be visible');
+    
+  } catch (error) {
+    console.error('❌ Error in handleSyncComplete:', error);
+    if (typeof safeSetNotification === 'function') {
+      safeSetNotification({
+        show: true,
+        message: 'Erreur lors de la synchronisation des données',
+        type: 'error'
+      });
+    }
+  }
+};
+
+// 3. Function to reset sync data
+const resetSyncData = () => {
+  console.log('🔄 Resetting sync data');
+  setSyncData(null);
+  setIsSyncedAvailabilities(false);
+  setAvailabilities([]);
 };
 
 const validateTimeRange = (startField, endField, startValue, endValue) => {
@@ -452,6 +501,9 @@ const handleSpacePhotoChange = (spaceIndex, photoIndex, event) => {
     return newErrors;
   });
 };
+
+const [syncData, setSyncData] = useState(null);
+const [isSyncedAvailabilities, setIsSyncedAvailabilities] = useState(false);
 
 // Fix 3: Improved handleApartmentSpaceChange with better type validation
 const handleApartmentSpaceChange = (index, e) => {
@@ -876,9 +928,9 @@ const areValidTimesForComparison = (startTime, endTime) => {
           <AvailabilityManager 
             onAvailabilitiesChange={handleAvailabilitiesChange}
             initialAvailabilities={availabilities}
+            onSyncComplete={handleSyncComplete}
           />
         </div>
-        
       </section>
     );
   };
@@ -1275,6 +1327,9 @@ const [coordinates, setCoordinates] = useState({
     }));
   };
 
+  const [showSEOBoostPopup, setShowSEOBoostPopup] = useState(false);
+  const [pendingSubmissionData, setPendingSubmissionData] = useState(null);
+
   const handlePaymentChange = (e) => {
     const { name, checked } = e.target;
   
@@ -1383,6 +1438,23 @@ const [coordinates, setCoordinates] = useState({
     }));
   };
 
+ // Gestionnaires pour le popup SEO
+const handleBoostProperty = () => {
+  setShowSEOPopup(false);
+  setShowSEOGenerator(true);
+};
+
+
+const handleCloseSEOPopup = () => {
+  setShowSEOPopup(false);
+  setPendingSubmission(false);
+};
+
+
+const handleSEOComplete = () => {
+  setShowSEOGenerator(false);
+  submitPropertyAfterSEO();
+};
 
   // Fonction pour uploader une photo vers Firebase Storage
   const uploadToFirebase = async (file, path) => {
@@ -1536,21 +1608,21 @@ return (
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Valider le formulaire avant de naviguer
+    // Validate form before proceeding
     const isValid = validateFormBeforeSubmit();
     
     if (!isValid) {
       console.log("Form validation failed. Please fix the errors.");
-      return; // Arrêter la soumission si le formulaire n'est pas valide
+      return;
     }
     
-    console.log("Form is valid. Proceeding with submission...");
+    console.log("Form is valid. Showing SEO boost popup...");
     
     if (loading) {
       console.error('Authentication loading in progress...');
       safeSetNotification({
         show: true,
-        message: 'Authentification en cours, veuillez patienter...',
+        message: 'Authentication in progress, please wait...',
         type: 'error'
       });
       return;
@@ -1560,198 +1632,275 @@ return (
       console.error('Firebase ID not available, you must be logged in');
       safeSetNotification({
         show: true,
-        message: 'Vous devez être connecté pour créer une propriété',
+        message: 'You must be logged in to create a property',
         type: 'error'
       });
       return;
     }
-  
-    setIsUploading(true);
-    setUploadProgress(0);
-  
-    try {
-      // 1. Upload les photos principales
-      const mainPhotoUrls = [];
-      for (let i = 0; i < mainPhotos.length; i++) {
-        const photo = mainPhotos[i];
-        // Vérifier si c'est un fichier ou déjà une URL
-        if (photo instanceof File) {
-          const downloadURL = await uploadToFirebase(photo, `properties/${firebaseUserId}/main`);
-          mainPhotoUrls.push(downloadURL);
-        } else if (typeof photo === 'string') {
-          // Si c'est déjà une URL (cas de mise à jour), on la conserve
-          mainPhotoUrls.push(photo);
-        } else if (photo && photo.preview) {
-          // Si c'est un objet avec une prévisualisation (cas de certains sélecteurs de fichiers)
-          const downloadURL = await uploadToFirebase(photo.file || photo, `properties/${firebaseUserId}/main`);
-          mainPhotoUrls.push(downloadURL);
-        }
-        // Mise à jour de la progression
-        setUploadProgress(Math.round((i + 1) / mainPhotos.length * 50)); // 50% pour les photos principales
+
+    // Store the event for later use and show popup
+    setPendingSubmissionData(e);
+    setShowSEOBoostPopup(true);
+  };
+
+  const handleActualSubmit = async (overrideData = {}) => {
+  console.log('=== DÉBUT handleActualSubmit ===');
+  console.log('overrideData reçu:', overrideData);
+  console.log('formData actuel:', { title: formData.title, description: formData.description });
+
+  setIsUploading(true);
+  setUploadProgress(0);
+
+  try {
+    const finalFormData = {
+      ...formData,
+      ...overrideData
+    };
+
+    console.log('Données fusionnées:', {
+      title: finalFormData.title,
+      description: finalFormData.description
+    });
+
+    console.log('=== DONNÉES DE SOUMISSION ===');
+    console.log('formData.title:', formData.title);
+    console.log('formData.description:', formData.description);
+    console.log('overrideData:', overrideData);
+    console.log('finalFormData final:', {
+      title: finalFormData.title,
+      description: finalFormData.description
+    });
+
+    const mainPhotoUrls = [];
+    for (let i = 0; i < mainPhotos.length; i++) {
+      const photo = mainPhotos[i];
+      if (photo instanceof File) {
+        const downloadURL = await uploadToFirebase(photo, `properties/${firebaseUserId}/main`);
+        mainPhotoUrls.push(downloadURL);
+      } else if (typeof photo === 'string') {
+        mainPhotoUrls.push(photo);
+      } else if (photo && photo.preview) {
+        const downloadURL = await uploadToFirebase(photo.file || photo, `properties/${firebaseUserId}/main`);
+        mainPhotoUrls.push(downloadURL);
       }
-  
-      // 2. Upload les photos des espaces
-      const propertySpaces = [];
-      for (let i = 0; i < apartmentSpaces.length; i++) {
-        const space = apartmentSpaces[i];
-        const spacePhotoUrls = [];
-        
-        // Upload des photos de cet espace
-        if (space.photos && Array.isArray(space.photos)) {
-          for (let j = 0; j < space.photos.length; j++) {
-            const photo = space.photos[j];
-            if (photo instanceof File) {
-              const downloadURL = await uploadToFirebase(
-                photo, 
-                `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
-              );
-              spacePhotoUrls.push(downloadURL);
-            } else if (typeof photo === 'string') {
-              // Si c'est déjà une URL, on la conserve
-              spacePhotoUrls.push(photo);
-            } else if (photo && photo.preview) {
-              // Si c'est un objet avec une prévisualisation
-              const downloadURL = await uploadToFirebase(
-                photo.file || photo, 
-                `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
-              );
-              spacePhotoUrls.push(downloadURL);
-            }
+      setUploadProgress(Math.round((i + 1) / mainPhotos.length * 50));
+    }
+
+    const propertySpaces = [];
+    for (let i = 0; i < apartmentSpaces.length; i++) {
+      const space = apartmentSpaces[i];
+      const spacePhotoUrls = [];
+
+      if (space.photos && Array.isArray(space.photos)) {
+        for (let j = 0; j < space.photos.length; j++) {
+          const photo = space.photos[j];
+          if (photo instanceof File) {
+            const downloadURL = await uploadToFirebase(
+              photo,
+              `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
+            );
+            spacePhotoUrls.push(downloadURL);
+          } else if (typeof photo === 'string') {
+            spacePhotoUrls.push(photo);
+          } else if (photo && photo.preview) {
+            const downloadURL = await uploadToFirebase(
+              photo.file || photo,
+              `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
+            );
+            spacePhotoUrls.push(downloadURL);
           }
         }
-        
-        propertySpaces.push({
-          space_id: space.space_id || `space-${i}-${Date.now()}`,
-          type: space.type || '',
-          area: !isNaN(parseFloat(space.area)) ? parseFloat(space.area) : 0,
-          photos: spacePhotoUrls // URLs des photos uploadées sur Firebase
-        });
-        
-        // Mise à jour de la progression (50% restants pour les espaces)
-        setUploadProgress(50 + Math.round((i + 1) / apartmentSpaces.length * 50));
       }
-  
-      // S'assurer que les coordonnées sont des nombres valides
-      const validLatitude = !isNaN(parseFloat(coordinates.latitude)) ? parseFloat(coordinates.latitude) : 0;
-      const validLongitude = !isNaN(parseFloat(coordinates.longitude)) ? parseFloat(coordinates.longitude) : 0;
-  
-      // Assurer que means_of_payment est un tableau
-      const meansOfPayment = Array.isArray(formData.means_of_payment) ? 
-        formData.means_of_payment : 
-        Object.entries(formData.paymentMethods || {})
+
+      propertySpaces.push({
+        space_id: space.space_id || `space-${i}-${Date.now()}`,
+        type: space.type || '',
+        area: !isNaN(parseFloat(space.area)) ? parseFloat(space.area) : 0,
+        photos: spacePhotoUrls
+      });
+
+      setUploadProgress(50 + Math.round((i + 1) / apartmentSpaces.length * 50));
+    }
+
+    const validLatitude = !isNaN(parseFloat(coordinates.latitude)) ? parseFloat(coordinates.latitude) : 0;
+    const validLongitude = !isNaN(parseFloat(coordinates.longitude)) ? parseFloat(coordinates.longitude) : 0;
+
+    const meansOfPayment = Array.isArray(finalFormData.means_of_payment)
+      ? finalFormData.means_of_payment
+      : Object.entries(finalFormData.paymentMethods || {})
           .filter(([_, value]) => value === true)
           .map(([key, _]) => key);
-  
-      // Préparer les données à envoyer à l'API avec les coordonnées exactes
-      const propertyData = {
-        firebaseUid: firebaseUserId, 
-        title: formData.title ? formData.title.trim() : '',
-        description: formData.description ? formData.description.trim() : '',
-        availabilities: (availabilities || []).map(avail => {
-          // Create a fresh object without isPlace property
-          return {
-            start_time: avail.start_time || '',
-            end_time: avail.end_time || '',
-            price: !isNaN(parseFloat(avail.price)) && avail.price > 0 ? parseFloat(avail.price) : 0,
-            otherPlatformPrice: avail.otherPlatformPrice ? parseFloat(avail.otherPlatformPrice) : null,
-            // Replace isPlace with isPrice
-            isPrice: Boolean(avail.isPrice), // Convert to boolean
-            touristTax: !isNaN(parseFloat(avail.touristTax)) && avail.touristTax > 0 ? parseFloat(avail.touristTax) : 0,
-          };
-        }),
-        mainPhotos: mainPhotoUrls, // URLs des photos principales sur Firebase
-        type: formData.type ? formData.type.trim() : '',
-        apartmentSpaces: propertySpaces, // Espaces avec URLs des photos
-        address: formData.address ? formData.address.trim() : '',
-        country: formData.country ? formData.country.trim() : '',
-        city: formData.city ? formData.city.trim() : '',
-        // Utilisation directe des coordonnées stockées
-        latitude: validLatitude,
-        longitude: validLongitude,
-        size: isNaN(parseFloat(formData.size)) ? 0 : parseFloat(formData.size),
-        lotSize: formData.type === "Appartement" ? 0 : 
-        (isNaN(parseFloat(formData.lotSize)) ? 0 : parseFloat(formData.lotSize)),       
-        floorNumber: isNaN(parseInt(formData.floorNumber, 10)) ? 0 : parseInt(formData.floorNumber, 10),
-        numberOfBalconies: isNaN(parseInt(formData.numberOfBalconies, 10)) ? 0 : parseInt(formData.numberOfBalconies, 10),
-        rooms: isNaN(parseInt(formData.rooms, 10)) ? 0 : parseInt(formData.rooms, 10),
-        bedrooms: isNaN(parseInt(formData.bedrooms, 10)) ? 0 : parseInt(formData.bedrooms, 10),
-        bathrooms: isNaN(parseInt(formData.bathrooms, 10)) ? 0 : parseInt(formData.bathrooms, 10),
-        beds_Number: isNaN(parseInt(formData.beds_Number, 10)) ? 0 : parseInt(formData.beds_Number, 10),
-        maxGuest: isNaN(parseInt(formData.maxGuest, 10)) ? 0 : parseInt(formData.maxGuest, 10),
-        minNight: isNaN(parseInt(formData.minNight, 10)) ? 0 : parseInt(formData.minNight, 10),
-        maxNight: isNaN(parseInt(formData.maxNight, 10)) ? 0 : parseInt(formData.maxNight, 10),
-        amenities: formData.amenities || {},
-        policies: formData.policies || {},
-        means_of_payment: meansOfPayment,
-        phone: formData.phone || '',
-        email: formData.email || '',
-        website: formData.website || '',
-      };
-  
-      console.log('Data being sent to server:', JSON.stringify(propertyData));
-  
-      // Envoyer les données à l'API backend
-      const response = await axios.post('http://localhost:3000/properties', propertyData, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-  
-      console.log('Server response:', response.data);
-      
-      // Afficher une notification de succès
-      safeSetNotification({
-        show: true,
-        message: 'Property created successfully !',
-        type: 'success'
-      });
-      
-      // Redirection ou autre action après succès
-      setTimeout(() => {
-        nextStep(); // Passer à l'étape suivante seulement en cas de succès
-      }, 1500);
-  
-    } catch (error) {
-      console.error('Error details:', error);
-      
-      let errorMessage = 'Une erreur s\'est produite lors de l\'enregistrement de la propriété.';
-      
-      if (error.response) {
-        console.error('Server error status:', error.response.status);
-        console.error('Server error data:', error.response.data);
-        
-        // Afficher un message d'erreur plus spécifique si disponible
-        errorMessage = error.response.data.message || error.response.data.error || errorMessage;
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-        errorMessage = "Aucune réponse du serveur. Veuillez vérifier votre connexion internet.";
-      } else {
-        console.error('General error:', error.message);
-        errorMessage = error.message;
-      }
-      
-      // Afficher une notification d'erreur
-      safeSetNotification({
-        show: true,
-        message: `Erreur: ${errorMessage}`,
-        type: 'error'
-      });
-      
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+
+    const propertyData = {
+      firebaseUid: firebaseUserId,
+      title: finalFormData.title ? finalFormData.title.trim() : '',
+      description: finalFormData.description ? finalFormData.description.trim() : '',
+      availabilities: (availabilities || []).map(avail => ({
+        start_time: avail.start_time || '',
+        end_time: avail.end_time || '',
+        price: !isNaN(parseFloat(avail.price)) && avail.price > 0 ? parseFloat(avail.price) : 0,
+        otherPlatformPrice: avail.otherPlatformPrice ? parseFloat(avail.otherPlatformPrice) : null,
+        isPrice: Boolean(avail.isPrice),
+        touristTax: !isNaN(parseFloat(avail.touristTax)) && avail.touristTax > 0 ? parseFloat(avail.touristTax) : 0,
+      })),
+      syncData: syncData || null,
+      isSyncedProperty: isSyncedAvailabilities,
+      mainPhotos: mainPhotoUrls,
+      type: finalFormData.type ? finalFormData.type.trim() : '',
+      apartmentSpaces: propertySpaces,
+      address: finalFormData.address ? finalFormData.address.trim() : '',
+      country: finalFormData.country ? finalFormData.country.trim() : '',
+      city: finalFormData.city ? finalFormData.city.trim() : '',
+      latitude: validLatitude,
+      longitude: validLongitude,
+      size: isNaN(parseFloat(finalFormData.size)) ? 0 : parseFloat(finalFormData.size),
+      lotSize:
+        finalFormData.type === 'Appartement'
+          ? 0
+          : isNaN(parseFloat(finalFormData.lotSize))
+          ? 0
+          : parseFloat(finalFormData.lotSize),
+      floorNumber: isNaN(parseInt(finalFormData.floorNumber, 10)) ? 0 : parseInt(finalFormData.floorNumber, 10),
+      numberOfBalconies: isNaN(parseInt(finalFormData.numberOfBalconies, 10))
+        ? 0
+        : parseInt(finalFormData.numberOfBalconies, 10),
+      rooms: isNaN(parseInt(finalFormData.rooms, 10)) ? 0 : parseInt(finalFormData.rooms, 10),
+      bedrooms: isNaN(parseInt(finalFormData.bedrooms, 10)) ? 0 : parseInt(finalFormData.bedrooms, 10),
+      bathrooms: isNaN(parseInt(finalFormData.bathrooms, 10)) ? 0 : parseInt(finalFormData.bathrooms, 10),
+      beds_Number: isNaN(parseInt(finalFormData.beds_Number, 10)) ? 0 : parseInt(finalFormData.beds_Number, 10),
+      maxGuest: isNaN(parseInt(finalFormData.maxGuest, 10)) ? 0 : parseInt(finalFormData.maxGuest, 10),
+      minNight: isNaN(parseInt(finalFormData.minNight, 10)) ? 0 : parseInt(finalFormData.minNight, 10),
+      maxNight: isNaN(parseInt(finalFormData.maxNight, 10)) ? 0 : parseInt(finalFormData.maxNight, 10),
+      amenities: finalFormData.amenities || {},
+      policies: finalFormData.policies || {},
+      means_of_payment: meansOfPayment,
+      phone: finalFormData.phone || '',
+      email: finalFormData.email || '',
+      website: finalFormData.website || '',
+    };
+
+    console.log('=== DONNÉES ENVOYÉES AU SERVEUR ===');
+    console.log('Titre final:', propertyData.title);
+    console.log('Description finale:', propertyData.description);
+    console.log('PropertyData complet:', JSON.stringify(propertyData, null, 2));
+
+    const response = await axios.post('http://localhost:3000/properties', propertyData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    console.log('Server response:', response.data);
+
+    safeSetNotification({
+      show: true,
+      message: 'Property created successfully!',
+      type: 'success',
+    });
+
+    setTimeout(() => {
+      nextStep();
+    }, 1500);
+  } catch (error) {
+    console.error('Error details:', error);
+
+    let errorMessage = 'An error occurred while saving the property.';
+
+    if (error.response) {
+      console.error('Server error status:', error.response.status);
+      console.error('Server error data:', error.response.data);
+      errorMessage = error.response.data.message || error.response.data.error || errorMessage;
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      errorMessage = 'No response from server. Please check your internet connection.';
+    } else {
+      console.error('General error:', error.message);
+      errorMessage = error.message;
     }
-  };
+
+    safeSetNotification({
+      show: true,
+      message: `Error: ${errorMessage}`,
+      type: 'error',
+    });
+  } finally {
+    setIsUploading(false);
+    setUploadProgress(0);
+  }
+};
+
+
+const handleSEOBoost = async (generatedContent = {}) => {
+  setShowSEOBoostPopup(false);
   
-  // 6. Correction du handleFormSubmit pour ne pas naviguer en cas d'erreur
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    setSubmitAttempted(true);
+  try {
+    console.log('=== DÉBUT handleSEOBoost ===');
+    console.log('Contenu généré reçu:', generatedContent);
+    console.log('FormData actuel:', {
+      title: formData.title,
+      description: formData.description
+    });
     
-    const isValid = validateFormBeforeSubmit();
-    if (isValid) {
-      handleSubmit(e);
-      // Ne pas appeler handleNavigate ici car handleSubmit inclut déjà la navigation
-    }
-  };
+    // Utiliser directement formData car il est déjà mis à jour par les callbacks
+    const overrideData = {
+      title: formData.title || '',
+      description: formData.description || ''
+    };
+    
+    console.log('Données override finales:', overrideData);
+    
+    // Passer les données override à handleActualSubmit
+    await handleActualSubmit(overrideData);
+    
+  } catch (error) {
+    console.error('Error during SEO boost:', error);
+    safeSetNotification({
+      show: true,
+      message: 'Error during submission. Please try again.',
+      type: 'error'
+    });
+  }
+};
+
+// CORRECTION : Ajouter une fonction pour mettre à jour formData quand l'IA génère du contenu
+const handleTitleGenerated = (title) => {
+  console.log('=== TITRE GÉNÉRÉ ===', title);
+  setFormData(prev => {
+    const updated = { ...prev, title };
+    console.log('FormData mis à jour avec titre:', updated);
+    return updated;
+  });
+};
+
+const handleDescriptionGenerated = (description) => {
+  console.log('=== DESCRIPTION GÉNÉRÉE ===', description);
+  setFormData(prev => {
+    const updated = { ...prev, description };
+    console.log('FormData mis à jour avec description:', updated);
+    return updated;
+  });
+};
+
+// GARDER handleSkipSEO simple
+const handleSkipSEO = async () => {
+  setShowSEOBoostPopup(false);
+  await handleActualSubmit();
+};
+
+// Handle closing popup without action
+const handleClosePopup = () => {
+  setShowSEOBoostPopup(false);
+  setPendingSubmissionData(null);
+};
+
+// GARDER handleFormSubmit identique
+const handleFormSubmit = (e) => {
+  e.preventDefault();
+  setSubmitAttempted(true);
+  
+  const isValid = validateFormBeforeSubmit();
+  if (isValid) {
+    setShowSEOBoostPopup(true);
+  }
+};
   
   // 7. Ajout du rendu du composant de notification dans le composant
   const renderNotification = () => {
@@ -1841,15 +1990,6 @@ const debugForm = () => {
   return commonIssues.length === 0;
 };
 
-
-  // Fonction d'aide pour afficher les messages d'erreur
-  const renderError = (error) => {
-    if (!error) return null;
-    return <span className="error-message text-red-500 text-sm">{error}</span>;
-  };
-
- 
-
   const renderUploadProgress = () => {
     if (!isUploading) return null;
     
@@ -1905,14 +2045,6 @@ const debugForm = () => {
                 />
                 {errors.description && <span className="error">{errors.description}</span>}
               </div>
-                                     {/* Intégration du SEOContentGenerator */}
-              <SEOContentGenerator
-                formData={formData}
-                onTitleGenerated={handleTitleGenerated}
-                onDescriptionGenerated={handleDescriptionGenerated}
-                currentTitle={formData.title}
-                currentDescription={formData.description}
-              />
             </section>
       
             <section className="section">
@@ -2727,23 +2859,34 @@ const debugForm = () => {
 </section>
 {renderNotification()}
   
-<div className="flex justify-between mt-4">
-  <button 
-    type="button" 
-    onClick={prevStep} 
-    className="button"
-  >
-    Step 1: Create Your Account
-  </button>
-  <button 
-    className="button" 
-    type="submit" 
-  >
-    Step 3: Choose Payment Plan
-  </button>
-</div>
-      </form>
+          <div className="flex justify-between mt-4">
+            <button 
+              type="button" 
+              onClick={prevStep} 
+              className="button"
+            >
+              Step 1: Create Your Account
+            </button>
+            <button 
+              className="button" 
+              type="submit"
+            >
+              Step 3: Choose Payment Plan
+            </button>
+          </div>
+        </form>
       </div>
-      </div>
-    );
-  };
+
+    <SEOBoostPopup 
+      isOpen={showSEOBoostPopup}
+      onClose={handleClosePopup}
+      onBoost={handleSEOBoost}
+      onSkip={handleSkipSEO}
+      formData={formData}
+      onTitleGenerated={handleTitleGenerated}
+      onDescriptionGenerated={handleDescriptionGenerated}
+    />
+
+    </div>
+  );
+};

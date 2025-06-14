@@ -32,29 +32,47 @@ export class SiteGeneratorService implements OnApplicationShutdown {
   
   private runningSites: Map<string, RunningSite> = new Map();
   private sitesDatabase: Map<string, SiteInfo> = new Map();
-  private startPort = 3010;
-  private endPort = 4009;
+  
+  // Configuration adaptée pour Render
+  private startPort = process.env.PORT ? parseInt(process.env.PORT) + 1 : 10000;
+  private endPort = process.env.PORT ? parseInt(process.env.PORT) + 50 : 10050;
   private usedPorts: Set<number> = new Set();
   private siteTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  private readonly previewTimeout = 1800000; // 30 minutes par défaut
-  private disableAutoShutdown = false; // Nouvelle option pour désactiver l'arrêt automatique
+  
+  // Timeout réduit pour le plan gratuit (limité à 512MB RAM)
+  private readonly previewTimeout = 900000; // 15 minutes au lieu de 30
+  private disableAutoShutdown = false;
 
-  private outputDir = process.env.OUTPUT_DIR || path.join(os.homedir(), 'generatedsites');
+  // Répertoires adaptés pour l'environnement Render
+  private outputDir = process.env.NODE_ENV === 'production' 
+    ? '/tmp/generatedsites' // Render utilise /tmp pour les fichiers temporaires
+    : path.join(os.homedir(), 'generatedsites');
+  
   private templateDir = path.resolve(__dirname, '../../../../../frontend');
-  private sharedNodeModules = process.env.SHARED_NODE_MODULES || path.join(process.cwd(), 'node_modules');
-  private apiServerUrl = process.env.API_URL || 'http://localhost:3000';
+  
+  // Node modules dans /tmp pour éviter les problèmes de permissions
+  private sharedNodeModules = process.env.NODE_ENV === 'production'
+    ? '/tmp/shared_node_modules'
+    : path.join(process.cwd(), 'node_modules');
+    
+  private apiServerUrl = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
   private debugMode = process.env.DEBUG_MODE === 'true';
+
+  // Limite le nombre de sites simultanés pour économiser la RAM
+  private maxConcurrentSites = process.env.NODE_ENV === 'production' ? 2 : 5;
 
   constructor(
     @InjectModel(Host.name) private readonly hostModel: Model<HostDocument>,
     @InjectModel(Property.name, 'secondDB') private propertyModel: Model<Property>,
     @InjectModel(SiteInfo.name) private readonly siteInfoModel: Model<SiteInfoDocument>,
   ) {
+    this.logger.log(`Environment: ${process.env.NODE_ENV}`);
     this.logger.log(`Output directory: ${this.outputDir}`);
     this.logger.log(`Template directory: ${this.templateDir}`);
     this.logger.log(`Shared node_modules: ${this.sharedNodeModules}`);
     this.logger.log(`API Server URL: ${this.apiServerUrl}`);
     this.logger.log(`Port range: ${this.startPort}-${this.endPort}`);
+    this.logger.log(`Max concurrent sites: ${this.maxConcurrentSites}`);
     this.logger.log(`Debug mode: ${this.debugMode ? 'enabled' : 'disabled'}`);
     this.logger.log(`Auto shutdown: ${this.disableAutoShutdown ? 'disabled' : 'enabled'}`);
     
@@ -62,20 +80,42 @@ export class SiteGeneratorService implements OnApplicationShutdown {
   }
 
   /**
-   * Activer/désactiver l'arrêt automatique des sites
+   * Vérifier si on peut démarrer un nouveau site (limite de RAM)
    */
+  private canStartNewSite(): boolean {
+    return this.runningSites.size < this.maxConcurrentSites;
+  }
+
+  /**
+   * Arrêter le site le plus ancien si nécessaire
+   */
+  private async stopOldestSiteIfNeeded(): Promise<void> {
+    if (this.runningSites.size >= this.maxConcurrentSites) {
+      let oldestSite: { hostId: string; startedAt: Date } | null = null;
+      
+      for (const [hostId, site] of this.runningSites) {
+        if (!oldestSite || site.startedAt < oldestSite.startedAt) {
+          oldestSite = { hostId, startedAt: site.startedAt };
+        }
+      }
+      
+      if (oldestSite) {
+        this.logger.log(`Stopping oldest site ${oldestSite.hostId} to free resources`);
+        await this.stopSite(oldestSite.hostId);
+      }
+    }
+  }
+
   setAutoShutdown(enable: boolean): void {
     this.disableAutoShutdown = !enable;
     this.logger.log(`Auto shutdown ${enable ? 'enabled' : 'disabled'}`);
     
     if (!enable) {
-      // Si on désactive, nettoyer tous les timeouts existants
       for (const timeout of this.siteTimeouts.values()) {
         clearTimeout(timeout);
       }
       this.siteTimeouts.clear();
     } else {
-      // Si on réactive, redémarrer les timeouts pour les sites en cours
       for (const hostId of this.runningSites.keys()) {
         this.resetSiteTimeout(hostId);
       }
@@ -86,10 +126,8 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     try {
       this.logger.log("Synchronizing in-memory state with database...");
       
-      // Get all sites from database
       const dbSites = await this.siteInfoModel.find().exec();
       
-      // Update in-memory maps
       for (const dbSite of dbSites) {
         this.sitesDatabase.set(dbSite.hostId, {
           hostId: dbSite.hostId,
@@ -99,7 +137,6 @@ export class SiteGeneratorService implements OnApplicationShutdown {
           error: dbSite.error
         });
         
-        // Check if site is marked as running in DB but not in memory
         if (dbSite.port && !this.runningSites.has(dbSite.hostId)) {
           this.logger.warn(`Site ${dbSite.hostId} marked as running in DB but not in memory. Correcting DB.`);
           await this.siteInfoModel.updateOne(
@@ -109,7 +146,6 @@ export class SiteGeneratorService implements OnApplicationShutdown {
         }
       }
       
-      // Check for sites in memory but not in DB
       for (const [hostId, _] of this.sitesDatabase) {
         const found = dbSites.some(site => site.hostId === hostId);
         if (!found) {
@@ -130,11 +166,13 @@ export class SiteGeneratorService implements OnApplicationShutdown {
       this.logger.error(`Error synchronizing state: ${error.message}`);
     }
   }
-  
 
   private async init(): Promise<void> {
     try {
+      // Assurer que les répertoires temporaires existent
       await fs.ensureDir(this.outputDir);
+      await fs.ensureDir(path.dirname(this.sharedNodeModules));
+      
       await this.setupTemplateDirectory();
       
       if (!(await fs.pathExists(this.sharedNodeModules))) {
@@ -144,10 +182,13 @@ export class SiteGeneratorService implements OnApplicationShutdown {
       }
       
       await this.scanExistingSites();
-      await this.synchronizeState(); // Add this line
+      await this.synchronizeState();
       
-      // Set up periodic synchronization
-      setInterval(() => this.synchronizeState(), 60000); // Every minute
+      // Synchronisation moins fréquente pour économiser les ressources
+      setInterval(() => this.synchronizeState(), 120000); // Toutes les 2 minutes
+      
+      // Nettoyage périodique de la mémoire
+      setInterval(() => this.cleanupMemory(), 300000); // Toutes les 5 minutes
       
       this.logger.log('SiteGeneratorService initialized successfully');
     } catch (error) {
@@ -155,12 +196,45 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     }
   }
 
-  private async scanExistingSites(): Promise<void> {
+  /**
+   * Nettoyage périodique pour économiser la mémoire
+   */
+  private cleanupMemory(): void {
     try {
-      const items = await fs.readdir(this.outputDir);
+      // Forcer le garbage collection si disponible
+      if (global.gc) {
+        global.gc();
+      }
       
-      for (const item of items) {
-        const siteDir = path.join(this.outputDir, item);
+      // Nettoyer les anciens sites inactifs
+      const now = new Date();
+      const maxAge = 1800000; // 30 minutes
+      
+      for (const [hostId, site] of this.runningSites) {
+        if (now.getTime() - site.startedAt.getTime() > maxAge) {
+          this.logger.log(`Cleaning up old site: ${hostId}`);
+          this.stopSite(hostId).catch(err => 
+            this.logger.error(`Error cleaning up site ${hostId}: ${err.message}`)
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error during cleanup: ${error.message}`);
+    }
+  }
+
+private async scanExistingSites(): Promise<void> {
+  try {
+    if (!(await fs.pathExists(this.outputDir))) {
+      return;
+    }
+    
+    const items = await fs.readdir(this.outputDir);
+    
+    for (const item of items) {
+      const siteDir = path.join(this.outputDir, item);
+      
+      try {
         const stat = await fs.stat(siteDir);
         
         if (stat.isDirectory()) {
@@ -175,17 +249,25 @@ export class SiteGeneratorService implements OnApplicationShutdown {
             this.logger.log(`Found existing site: ${item}`);
           }
         }
+      } catch (statError) {
+        this.logger.warn(`Error checking site ${item}: ${statError.message}`);
       }
-      
-      this.logger.log(`Found ${this.sitesDatabase.size} existing sites`);
-    } catch (error) {
-      this.logger.error(`Error scanning existing sites: ${error.message}`);
     }
+    
+    this.logger.log(`Found ${this.sitesDatabase.size} existing sites`);
+  } catch (error) {
+    this.logger.error(`Error scanning existing sites: ${error.message}`);
+    // Ne pas throw l'erreur, juste la logger et continuer
   }
+  // Le return implicite est maintenant acceptable car toutes les branches retournent
+}
 
   private findAvailablePort(): Promise<number> {
     return new Promise((resolve, reject) => {
-      for (let port = this.startPort; port <= this.endPort; port++) {
+      // Utiliser une plage de ports plus haute pour éviter les conflits
+      const basePort = process.env.PORT ? parseInt(process.env.PORT) + 100 : 10000;
+      
+      for (let port = basePort; port <= basePort + 100; port++) {
         if (!this.usedPorts.has(port)) {
           this.usedPorts.add(port);
           return resolve(port);
@@ -200,109 +282,98 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     this.logger.log(`Released port ${port}`);
   }
 
-async stopSite(hostId: string): Promise<{ message: string }> {
-  // Vérifier d'abord dans la mémoire
-  if (!this.runningSites.has(hostId)) {
-      // Vérifier dans la base de données si le site est marqué comme en cours d'exécution
+  async stopSite(hostId: string): Promise<{ message: string }> {
+    if (!this.runningSites.has(hostId)) {
       const dbSiteInfo = await this.siteInfoModel.findOne({ 
-          hostId,
-          port: { $exists: true }
+        hostId,
+        port: { $exists: true }
       }).exec();
       
       if (!dbSiteInfo) {
-          return { message: `No running site found for host ${hostId}` };
+        return { message: `No running site found for host ${hostId}` };
       }
       
-      // Cas où le processus a crashé mais la base de données n'a pas été mise à jour
       return { message: `Site was marked as running but no process found. Cleaning database entry.` };
-  }
-  
-  const runningSite = this.runningSites.get(hostId)!;
-  
-  try {
-      // Nettoyer le timeout si existant
+    }
+    
+    const runningSite = this.runningSites.get(hostId)!;
+    
+    try {
       if (this.siteTimeouts.has(hostId)) {
-          clearTimeout(this.siteTimeouts.get(hostId)!);
-          this.siteTimeouts.delete(hostId);
+        clearTimeout(this.siteTimeouts.get(hostId)!);
+        this.siteTimeouts.delete(hostId);
       }
       
       this.logger.log(`Stopping site for host ${hostId} on port ${runningSite.port}`);
       
-      // Arrêter le processus
+      // Arrêt plus agressif pour libérer rapidement les ressources
       runningSite.process.kill('SIGTERM');
       
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Réduit à 1 seconde
       
       if (!runningSite.process.killed) {
-          runningSite.process.kill('SIGKILL');
+        runningSite.process.kill('SIGKILL');
       }
       
-      // Libérer le port et nettoyer
       this.releasePort(runningSite.port);
       this.runningSites.delete(hostId);
       
-      // Mettre à jour la base de données
       await this.siteInfoModel.updateOne(
-          { hostId },
-          { 
-              $unset: { 
-                  port: 1,
-                  url: 1 
-              },
-              lastStopped: new Date()
-          }
+        { hostId },
+        { 
+          $unset: { 
+            port: 1,
+            url: 1 
+          },
+          lastStopped: new Date()
+        }
       ).exec();
       
       return { message: `Site for host ${hostId} stopped successfully` };
-  } catch (error) {
+    } catch (error) {
       this.logger.error(`Error stopping site for ${hostId}: ${error.message}`);
       
-      // Nettoyer même en cas d'erreur
       this.runningSites.delete(hostId);
       this.releasePort(runningSite.port);
       
-      // Mettre à jour la base de données avec l'erreur
       await this.siteInfoModel.updateOne(
-          { hostId },
-          { 
-              $unset: { 
-                  port: 1,
-                  url: 1 
-              },
-              lastStopped: new Date(),
-              error: `Stop failed: ${error.message}`
-          }
+        { hostId },
+        { 
+          $unset: { 
+            port: 1,
+            url: 1 
+          },
+          lastStopped: new Date(),
+          error: `Stop failed: ${error.message}`
+        }
       ).exec();
       
       return { message: `Site for host ${hostId} stopped with errors` };
-  }
-}
-
-async getSitesStatus(): Promise<{ running: RunningSite[], all: SiteInfo[] }> {
-  // First sync with database to ensure latest data
-  const dbSiteInfos = await this.siteInfoModel.find().exec();
-  
-  // Update in-memory map with database records
-  for (const dbSite of dbSiteInfos) {
-    if (!this.sitesDatabase.has(dbSite.hostId)) {
-      this.sitesDatabase.set(dbSite.hostId, {
-        hostId: dbSite.hostId,
-        outputPath: dbSite.outputPath,
-        lastBuilt: dbSite.lastBuilt,
-        status: dbSite.status,
-        error: dbSite.error
-      });
     }
   }
-  
-  return {
-    running: Array.from(this.runningSites.values()),
-    all: Array.from(this.sitesDatabase.values())
-  };
-}
+
+  async getSitesStatus(): Promise<{ running: RunningSite[], all: SiteInfo[] }> {
+    const dbSiteInfos = await this.siteInfoModel.find().exec();
+    
+    for (const dbSite of dbSiteInfos) {
+      if (!this.sitesDatabase.has(dbSite.hostId)) {
+        this.sitesDatabase.set(dbSite.hostId, {
+          hostId: dbSite.hostId,
+          outputPath: dbSite.outputPath,
+          lastBuilt: dbSite.lastBuilt,
+          status: dbSite.status,
+          error: dbSite.error
+        });
+      }
+    }
+    
+    return {
+      running: Array.from(this.runningSites.values()),
+      all: Array.from(this.sitesDatabase.values())
+    };
+  }
 
   private resetSiteTimeout(hostId: string): void {
-    // Ne pas configurer de timeout si l'arrêt automatique est désactivé
     if (this.disableAutoShutdown) {
       if (this.siteTimeouts.has(hostId)) {
         clearTimeout(this.siteTimeouts.get(hostId)!);
@@ -349,6 +420,234 @@ async getSitesStatus(): Promise<{ running: RunningSite[], all: SiteInfo[] }> {
       throw error;
     }
   }
+
+  private async installCoreDependencies(): Promise<void> {
+    try {
+      const depsDir = path.dirname(this.sharedNodeModules);
+      const packageJsonPath = path.join(depsDir, 'package.json');
+      
+      if (!(await fs.pathExists(packageJsonPath))) {
+        // Package.json minimal pour réduire l'installation
+        const minimalPackageJson = {
+          name: "site-generator-dependencies",
+          version: "1.0.0",
+          private: true,
+          dependencies: {
+            // Versions spécifiques pour éviter les conflits
+            next: "13.4.19",
+            react: "18.2.0",
+            "react-dom": "18.2.0",
+            axios: "1.4.0"
+          }
+        };
+        
+        await fs.ensureDir(depsDir);
+        await fs.writeFile(packageJsonPath, JSON.stringify(minimalPackageJson, null, 2));
+      }
+      
+      this.logger.log(`Installing core dependencies in ${depsDir}...`);
+      
+      // Installation avec cache et optimisations pour Render
+      const installCmd = process.env.NODE_ENV === 'production' 
+        ? 'npm ci --production --no-audit --no-fund --prefer-offline'
+        : 'npm install --no-audit --no-fund';
+        
+      await this.executeCommand(depsDir, installCmd, 300000); // 5 minutes max
+      this.logger.log('Core dependencies installed successfully');
+    } catch (error) {
+      this.logger.error(`Failed to install core dependencies: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async generateSite(sitePath: string, hostId: string): Promise<{ message: string; url: string }> {
+    this.logger.log(`Starting site generation for ${hostId}...`);
+    
+    try {
+      // Vérifier les limites de ressources
+      if (!this.canStartNewSite()) {
+        await this.stopOldestSiteIfNeeded();
+      }
+      
+      const existingSite = await this.siteInfoModel.findOne({ hostId }).exec();
+      
+      if (existingSite?.status === 'ready') {
+        this.logger.log(`Site already exists for host ${hostId}, starting it...`);
+        return this.startSite(hostId);
+      }
+
+      const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+      if (!host) {
+        throw new Error(`Host with ID ${hostId} not found`);
+      }
+
+      const hostProperties = await this.propertyModel.find({ firebaseUid: hostId }).exec();
+      this.logger.log(`Found ${hostProperties.length} properties for host ${hostId}`);
+      
+      const hostData = {
+        hostId: host.firebaseUid,
+        domainName: host.domainName || host.firebaseUid,
+        hostName: host.isAgency ? host.businessName : `${host.firstName || ''} ${host.lastName || ''}`.trim(),
+        email: host.email,
+        firstName: host.firstName || '',
+        lastName: host.lastName || '',
+        isAgency: host.isAgency,
+        businessName: host.businessName || '',
+        country: host.country,
+        phoneNumber: host.phoneNumber,
+        apiUrl: this.apiServerUrl,
+        propertyCount: hostProperties.length
+      };
+
+      const outputDir = path.join(this.outputDir, hostId);
+
+      const newSiteInfo = new this.siteInfoModel({
+        hostId,
+        outputPath: outputDir,
+        status: 'building',
+        lastBuilt: new Date()
+      });
+      await newSiteInfo.save();
+
+      this.sitesDatabase.set(hostId, {
+        hostId,
+        outputPath: outputDir,
+        lastBuilt: new Date(),
+        status: 'building'
+      });
+
+      await this.prepareOutputDirectory(outputDir);
+      await this.generateFromTemplates(outputDir, hostData);
+      await this.setupDependencies(outputDir);
+      
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        { 
+          status: 'ready',
+          lastBuilt: new Date()
+        }
+      ).exec();
+
+      this.sitesDatabase.set(hostId, {
+        hostId,
+        outputPath: outputDir,
+        lastBuilt: new Date(),
+        status: 'ready'
+      });
+      
+      const result = await this.startSite(hostId);
+      
+      const updatedHost = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+      const domainName = updatedHost?.domainName || hostId;
+      
+      // URL adaptée pour Render
+      const baseUrl = process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
+      
+      return {
+        message: result.message,
+        url: `${baseUrl}/preview/${domainName}`
+      };
+    } catch (error) {
+      this.logger.error(`Failed to generate site for ${hostId}: ${error.message}`);
+      
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        { 
+          status: 'error',
+          error: error.message,
+          lastBuilt: new Date()
+        }
+      ).exec();
+
+      this.sitesDatabase.set(hostId, {
+        hostId,
+        outputPath: path.join(this.outputDir, hostId),
+        lastBuilt: new Date(),
+        status: 'error',
+        error: error.message
+      });
+      
+      throw new Error(`Site generation failed: ${error.message}`);
+    }
+  }
+
+  async startSite(hostId: string): Promise<{ message: string; url: string }> {
+    // Vérifier les limites avant de démarrer
+    if (!this.canStartNewSite()) {
+      await this.stopOldestSiteIfNeeded();
+    }
+    
+    const dbSiteInfo = await this.siteInfoModel.findOne({ hostId }).exec();
+    
+    if (!dbSiteInfo) {
+      throw new Error(`Site for host ${hostId} not found. Generate it first.`);
+    }
+    
+    if (!this.sitesDatabase.has(hostId)) {
+      this.sitesDatabase.set(hostId, {
+        hostId: dbSiteInfo.hostId,
+        outputPath: dbSiteInfo.outputPath,
+        lastBuilt: dbSiteInfo.lastBuilt,
+        status: dbSiteInfo.status,
+        error: dbSiteInfo.error
+      });
+    }
+
+    const siteInfo = this.sitesDatabase.get(hostId)!;
+    
+    if (siteInfo.status !== 'ready') {
+      throw new Error(`Site for host ${hostId} is not ready (status: ${siteInfo.status})`);
+    }
+    
+    if (this.runningSites.has(hostId)) {
+      const runningSite = this.runningSites.get(hostId)!;
+      this.resetSiteTimeout(hostId);
+      return {
+        message: 'Site is already running',
+        url: runningSite.url
+      };
+    }
+    
+    try {
+      const port = await this.findAvailablePort();
+      const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+      const domainName = host?.domainName || hostId;
+      
+      await this.startPreview(hostId, siteInfo.outputPath, port);
+      
+      // URL pour Render
+      const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+      const url = `${baseUrl}/preview/${domainName}`;
+        
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        { 
+          port,
+          url,
+          lastStarted: new Date()
+        }
+      ).exec();
+
+      return { 
+        message: 'Site started successfully', 
+        url 
+      };
+    } catch (error) {
+      this.logger.error(`Failed to start site for ${hostId}: ${error.message}`);
+      
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        { 
+          status: 'error',
+          error: `Startup failed: ${error.message}`
+        }
+      ).exec();
+
+      throw new Error(`Site startup failed: ${error.message}`);
+    }
+  }
+
+  
 
   private async createBaseTemplate(): Promise<void> {
     try {
@@ -603,203 +902,6 @@ body {
 }
 
 
-async generateSite(sitePath: string, hostId: string): Promise<{ message: string; url: string }> {
-  this.logger.log(`Starting site generation for ${hostId}...`);
-  
-  try {
-      // Vérifier si le site existe déjà en base de données
-      const existingSite = await this.siteInfoModel.findOne({ hostId }).exec();
-      
-      if (existingSite) {
-        this.logger.log(`Found existing site for ${hostId} with status: ${existingSite.status}`);
-      } else {
-        this.logger.log(`No existing site found for ${hostId}, will create new one`);
-      }
-      
-      if (existingSite && existingSite.status === 'ready') {
-        this.logger.log(`Site already exists for host ${hostId}, starting it...`);
-        return this.startSite(hostId);
-      }
-
-      // Récupérer les informations de l'hôte
-      const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
-      if (!host) {
-          throw new Error(`Host with ID ${hostId} not found`);
-      }
-      this.logger.log(`Host found: ${host.email}`);
-
-      // Récupérer les propriétés de l'hôte
-      const hostProperties = await this.propertyModel.find({ firebaseUid: hostId }).exec();
-      this.logger.log(`Found ${hostProperties.length} properties for host ${hostId}`);
-      
-      // Préparer les données pour le template
-      const hostData = {
-          hostId: host.firebaseUid,
-          domainName: host.domainName || host.firebaseUid,
-          hostName: host.isAgency ? host.businessName : `${host.firstName || ''} ${host.lastName || ''}`.trim(),
-          email: host.email,
-          firstName: host.firstName || '',
-          lastName: host.lastName || '',
-          isAgency: host.isAgency,
-          businessName: host.businessName || '',
-          country: host.country,
-          phoneNumber: host.phoneNumber,
-          apiUrl: this.apiServerUrl,
-          propertyCount: hostProperties.length
-      };
-
-      const outputDir = path.join(this.outputDir, hostId);
-
-      // Mettre à jour la base de données et la Map en mémoire
-      const newSiteInfo = new this.siteInfoModel({
-          hostId,
-          outputPath: outputDir,
-          status: 'building',
-          lastBuilt: new Date()
-      });
-      await newSiteInfo.save();
-
-      this.sitesDatabase.set(hostId, {
-          hostId,
-          outputPath: outputDir,
-          lastBuilt: new Date(),
-          status: 'building'
-      });
-
-      // Générer le site
-      await this.prepareOutputDirectory(outputDir);
-      await this.generateFromTemplates(outputDir, hostData);
-      await this.setupDependencies(outputDir);
-      
-      // Mettre à jour le statut après génération réussie
-      await this.siteInfoModel.updateOne(
-          { hostId },
-          { 
-              status: 'ready',
-              lastBuilt: new Date()
-          }
-      ).exec();
-
-      this.sitesDatabase.set(hostId, {
-          hostId,
-          outputPath: outputDir,
-          lastBuilt: new Date(),
-          status: 'ready'
-      });
-      
-      // Démarrer le site et retourner l'URL avec le domaine correct
-      const result = await this.startSite(hostId);
-      
-      // Récupérer à nouveau le host pour s'assurer d'avoir le bon domainName
-      const updatedHost = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
-      const domainName = updatedHost?.domainName || hostId;
-      
-      // Retourner l'URL avec le bon domaine
-      return {
-          message: result.message,
-          url: `http://${domainName}.localhost`
-      };
-  } catch (error) {
-      this.logger.error(`Failed to generate site for ${hostId}: ${error.message}`);
-      
-      // Mettre à jour le statut d'erreur dans la base de données
-      await this.siteInfoModel.updateOne(
-          { hostId },
-          { 
-              status: 'error',
-              error: error.message,
-              lastBuilt: new Date()
-          }
-      ).exec();
-
-      this.sitesDatabase.set(hostId, {
-          hostId,
-          outputPath: path.join(this.outputDir, hostId),
-          lastBuilt: new Date(),
-          status: 'error',
-          error: error.message
-      });
-      
-      throw new Error(`Site generation failed: ${error.message}`);
-  }
-}
-
-// Modifier aussi la méthode startSite pour utiliser le bon domaine
-async startSite(hostId: string): Promise<{ message: string; url: string }> {
-  // Vérifier d'abord dans la base de données
-  const dbSiteInfo = await this.siteInfoModel.findOne({ hostId }).exec();
-  
-  if (!dbSiteInfo) {
-      throw new Error(`Site for host ${hostId} not found. Generate it first.`);
-  }
-  
-  // Synchroniser avec la mémoire si nécessaire
-  if (!this.sitesDatabase.has(hostId)) {
-      this.sitesDatabase.set(hostId, {
-          hostId: dbSiteInfo.hostId,
-          outputPath: dbSiteInfo.outputPath,
-          lastBuilt: dbSiteInfo.lastBuilt,
-          status: dbSiteInfo.status,
-          error: dbSiteInfo.error
-      });
-  }
-
-  const siteInfo = this.sitesDatabase.get(hostId)!;
-  
-  if (siteInfo.status !== 'ready') {
-      throw new Error(`Site for host ${hostId} is not ready (status: ${siteInfo.status})`);
-  }
-  
-  if (this.runningSites.has(hostId)) {
-      const runningSite = this.runningSites.get(hostId)!;
-      this.resetSiteTimeout(hostId);
-      return {
-          message: 'Site is already running',
-          url: runningSite.url
-      };
-  }
-  
-  try {
-    const port = await this.findAvailablePort();
-    const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
-    const domainName = host?.domainName || hostId;
-    
-    await this.startPreview(hostId, siteInfo.outputPath, port);
-    
-    // Utiliser le domainName au lieu de l'hostId pour l'URL
-    const url = `http://${domainName}.localhost`;
-      
-    // Mettre à jour la base de données avec les infos de l'instance en cours
-    await this.siteInfoModel.updateOne(
-        { hostId },
-        { 
-            port,
-            url,
-            lastStarted: new Date()
-        }
-    ).exec();
-
-    return { 
-        message: 'Site started successfully', 
-        url 
-    };
-  } catch (error) {
-      this.logger.error(`Failed to start site for ${hostId}: ${error.message}`);
-      
-      // Enregistrer l'erreur dans la base de données
-      await this.siteInfoModel.updateOne(
-          { hostId },
-          { 
-              status: 'error',
-              error: `Startup failed: ${error.message}`
-          }
-      ).exec();
-
-      throw new Error(`Site startup failed: ${error.message}`);
-  }
-}
-
-
 /**
  * Create necessary configuration files for the template
  */
@@ -920,44 +1022,6 @@ NEXT_PUBLIC_API_URL=<%= apiUrl %>
 NEXT_PUBLIC_BASE_PATH=/<%= hostId %>
 `);
 }
-
-  private async installCoreDependencies(): Promise<void> {
-    try {
-      const depsDir = path.dirname(this.sharedNodeModules);
-      const packageJsonPath = path.join(depsDir, 'package.json');
-      
-      if (!(await fs.pathExists(packageJsonPath))) {
-        const minimalPackageJson = {
-          name: "site-generator-dependencies",
-          version: "1.0.0",
-          private: true,
-          dependencies: {
-            next: "^13.4.19",
-            react: "^18.2.0",
-            "react-dom": "^18.2.0",
-            axios: "^1.4.0",
-            ejs: "^3.1.9"
-          },
-          devDependencies: {
-            typescript: "^5.0.4",
-            "autoprefixer": "^10.4.14",
-            "postcss": "^8.4.24",
-            "tailwindcss": "^3.3.2"
-          }
-        };
-        
-        await fs.ensureDir(depsDir);
-        await fs.writeFile(packageJsonPath, JSON.stringify(minimalPackageJson, null, 2));
-      }
-      
-      this.logger.log(`Installing core dependencies in ${depsDir}...`);
-      await this.executeCommand(depsDir, 'npm install --no-audit --no-fund');
-      this.logger.log('Core dependencies installed successfully');
-    } catch (error) {
-      this.logger.error(`Failed to install core dependencies: ${error.message}`);
-      throw error;
-    }
-  }
 
   private async processEjsTemplates(dir: string, hostData: any): Promise<void> {
     try {

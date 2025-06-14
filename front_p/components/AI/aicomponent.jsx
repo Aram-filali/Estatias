@@ -7,9 +7,12 @@ const SEOContentGenerator = ({
   onTitleGenerated,
   onDescriptionGenerated,
   currentTitle = '',
-  currentDescription = ''
+  currentDescription = '',
+  isOpen: isOpenProp, // Nouvelle prop pour contrôler l'ouverture depuis l'extérieur
+  onClose: onCloseProp, // Nouvelle prop pour gérer la fermeture
+  onContentApplied // Nouvelle prop appelée quand le contenu est appliqué
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(isOpenProp || false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState(null);
@@ -21,168 +24,168 @@ const SEOContentGenerator = ({
   // Configuration de l'API
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
+  // Synchroniser l'état local avec la prop
+  useEffect(() => {
+    if (isOpenProp !== undefined) {
+      setIsOpen(isOpenProp);
+    }
+  }, [isOpenProp]);
+
   useEffect(() => {
     if (formData?.type && isOpen) {
       loadSuggestions();
     }
   }, [formData?.type, isOpen]);
 
- 
- const generateContent = async () => {
-  if (!userPrompt.trim()) {
-    setError('Please describe what you want to highlight in your listing');
-    return;
-  }
+  const generateContent = async () => {
+    if (!userPrompt.trim()) {
+      setError('Please describe what you want to highlight in your listing');
+      return;
+    }
 
-  setIsGenerating(true);
-  setError('');
+    setIsGenerating(true);
+    setError('');
 
-  try {
-    const requestData = {
-      propertyType: formData.type,
-      location: `${formData.city}, ${formData.state || ''}, ${formData.country}`.replace(', ,', ','),
-      bedrooms: parseInt(formData.bedrooms) || undefined,
-      bathrooms: parseInt(formData.bathrooms) || undefined,
-      amenities: formData.amenities ? Object.keys(formData.amenities).filter(key => formData.amenities[key]) : [],
-      userPrompt: userPrompt.trim(),
-      tone: 'professional',
-      language: 'en'
-    };
+    try {
+      const requestData = {
+        propertyType: formData.type,
+        location: `${formData.city}, ${formData.state || ''}, ${formData.country}`.replace(', ,', ','),
+        bedrooms: parseInt(formData.bedrooms) || undefined,
+        bathrooms: parseInt(formData.bathrooms) || undefined,
+        amenities: formData.amenities ? Object.keys(formData.amenities).filter(key => formData.amenities[key]) : [],
+        userPrompt: userPrompt.trim(),
+        tone: 'professional',
+        language: 'en'
+      };
 
-    console.log('Sending request:', requestData);
+      console.log('Sending request:', requestData);
 
-    // Try different possible endpoints
-    const possibleEndpoints = [
-      `${API_BASE_URL}/properties/ai/generate-content`,
-    ];
+      const possibleEndpoints = [
+        `${API_BASE_URL}/properties/ai/generate-content`,
+      ];
 
-    let response;
-    let lastError;
+      let response;
+      let lastError;
 
-    for (const endpoint of possibleEndpoints) {
-      try {
-        console.log(`Trying endpoint: ${endpoint}`);
-        
-        response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}` // If you use auth
-          },
-          body: JSON.stringify(requestData)
-        });
+      for (const endpoint of possibleEndpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify(requestData)
+          });
 
-        if (response.ok) {
-          console.log(`Success with endpoint: ${endpoint}`);
-          break;
-        } else if (response.status !== 404) {
-          // If it's not a 404, it means the endpoint exists but there's another error
-          lastError = new Error(`HTTP error! status: ${response.status}`);
-          break;
+          if (response.ok) {
+            console.log(`Success with endpoint: ${endpoint}`);
+            break;
+          } else if (response.status !== 404) {
+            lastError = new Error(`HTTP error! status: ${response.status}`);
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+          continue;
         }
-      } catch (error) {
-        lastError = error;
-        continue;
       }
-    }
 
-    if (!response || !response.ok) {
-      const errorText = await response?.text() || '';
-      console.error('Response error:', errorText);
-      
-      if (response?.status === 404) {
-        throw new Error('API endpoint not found. Please check your backend server configuration.');
-      } else if (errorText.includes('<!DOCTYPE html>')) {
-        throw new Error('Server returned HTML instead of JSON. The API endpoint may not exist.');
-      } else {
-        throw new Error(`HTTP error! status: ${response?.status}, message: ${errorText}`);
+      if (!response || !response.ok) {
+        const errorText = await response?.text() || '';
+        console.error('Response error:', errorText);
+        
+        if (response?.status === 404) {
+          throw new Error('API endpoint not found. Please check your backend server configuration.');
+        } else if (errorText.includes('<!DOCTYPE html>')) {
+          throw new Error('Server returned HTML instead of JSON. The API endpoint may not exist.');
+        } else {
+          throw new Error(`HTTP error! status: ${response?.status}, message: ${errorText}`);
+        }
       }
-    }
 
-    const data = await response.json();
-    console.log('Response received:', data);
-
-    // Handle different response formats
-    if (data && (data.title || data.data)) {
-      const content = data.data || data;
-      setGeneratedContent({
-        title: content.title,
-        description: content.description,
-        keywords: content.suggestions?.keywords || content.keywords || []
-      });
-      setError('');
-    } else {
-      setError('Invalid response format from server');
-    }
-  } catch (error) {
-    console.error('Generation error:', error);
-    
-    if (error.message.includes('404') || error.message.includes('not found')) {
-      setError('API endpoint not found. Please check your backend server and ensure the route is properly configured.');
-    } else if (error.message.includes('Unexpected token') || error.message.includes('HTML instead of JSON')) {
-      setError('Server configuration error. The API is returning HTML instead of JSON.');
-    } else if (error.message.includes('Failed to fetch')) {
-      setError('Connection error. Please check if your backend server is running on port 3001.');
-    } else {
-      setError(`Connection error: ${error.message}`);
-    }
-  } finally {
-    setIsGenerating(false);
-  }
-};
-
-// Also fix the loadSuggestions function
-const loadSuggestions = async () => {
-  try {
-    const possibleEndpoints = [
-      `${API_BASE_URL}/properties/ai/content-suggestions`,
-
-    ];
-
-    let response;
-    
-    for (const endpoint of possibleEndpoints) {
-      try {
-        response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          },
-          body: JSON.stringify({
-            propertyType: formData.type,
-            location: `${formData.city}, ${formData.country}`
-          })
-        });
-
-        if (response.ok) break;
-        if (response.status !== 404) break; // Stop if it's not a 404
-      } catch (error) {
-        continue;
-      }
-    }
-
-    if (response && response.ok) {
       const data = await response.json();
-      console.log('Suggestions received:', data);
+      console.log('Response received:', data);
 
-      if (Array.isArray(data)) {
-        setSuggestions(data);
-      } else if (data.data && Array.isArray(data.data)) {
-        setSuggestions(data.data);
+      if (data && (data.title || data.data)) {
+        const content = data.data || data;
+        setGeneratedContent({
+          title: content.title,
+          description: content.description,
+          keywords: content.suggestions?.keywords || content.keywords || []
+        });
+        setError('');
       } else {
-        setSuggestions([]);
+        setError('Invalid response format from server');
       }
-    } else {
-      // Fallback to default suggestions if API fails
+    } catch (error) {
+      console.error('Generation error:', error);
+      
+      if (error.message.includes('404') || error.message.includes('not found')) {
+        setError('API endpoint not found. Please check your backend server and ensure the route is properly configured.');
+      } else if (error.message.includes('Unexpected token') || error.message.includes('HTML instead of JSON')) {
+        setError('Server configuration error. The API is returning HTML instead of JSON.');
+      } else if (error.message.includes('Failed to fetch')) {
+        setError('Connection error. Please check if your backend server is running on port 3001.');
+      } else {
+        setError(`Connection error: ${error.message}`);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const loadSuggestions = async () => {
+    try {
+      const possibleEndpoints = [
+        `${API_BASE_URL}/properties/ai/content-suggestions`,
+      ];
+
+      let response;
+      
+      for (const endpoint of possibleEndpoints) {
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({
+              propertyType: formData.type,
+              location: `${formData.city}, ${formData.country}`
+            })
+          });
+
+          if (response.ok) break;
+          if (response.status !== 404) break;
+        } catch (error) {
+          continue;
+        }
+      }
+
+      if (response && response.ok) {
+        const data = await response.json();
+        console.log('Suggestions received:', data);
+
+        if (Array.isArray(data)) {
+          setSuggestions(data);
+        } else if (data.data && Array.isArray(data.data)) {
+          setSuggestions(data.data);
+        } else {
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions(getDefaultSuggestions(formData.type));
+      }
+    } catch (error) {
+      console.error('Error loading suggestions:', error);
       setSuggestions(getDefaultSuggestions(formData.type));
     }
-  } catch (error) {
-    console.error('Error loading suggestions:', error);
-    setSuggestions(getDefaultSuggestions(formData.type));
-  }
-};
-  // Suggestions par défaut en cas d'erreur
+  };
+
   const getDefaultSuggestions = (propertyType) => {
     const type = propertyType?.toLowerCase();
     
@@ -233,9 +236,15 @@ const loadSuggestions = async () => {
     if (generatedContent) {
       onTitleGenerated(generatedContent.title);
       onDescriptionGenerated(generatedContent.description);
-      setIsOpen(false);
-      setGeneratedContent(null);
-      setUserPrompt('');
+      
+      // Appeler onContentApplied si fourni (pour le flux SEO Boost)
+      if (onContentApplied) {
+        onContentApplied();
+      } else {
+        // Comportement original - fermer le dialog
+        setIsOpen(false);
+        resetDialog();
+      }
     }
   };
 
@@ -248,21 +257,33 @@ const loadSuggestions = async () => {
   };
 
   const handleClose = () => {
-    setIsOpen(false);
+    if (onCloseProp) {
+      // Si une fonction de fermeture est fournie, l'utiliser
+      onCloseProp();
+    } else {
+      // Comportement original
+      setIsOpen(false);
+    }
     resetDialog();
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true);
   };
 
   return (
     <>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={styles.triggerButton2}
-      >
-        <Sparkles className={styles.icon2} />
-        Boost my property
-      </button>
+      {/* Trigger Button - affiché seulement si pas contrôlé de l'extérieur */}
+      {!isOpenProp && (
+        <button
+          type="button"
+          onClick={handleOpen}
+          className={styles.triggerButton2}
+        >
+          <Sparkles className={styles.icon2} />
+          Boost my property
+        </button>
+      )}
 
       {/* Modal Overlay */}
       {isOpen && (
@@ -428,7 +449,7 @@ const loadSuggestions = async () => {
                       onClick={applyGeneratedContent}
                       className={styles.applyButton2}
                     >
-                      Apply to Listing
+                      {onContentApplied ? 'Apply & Continue' : 'Apply to Listing'}
                     </button>
                     <button
                       onClick={() => setGeneratedContent(null)}

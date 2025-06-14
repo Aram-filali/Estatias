@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { IoCalendarOutline } from 'react-icons/io5';
 import DateSelector from './DateSelector';
+import CalendarSyncPopup from './CalendarSync';
 import styles from './availabilityManager.module.css';
 
 const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [] }) => {
   const [availabilities, setAvailabilities] = useState(initialAvailabilities || []);
+  const [selectedSetupMethod, setSelectedSetupMethod] = useState('manual');
   const [currentAvailability, setCurrentAvailability] = useState({
     start_time: "",
     end_time: "",
@@ -31,6 +33,9 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
   });
 
   const [useComparisonPricing, setUseComparisonPricing] = useState(false);
+  
+  // État pour gérer l'affichage de la popup de synchronisation
+  const [showCalendarSyncPopup, setShowCalendarSyncPopup] = useState(false);
 
   useEffect(() => {
     const newErrors = {};
@@ -61,8 +66,6 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
       ...prevData,
       [name]: value,
     }));
-
-    
 
     if (!touched[name]) {
       setTouched(prev => ({
@@ -135,7 +138,7 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
 
     const availabilityToAdd = { 
       ...currentAvailability,
-      isPrice: useComparisonPricing // S'assurer que isPlace est correctement défini
+      isPrice: useComparisonPricing
     };
     
     if (!useComparisonPricing) {
@@ -153,7 +156,7 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
       price: "",
       otherPlatformPrice: "",
       touristTax: "",
-      isPrice: useComparisonPricing // Conserver la valeur actuelle de isPlace
+      isPrice: useComparisonPricing
     });
 
     setTouched({
@@ -277,10 +280,99 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
     return touched[fieldName] && errors[fieldName];
   };
 
+  // Fonction pour ouvrir la popup de synchronisation
+  const handleSynchronizeWithPlatforms = (e) => {
+    // Empêcher la soumission du formulaire
+    e.preventDefault();
+    e.stopPropagation();
+    setShowCalendarSyncPopup(true);
+  };
+
+  // Fonction pour fermer la popup de synchronisation
+  const handleCloseCalendarSync = () => {
+    setShowCalendarSyncPopup(false);
+  };
+
+  // Fonction pour gérer la synchronisation réussie
+const handleSyncSuccess = (syncedData) => {
+  // Traiter les données synchronisées
+  console.log("Synchronized data:", syncedData);
+  
+  // Vérifier si nous avons des données valides
+  if (syncedData && syncedData.availabilities && syncedData.availabilities.length > 0) {
+    // Les données sont déjà dans le bon format depuis CalendarSyncPopup
+    const formattedAvailabilities = syncedData.availabilities.map(item => ({
+      start_time: item.start_time,
+      end_time: item.end_time,
+      price: item.price,
+      otherPlatformPrice: item.otherPlatformPrice,
+      touristTax: item.touristTax,
+      isPrice: item.isPrice
+    }));
+    
+    // Ajouter les nouvelles disponibilités synchronisées
+    setAvailabilities(prevAvailabilities => [
+      ...prevAvailabilities,
+      ...formattedAvailabilities
+    ]);
+    
+    console.log("Added availabilities:", formattedAvailabilities);
+  } else {
+    console.log("No availabilities to add");
+  }
+  
+  // Fermer la popup
+  setShowCalendarSyncPopup(false);
+};
+
   return (
     <section className={styles.availManagerSection}>
       <h2>2. Property Availability</h2>
 
+      {/* Container de sélection d'availability */}
+      <div className={styles.availabilitySetupContainer}>
+        <h3 className={styles.availabilitySetupTitle}>How would you like to set up your availability?</h3>
+        
+        <div className={styles.availabilitySetupOptions}>
+          <div 
+            className={`${styles.availabilitySetupOption} ${selectedSetupMethod === 'manual' ? styles.availabilitySetupOptionActive : ''}`}
+            onClick={() => setSelectedSetupMethod('manual')}
+          >
+            <div className={styles.availabilitySetupOptionIcon}>📅</div>
+            <div className={styles.availabilitySetupOptionContent}>
+              <h4 className={styles.availabilitySetupOptionTitle}>Manual Calendar Setup</h4>
+              <p className={styles.availabilitySetupOptionDescription}>
+                Perfect for new hosts or those who prefer manual control. Set your dates and prices directly using our calendar.
+              </p>
+              <div className={styles.availabilitySetupOptionStatus}>
+                ✓ Active - Use the calendar below
+              </div>
+            </div>
+          </div>
+
+          <div 
+            className={`${styles.availabilitySetupOption} ${selectedSetupMethod === 'import' ? styles.availabilitySetupOptionActive : ''}`}
+            onClick={() => setSelectedSetupMethod('import')}
+          >
+            <div className={styles.availabilitySetupOptionIcon}>🔄</div>
+            <div className={styles.availabilitySetupOptionContent}>
+              <h4 className={styles.availabilitySetupOptionTitle}>Import from Other Platforms</h4>
+              <p className={styles.availabilitySetupOptionDescription}>
+                Already hosting on Airbnb, Booking.com, or HomeToGo? Import your existing calendar to save time.
+              </p>
+              <button 
+                type="button"
+                className={styles.availabilitySetupSyncButton}
+                onClick={handleSynchronizeWithPlatforms}
+              >
+                📅 Synchronize with other platforms
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendrier manuel toujours affiché */}
       <div className={styles.availManagerContainer}>
         <div className={styles.availManagerCalendarSection}>
           <DateSelector
@@ -417,6 +509,7 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
                   {avail.touristTax && ` (Tax: ${avail.touristTax}%)`}
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleRemoveAvailability(index)}
                   className={styles.availManagerRemoveButton}
                 >
@@ -427,6 +520,13 @@ const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [
           </ul>
         </div>
       )}
+
+      {/* Popup de synchronisation des calendriers */}
+      <CalendarSyncPopup
+        isOpen={showCalendarSyncPopup}
+        onClose={handleCloseCalendarSync}
+        onSyncComplete={handleSyncSuccess}
+      />
     </section>
   );
 };

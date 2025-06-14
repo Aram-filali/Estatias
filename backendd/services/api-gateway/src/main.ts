@@ -10,6 +10,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3000',
       'http://localhost:3001', 
+      'http://localhost:3002', 
       'https://your-frontend.vercel.app',
       'https://your-front-p.vercel.app',
       /https:\/\/.*\.vercel\.app$/,  // Sites générés dynamiquement

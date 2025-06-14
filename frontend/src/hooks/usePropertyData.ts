@@ -6,6 +6,9 @@ import { auth } from '../firebase';
 const API_URL = 'http://localhost:3000/properties';
 const API_TIMEOUT = 30000;
 
+// Récupérer l'ID de l'hôte depuis les variables d'environnement
+const HOST_ID = process.env.NEXT_PUBLIC_HOST_ID;
+
 export function usePropertyData() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +41,20 @@ export function usePropertyData() {
     }
   }, []);
 
+  // Modifier cette méthode pour récupérer les propriétés par hostId
   const getProperties = useCallback(async (): Promise<Property[]> => {
-    const user = auth.currentUser;
-    if (!user) return [];
+    if (!HOST_ID) {
+      console.error("HOST_ID not found in environment variables");
+      setError("Configuration error: HOST_ID not found");
+      return [];
+    }
 
     try {
-      const token = await getIdToken();
-      const response = await axios.get(API_URL, {
+      // Utiliser l'endpoint qui récupère les propriétés par hostId
+      const response = await axios.get(`${API_URL}/host/${HOST_ID}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        params: { uid: user.uid },
         timeout: API_TIMEOUT
       });
 
@@ -71,12 +76,11 @@ export function usePropertyData() {
       console.error('Error fetching properties:', axiosErr);
       return [];
     }
-  }, [getIdToken]);
+  }, []); // Pas besoin de getIdToken ici car on n'utilise plus l'auth pour récupérer les propriétés
 
   const loadProperties = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      setError("Vous devez être connecté pour accéder à vos propriétés");
+    if (!HOST_ID) {
+      setError("Configuration error: HOST_ID not found");
       setIsLoading(false);
       return;
     }
@@ -85,8 +89,10 @@ export function usePropertyData() {
     try {
       const data = await getProperties();
       setProperties(data);
+      setError(null); // Clear any previous errors
     } catch (err) {
       console.error('Erreur lors du chargement des propriétés:', err);
+      setError('Failed to load properties');
     } finally {
       setIsLoading(false);
     }
@@ -94,75 +100,53 @@ export function usePropertyData() {
 
   const refreshProperties = useCallback(() => loadProperties(), [loadProperties]);
 
-
-
   const getPropertyById = useCallback(async (id: string): Promise<Property | null> => {
-    return new Promise((resolve) => {
-      // Use onAuthStateChanged to ensure we have the latest auth state
-      const unsubscribe = auth.onAuthStateChanged(async (user) => {
-        // Unsubscribe immediately to prevent memory leaks
-        unsubscribe();
-
-        try {
-          if (!user) {
-            console.error("No authenticated user for property fetch");
-            setError("Authentication required to view property");
-            resolve(null);
-            return;
-          }
-
-          console.log('Attempting to fetch property with ID:', id);
-          
-          // Get the token with careful error handling
-          const token = await getIdToken();
-          
-          const response = await axios.get(`${API_URL}/${id}`, {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: API_TIMEOUT,
-            transformResponse: [
-              (data) => {
-                try {
-                  const parsed = JSON.parse(data);
-                  console.log('Raw property data:', parsed);
-                  return {
-                    ...parsed,
-                    id: parsed._id || parsed.id,
-                  };
-                } catch (parseError) {
-                  console.error('Failed to parse property data:', parseError);
-                  return null;
-                }
-              }
-            ]
-          });
-    
-          console.log('Property fetch response:', response.data);
-          resolve(response.data);
-        } catch (err) {
-          console.error('Error fetching property by ID:', err);
-          
-          // More detailed error handling
-          if (axios.isAxiosError(err)) {
-            if (err.response?.status === 401) {
-              setError("Unauthorized. Please log in again.");
-            } else if (err.response?.status === 404) {
-              setError("Property not found");
-            } else {
-              setError("Failed to fetch property details");
+    try {
+      console.log('Attempting to fetch property with ID:', id);
+      
+      const response = await axios.get(`${API_URL}/${id}`, {
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        timeout: API_TIMEOUT,
+        transformResponse: [
+          (data) => {
+            try {
+              const parsed = JSON.parse(data);
+              console.log('Raw property data:', parsed);
+              return {
+                ...parsed,
+                id: parsed._id || parsed.id,
+              };
+            } catch (parseError) {
+              console.error('Failed to parse property data:', parseError);
+              return null;
             }
-          } else {
-            setError("An unexpected error occurred");
           }
-          
-          resolve(null);
-        }
+        ]
       });
-    });
-  }, [getIdToken]);
 
+      console.log('Property fetch response:', response.data);
+      return response.data;
+    } catch (err) {
+      console.error('Error fetching property by ID:', err);
+      
+      // More detailed error handling
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 404) {
+          setError("Property not found");
+        } else {
+          setError("Failed to fetch property details");
+        }
+      } else {
+        setError("An unexpected error occurred");
+      }
+      
+      return null;
+    }
+  }, []);
+
+  // Ces méthodes nécessitent toujours une authentification
   const updateProperty = useCallback(async (id: string, data: FormData) => {
     const token = await getIdToken();
     const response = await axios.patch(`${API_URL}/${id}`, data, {
@@ -207,19 +191,17 @@ export function usePropertyData() {
     }
   }, [getIdToken, refreshProperties]);
 
-
-
+  // Modifier useEffect pour charger les propriétés sans authentification
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setCurrentUser(user);
-      if (user) {
-        loadProperties();
-      } else {
-        setProperties([]);
-        setError("Authentification requise");
-        setIsLoading(false);
-      }
+      // Charger les propriétés même si l'utilisateur n'est pas connecté
+      // car on récupère les propriétés d'un hôte spécifique
+      loadProperties();
     });
+
+    // Charger les propriétés immédiatement
+    loadProperties();
 
     return () => unsubscribe();
   }, [loadProperties]);
