@@ -607,32 +607,22 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
   this.logger.log(`Starting site generation for ${hostId}...`);
   
   try {
-      // Vérifier si le site existe déjà en base de données
       const existingSite = await this.siteInfoModel.findOne({ hostId }).exec();
       
-      if (existingSite) {
-        this.logger.log(`Found existing site for ${hostId} with status: ${existingSite.status}`);
-      } else {
-        this.logger.log(`No existing site found for ${hostId}, will create new one`);
-      }
-      
       if (existingSite && existingSite.status === 'ready') {
-        this.logger.log(`Site already exists for host ${hostId}, starting it...`);
-        return this.startSite(hostId);
+        this.logger.log(`Site already exists for host ${hostId}, deploying to Vercel...`);
+        return this.deployToVercel(hostId);
       }
 
-      // Récupérer les informations de l'hôte
       const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
       if (!host) {
           throw new Error(`Host with ID ${hostId} not found`);
       }
       this.logger.log(`Host found: ${host.email}`);
 
-      // Récupérer les propriétés de l'hôte
       const hostProperties = await this.propertyModel.find({ firebaseUid: hostId }).exec();
       this.logger.log(`Found ${hostProperties.length} properties for host ${hostId}`);
       
-      // Préparer les données pour le template
       const hostData = {
           hostId: host.firebaseUid,
           domainName: host.domainName || host.firebaseUid,
@@ -645,12 +635,12 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
           country: host.country,
           phoneNumber: host.phoneNumber,
           apiUrl: this.apiServerUrl,
-          propertyCount: hostProperties.length
+          propertyCount: hostProperties.length,
+          fullDomain: `${host.domainName || host.firebaseUid}.estatias.com`
       };
 
       const outputDir = path.join(this.outputDir, hostId);
 
-      // Mettre à jour la base de données et la Map en mémoire
       const newSiteInfo = new this.siteInfoModel({
           hostId,
           outputPath: outputDir,
@@ -666,12 +656,10 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
           status: 'building'
       });
 
-      // Générer le site
       await this.prepareOutputDirectory(outputDir);
       await this.generateFromTemplates(outputDir, hostData);
       await this.setupDependencies(outputDir);
       
-      // Mettre à jour le statut après génération réussie
       await this.siteInfoModel.updateOne(
           { hostId },
           { 
@@ -687,22 +675,16 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
           status: 'ready'
       });
       
-      // Démarrer le site et retourner l'URL avec le domaine correct
-      const result = await this.startSite(hostId);
+      // Déployer sur Vercel au lieu de démarrer localement
+      const result = await this.deployToVercel(hostId);
       
-      // Récupérer à nouveau le host pour s'assurer d'avoir le bon domainName
-      const updatedHost = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
-      const domainName = updatedHost?.domainName || hostId;
-      
-      // Retourner l'URL avec le bon domaine
       return {
           message: result.message,
-          url: `http://${domainName}.localhost`
+          url: `https://${hostData.fullDomain}`
       };
   } catch (error) {
       this.logger.error(`Failed to generate site for ${hostId}: ${error.message}`);
       
-      // Mettre à jour le statut d'erreur dans la base de données
       await this.siteInfoModel.updateOne(
           { hostId },
           { 
@@ -721,6 +703,112 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
       });
       
       throw new Error(`Site generation failed: ${error.message}`);
+  }
+}
+
+private async deployToVercel(hostId: string): Promise<{ message: string; url: string }> {
+  try {
+    const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+    const domainName = host?.domainName || hostId;
+    const fullDomain = `${domainName}.estatias.com`;
+    
+    this.logger.log(`Deploying site for ${hostId} to Vercel with domain ${fullDomain}...`);
+    
+    // Créer un projet Vercel dynamiquement via API
+    const vercelResponse = await fetch('https://api.vercel.com/v9/projects', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VERCEL_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: `estatias-${domainName}`,
+        framework: 'nextjs',
+        environmentVariables: [
+          {
+            key: 'NEXT_PUBLIC_HOST_ID',
+            value: hostId,
+            type: 'encrypted',
+            target: ['production']
+          },
+          {
+            key: 'NEXT_PUBLIC_DOMAIN_NAME',
+            value: domainName,
+            type: 'encrypted',
+            target: ['production']
+          },
+          {
+            key: 'NEXT_PUBLIC_API_URL',
+            value: this.apiServerUrl,
+            type: 'encrypted',
+            target: ['production']
+          },
+          {
+            key: 'NEXT_PUBLIC_MAIN_DOMAIN',
+            value: 'estatias.com',
+            type: 'encrypted',
+            target: ['production']
+          }
+        ]
+      })
+    });
+
+    if (!vercelResponse.ok) {
+      throw new Error(`Vercel project creation failed: ${vercelResponse.statusText}`);
+    }
+
+    const projectData = await vercelResponse.json();
+    
+    // Configurer le domaine personnalisé
+    await this.configureVercelDomain(projectData.id, fullDomain);
+    
+    // Mettre à jour la base de données
+    await this.siteInfoModel.updateOne(
+      { hostId },
+      { 
+        vercelProjectId: projectData.id,
+        vercelUrl: projectData.link,
+        customDomain: fullDomain,
+        status: 'ready'
+      }
+    ).exec();
+
+    return {
+      message: 'Site deployed successfully to Vercel',
+      url: `https://${fullDomain}`
+    };
+    
+  } catch (error) {
+    this.logger.error(`Vercel deployment failed for ${hostId}: ${error.message}`);
+    throw error;
+  }
+}
+
+private async configureVercelDomain(projectId: string, domain: string): Promise<void> {
+  try {
+    this.logger.log(`Configuring custom domain ${domain} for Vercel project ${projectId}...`);
+    
+    // Ajouter le domaine personnalisé au projet Vercel
+    const domainResponse = await fetch(`https://api.vercel.com/v9/projects/${projectId}/domains`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VERCEL_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: domain,
+        redirect: null
+      })
+    });
+
+    if (!domainResponse.ok) {
+      throw new Error(`Domain configuration failed: ${domainResponse.statusText}`);
+    }
+
+    this.logger.log(`Domain ${domain} configured successfully`);
+  } catch (error) {
+    this.logger.error(`Error configuring domain: ${error.message}`);
+    throw error;
   }
 }
 
@@ -831,24 +919,40 @@ private async createTemplateConfigFiles(): Promise<void> {
   };
 
   // next.config.js template
-  const nextConfigTs = `const nextConfig = {
+const nextConfigTs = `const nextConfig = {
   reactStrictMode: true,
+  trailingSlash: true,
   async rewrites() {
     return [
       {
-        source: '/:hostId',
-        destination: '/'
-      },
-      {
-        source: '/:hostId/:path*',
+        source: '/:path*',
         destination: '/:path*'
       }
     ]
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      }
+    ]
+  },
+  env: {
+    HOST_DOMAIN: process.env.NEXT_PUBLIC_FULL_DOMAIN
   }
 }
 
-module.exports = nextConfig
-`;
+module.exports = nextConfig`;
     
   // tailwind.config.js
   const tailwindConfig = `/** @type {import('tailwindcss').Config} */
@@ -907,7 +1011,7 @@ module.exports = {
 
   // Write all config files
   await fs.writeFile(path.join(this.templateDir, 'package.json'), JSON.stringify(packageJson, null, 2));
-  await fs.writeFile(path.join(this.templateDir, 'next.config.js'), nextConfigTs);
+await fs.writeFile(path.join(this.templateDir, 'next.config.js'), nextConfigTs);
   await fs.writeFile(path.join(this.templateDir, 'tailwind.config.js'), tailwindConfig);
   await fs.writeFile(path.join(this.templateDir, 'postcss.config.js'), postcssConfig);
   await fs.writeFile(path.join(this.templateDir, 'tsconfig.json'), tsConfig);
@@ -1263,35 +1367,34 @@ private async startPreview(hostId: string, siteDir: string, port: number): Promi
 
 private async createEnvFile(dir: string, hostData: any): Promise<void> {
   try {
-    // Récupérer le host pour obtenir le domainName
     const host = await this.hostModel.findOne({ firebaseUid: hostData.hostId }).exec();
     const domainName = host?.domainName || hostData.hostId;
+    const fullDomain = `${domainName}.estatias.com`;
     
     const envTemplate = `NEXT_PUBLIC_HOST_ID=${hostData.hostId}
-      NEXT_PUBLIC_HOST_NAME=${hostData.hostName}
-      NEXT_PUBLIC_DOMAIN_NAME=${domainName}
-      NEXT_PUBLIC_DOMAIN=${domainName}.localhost
-      NEXT_PUBLIC_API_URL=${this.apiServerUrl}
-      NEXT_PUBLIC_BASE_PATH=/${domainName}
-      NEXT_PUBLIC_FIREBASE_API_KEY=${process.env.FIREBASE_API_KEY}
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${process.env.FIREBASE_AUTH_DOMAIN}
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID=${process.env.FIREBASE_PROJECT_ID}
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${process.env.FIREBASE_STORAGE_BUCKET}
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${process.env.FIREBASE_MESSAGING_SENDER_ID}
-      NEXT_PUBLIC_FIREBASE_APP_ID=${process.env.FIREBASE_APP_ID}
-      NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${process.env.FIREBASE_MEASUREMENT_ID}
-      `;
+NEXT_PUBLIC_HOST_NAME=${hostData.hostName}
+NEXT_PUBLIC_DOMAIN_NAME=${domainName}
+NEXT_PUBLIC_FULL_DOMAIN=${fullDomain}
+NEXT_PUBLIC_MAIN_DOMAIN=estatias.com
+NEXT_PUBLIC_API_URL=${this.apiServerUrl}
+NEXT_PUBLIC_BASE_URL=https://${fullDomain}
+NEXT_PUBLIC_FIREBASE_API_KEY=${process.env.FIREBASE_API_KEY}
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${process.env.FIREBASE_AUTH_DOMAIN}
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=${process.env.FIREBASE_PROJECT_ID}
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${process.env.FIREBASE_STORAGE_BUCKET}
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${process.env.FIREBASE_MESSAGING_SENDER_ID}
+NEXT_PUBLIC_FIREBASE_APP_ID=${process.env.FIREBASE_APP_ID}
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${process.env.FIREBASE_MEASUREMENT_ID}`;
 
     const envOutputPath = path.join(dir, '.env.local');
     await fs.writeFile(envOutputPath, envTemplate.trim());
 
-    this.logger.log(`Created .env.local file for host ${hostData.hostId} with domain ${domainName}`);
+    this.logger.log(`Created .env.local file for host ${hostData.hostId} with domain ${fullDomain}`);
   } catch (error) {
     this.logger.error(`Error creating .env file: ${error.message}`);
     throw error;
   }
 }
-
   /*async deleteSite(hostId: string): Promise<{ message: string }> {
     try {
       this.logger.log(`Attempting to delete site for host ${hostId}`);
