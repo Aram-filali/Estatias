@@ -52,11 +52,11 @@ export class NotificationService {
 
   async sendStatusUpdateEmail(hostId: string, newStatus: string) {
     try {
-      // Find the host by ID
-      const host = await this.hostModel.findById(hostId).exec();
+      // Find the host by firebaseUid instead of MongoDB _id
+      const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
       
       if (!host) {
-        console.log(`Host not found with ID: ${hostId}`);
+        console.log(`Host not found with firebaseUid: ${hostId}`);
         return false;
       }
 
@@ -105,6 +105,63 @@ export class NotificationService {
       throw new Error('Error sending status update email: ' + JSON.stringify({code: error.code, message: error.message}));
     }
   }
+
+  async sendPropertyStatusUpdateEmail(hostId: string, newStatus: string) {
+    try {
+      // Find the host by firebaseUid instead of MongoDB _id
+      const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+      
+      if (!host) {
+        console.log(`Host not found with firebaseUid: ${hostId}`);
+        return false;
+      }
+
+      const hostEmail = host.email;
+      const hostName = 'Dear Host';
+
+      let subject: string;
+      let emailContent: { text: string; html: string };
+
+      switch (newStatus.toLowerCase()) {
+        case 'approved':
+          subject = '🎉 Your Property Has Been Approved!';
+          emailContent = this.getPropertyApprovedEmailContent(hostName);
+          break;
+        case 'rejected':
+          subject = '❌ Property Application Update';
+          emailContent = this.getPropertyRejectedEmailContent(hostName);
+          break;
+        case 'suspended':
+          subject = '⚠️ Property Status Update - Action Required';
+          emailContent = this.getPropertySuspendedEmailContent(hostName);
+          break;
+        default:
+          console.log(`Unknown status: ${newStatus}`);
+          return false;
+      }
+
+      const info = await this.transporter.sendMail({
+        from: `"${this.fromName}" <${this.fromEmail}>`,
+        to: hostEmail,
+        subject: subject,
+        text: emailContent.text,
+        html: emailContent.html
+      });
+
+      console.log(`📩 Property status update email sent successfully to ${hostEmail}:`, info.messageId);
+      return true;
+    } catch (error) {
+      console.error('❌ Error sending property status update email:', {
+        name: error.name,
+        code: error.code,
+        message: error.message,
+        responseCode: error.responseCode,
+        response: error.response
+      });
+      throw new Error('Error sending status update email: ' + JSON.stringify({code: error.code, message: error.message}));
+    }
+  }
+
 
   private getApprovedEmailContent(hostName: string): { text: string; html: string } {
     const text = `
@@ -244,6 +301,147 @@ export class NotificationService {
         </div>
         
         <p>We appreciate your prompt attention to this matter and look forward to resolving this issue quickly.</p>
+        
+        <p style="margin-top: 30px;">Best regards,<br><strong>The Support Team</strong></p>
+      </div>
+    `;
+
+    return { text: text.trim(), html };
+  }
+
+
+
+  // New property status email templates
+  private getPropertyApprovedEmailContent(hostName: string): { text: string; html: string } {
+    const text = `
+      Hello ${hostName},
+
+      Great news! Your property has been approved and is now live on our platform.
+
+      Your property is now visible to potential guests and you can start receiving bookings.
+
+      Access your dashboard to manage your property: ${this.dashboardUrl}
+
+      If you have any questions, please don't hesitate to contact our support team.
+
+      Best regards,
+      The Support Team
+    `;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #28a745; margin-bottom: 10px;">🎉 Congratulations!</h1>
+          <h2 style="color: #4a4a4a; margin-top: 0;">Your Property Has Been Approved</h2>
+        </div>
+        
+        <p>Hello <strong>${hostName}</strong>,</p>
+        
+        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Great news!</strong> Your property has been approved and is now live on our platform.</p>
+        </div>
+        
+        <p>Your property is now visible to potential guests and you can start receiving bookings.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.dashboardUrl}" style="background-color: #28a745; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Manage Property</a>
+        </div>
+        
+        <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+        
+        <p style="margin-top: 30px;">Best regards,<br><strong>The Support Team</strong></p>
+      </div>
+    `;
+
+    return { text: text.trim(), html };
+  }
+
+  private getPropertyRejectedEmailContent(hostName: string): { text: string; html: string } {
+    const text = `
+      Hello ${hostName},
+
+      We regret to inform you that your property application has been rejected.
+
+      This may be due to incomplete information, policy violations, or other quality standards.
+
+      Please review your property details and resubmit your application if you believe this was an error.
+
+      Access your dashboard: ${this.dashboardUrl}
+
+      If you have questions about the rejection, please contact our support team.
+
+      Best regards,
+      The Support Team
+    `;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #dc3545; margin-bottom: 10px;">❌ Application Update</h1>
+          <h2 style="color: #4a4a4a; margin-top: 0;">Property Application Status</h2>
+        </div>
+        
+        <p>Hello <strong>${hostName}</strong>,</p>
+        
+        <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;">We regret to inform you that your property application has been rejected.</p>
+        </div>
+        
+        <p>This may be due to incomplete information, policy violations, or other quality standards.</p>
+        <p>Please review your property details and resubmit your application if you believe this was an error.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.dashboardUrl}" style="background-color: #dc3545; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Review Property</a>
+        </div>
+        
+        <p>If you have questions about the rejection, please contact our support team.</p>
+        
+        <p style="margin-top: 30px;">Best regards,<br><strong>The Support Team</strong></p>
+      </div>
+    `;
+
+    return { text: text.trim(), html };
+  }
+
+  private getPropertySuspendedEmailContent(hostName: string): { text: string; html: string } {
+    const text = `
+      Hello ${hostName},
+
+      Your property has been temporarily suspended from our platform.
+
+      This suspension may be due to policy violations, guest complaints, or other quality issues.
+
+      Your property is no longer visible to guests until the issue is resolved.
+
+      Please contact our support team immediately to resolve this matter.
+
+      Access your dashboard: ${this.dashboardUrl}
+
+      Best regards,
+      The Support Team
+    `;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #ffc107; margin-bottom: 10px;">⚠️ Action Required</h1>
+          <h2 style="color: #4a4a4a; margin-top: 0;">Property Suspended</h2>
+        </div>
+        
+        <p>Hello <strong>${hostName}</strong>,</p>
+        
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Important:</strong> Your property has been temporarily suspended from our platform.</p>
+        </div>
+        
+        <p>This suspension may be due to policy violations, guest complaints, or other quality issues.</p>
+        <p>Your property is no longer visible to guests until the issue is resolved.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.dashboardUrl}" style="background-color: #ffc107; color: #212529; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Contact Support</a>
+        </div>
+        
+        <p><strong>Please contact our support team immediately to resolve this matter.</strong></p>
         
         <p style="margin-top: 30px;">Best regards,<br><strong>The Support Team</strong></p>
       </div>

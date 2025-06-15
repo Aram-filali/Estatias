@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart, List, Users, Home, Bell } from 'lucide-react';
+import { BarChart, List, Users, Home, Bell , Calendar} from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, completeSignOut } from "@/contexts/firebaseConfig";
@@ -15,7 +15,7 @@ export default function Sidebar() {
     { name: 'Analytics', href: '/adminn/analytics', icon: BarChart },
     { name: 'Listings', href: '/adminn/listings', icon: List },
     { name: 'Hosts', href: '/adminn/hosts', icon: Users },
-    { name: 'Notifications', href: '/adminn/notifications', icon: Bell },
+    { name: 'Bookings', href: '/adminn/bookings', icon: Calendar }, // Changed from Notifications
   ];
 
   const handleLogout = async () => {
@@ -67,7 +67,7 @@ export default function Sidebar() {
           </div>
         </div>
         <div className={styles.sidebarUserInfo}>
-          <p className={styles.sidebarUserName}>services team member</p>
+          <p className={styles.sidebarUserName}>support team member</p>
           <p className={styles.sidebarUserEmail}>estatias.services@mail.com</p>
         </div>
 

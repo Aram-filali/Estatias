@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { PropertyController } from './app.controller';
 import { PropertyService } from './app.service';
 import { PropertySchema, Property } from './schema/property.schema';  // Importer le schéma
@@ -17,7 +18,18 @@ import { AIModule } from './AI/ai.module';
     MongooseModule.forFeature([{ name: Property.name, schema: PropertySchema }]),
     DatabaseModule,
     MessagingModule,
-    AIModule
+    AIModule,
+    // Add ClientsModule for communicating with host service
+    ClientsModule.register([
+      {
+        name: 'HOST_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.HOST_SERVICE_HOST || 'localhost',
+          port: 3003,
+        },
+      },
+    ]),
   ],
   controllers: [PropertyController],
   providers: [PropertyService],

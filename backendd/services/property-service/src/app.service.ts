@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, HttpException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, HttpException, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Property } from './schema/property.schema';
@@ -16,9 +16,10 @@ import * as mongoose from 'mongoose';
 
 @Injectable()
 export class PropertyService {
+    private readonly logger = new Logger(PropertyService.name);
   constructor(
-    @InjectModel(Property.name) private propertyModel: Model<Property>,
-    @Inject('HOST_SERVICE') private hostClient: ClientProxy,
+    @InjectModel(Property.name) private readonly propertyModel: Model<Property>,
+    @Inject('HOST_SERVICE') private readonly hostClient: ClientProxy,
   ) {}
   
   /* Validates property type specific fields */
@@ -166,6 +167,92 @@ export class PropertyService {
       throw new BadRequestException(`Failed to fetch properties for user: ${error.message}`);
     }
   }
+
+
+  /**
+   * Update property status by ID
+   */
+  async updatePropertyStatus(id: string, status: string): Promise<Property> {
+    try {
+      console.log(`Updating property ${id} status to: ${status}`);
+
+      // Validation de l'ID MongoDB
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid property ID format');
+      }
+
+      // Validation des statuts autorisés
+      const allowedStatuses = ['active', 'pending', 'approved', 'rejected', 'suspended'];
+      if (!allowedStatuses.includes(status)) {
+        throw new BadRequestException(`Invalid status. Allowed values: ${allowedStatuses.join(', ')}`);
+      }
+
+      // Mise à jour de la propriété avec le nouveau statut
+      const updatedProperty = await this.propertyModel.findByIdAndUpdate(
+        id,
+        { 
+          status,
+          updatedAt: new Date() // Ajouter une timestamp de mise à jour
+        },
+        { 
+          new: true, // Retourner le document mis à jour
+          runValidators: true // Exécuter les validateurs du schéma
+        }
+      ).exec();
+
+      // Vérifier si la propriété existe
+      if (!updatedProperty) {
+        throw new NotFoundException('Property not found');
+      }
+
+      console.log(`Property ${id} status updated successfully to ${status}`);
+      
+      const statusesToNotify = ['approved', 'rejected', 'suspended'];
+      if (statusesToNotify.includes(status)) {
+        try {
+          const statusNotificationData = {
+            hostId: updatedProperty.firebaseUid, // Using firebaseUid as the host identifier
+            status: status,
+            propertyTitle: updatedProperty.title, // Using title field from schema
+          };
+
+          this.hostClient.emit('property_status_updated', statusNotificationData);
+          this.logger.log(`Property status notification event emitted for host: ${updatedProperty.firebaseUid}`);
+        } catch (notificationError) {
+          this.logger.error(`Failed to notify host about property status update: ${notificationError.message}`, notificationError.stack);
+          // Don't fail the status update if notification fails
+        }
+      }
+
+      return updatedProperty;
+
+    } catch (error) {
+      console.error(`Error updating property status for ID ${id}:`, error);
+      
+      // Re-lancer les erreurs personnalisées
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+
+      // Gestion des erreurs MongoDB spécifiques
+      if (error.name === 'CastError') {
+        throw new BadRequestException('Invalid property ID');
+      }
+
+      if (error.name === 'ValidationError') {
+        const fieldErrors = Object.keys(error.errors).map(field =>
+          `${field}: ${error.errors[field].message}`
+        );
+        throw new BadRequestException(`Validation failed: ${fieldErrors.join(', ')}`);
+      }
+
+      // Erreur générique
+      throw new BadRequestException(`Failed to update property status: ${error.message}`);
+    }
+  }
+
+
+
   async findById(id: string): Promise<Property> {
     console.group('🔍 Database Property Lookup');
     console.log('🆔 Lookup ID:', id);
