@@ -120,6 +120,110 @@ async getPropertiesByHostId(@Payload() data: { hostId: string }) {
   }
 }
 
+
+
+
+
+@MessagePattern({ cmd: 'update_property_status' })
+async updatePropertyStatus(@Payload() payload: any) {
+  let id: string= ''; // Declare id outside try-catch so it's accessible in catch
+  let status: string;
+  
+  try {
+    console.log('Property Service - Received payload:', payload);
+    
+    // Extract id and status
+    ({ id, status } = payload);
+    console.log(`Property Service - Extracted ID: ${id}, Status: ${status}`);
+    
+    // Validation des données d'entrée
+    if (!id) {
+      return {
+        statusCode: 400,
+        data: null,
+        error: 'Property ID is required'
+      };
+    }
+    
+    if (!status) {
+      return {
+        statusCode: 400,
+        data: null,
+        error: 'Status is required'
+      };
+    }
+    
+    // Validation du format de l'ID MongoDB
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return {
+        statusCode: 400,
+        data: null,
+        error: 'Invalid property ID format'
+      };
+    }
+    
+    // Validation des statuts autorisés
+    const allowedStatuses = ['active', 'pending', 'approved', 'rejected', 'suspended'];
+    if (!allowedStatuses.includes(status)) {
+      return {
+        statusCode: 400,
+        data: null,
+        error: `Invalid status. Allowed values: ${allowedStatuses.join(', ')}`
+      };
+    }
+    
+    // Mise à jour du statut de la propriété
+    const updatedProperty = await this.propertyService.updatePropertyStatus(id, status);
+    
+    // Transformation de la réponse
+    let propertyData;
+    if (updatedProperty && typeof updatedProperty.toJSON === 'function') {
+      propertyData = updatedProperty.toJSON();
+    } else if (updatedProperty && typeof updatedProperty.toObject === 'function') {
+      propertyData = updatedProperty.toObject();
+    } else {
+      propertyData = updatedProperty;
+    }
+    
+    // Transformation standardisée pour le frontend
+    const responseData = {
+      ...propertyData,
+      id: propertyData._id ? propertyData._id.toString() : propertyData.id
+    };
+    
+    console.log(`Property ${id} status updated successfully to ${status}`);
+    
+    return {
+      statusCode: 200,
+      data: responseData
+    };
+    
+  } catch (err) {
+    console.error(`Error updating property status for ID ${id || 'undefined'}:`, err);
+    
+    // Gestion des erreurs spécifiques
+    let errorMessage = 'Failed to update property status';
+    let statusCode = 500;
+    
+    if (err.name === 'CastError') {
+      errorMessage = 'Invalid property ID';
+      statusCode = 400;
+    } else if (err.message === 'Property not found') {
+      errorMessage = 'Property not found';
+      statusCode = 404;
+    } else if (err.name === 'ValidationError') {
+      errorMessage = `Validation error: ${err.message}`;
+      statusCode = 422;
+    }
+    
+    return {
+      statusCode: err.status || statusCode,
+      data: null,
+      error: err.message || errorMessage
+    };
+  }
+}
+
 @MessagePattern({ cmd: 'get_property_photos_by_firebase_uid' })
   async getPropertyPhotosByFirebaseUid(@Payload() data: { firebaseUid: string }) {
     try {

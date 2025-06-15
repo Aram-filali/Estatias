@@ -213,7 +213,7 @@ export class Property extends Document {
   @Prop({ default: "" })
   website?: string;
 
-  @Prop({ type: String, default: "pending", enum: ["pending", "active", "suspended"] })
+  @Prop({ type: String, default: "pending", enum: ["pending", "active", "approved", "rejected", "suspended"] })
   status: string;
 }
 
