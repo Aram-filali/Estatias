@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IoCalendarOutline } from 'react-icons/io5';
 import DateSelector from './DateSelector';
-import CalendarSyncPopup from './CalendarSync';
+import CalendarSyncPopup from './calendarSync';
 import styles from './availabilityManager.module.css';
 
 const AvailabilityManager = ({ onAvailabilitiesChange, initialAvailabilities = [] }) => {
