@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import styles from '../../styles/createBooking.module.css';
 import Sidebar from '../../src/components/CreateBooking/SideBar';
 import BookingSteps from '../../src/components/CreateBooking/BookingSteps';
@@ -10,7 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { parseISO, format, differenceInDays, addDays } from 'date-fns';
 import LoadingSpinner from '@/src/components/MyWebsite/loadingSpinner';
 
-export default function BookingInterface() {
+// Create a separate component that uses useSearchParams
+function BookingInterfaceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -602,5 +603,14 @@ const handleSubmitBooking = async () => {
       </div>
       <ErrorPopup error={submissionError} onClose={clearError} />
     </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function BookingInterface() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Loading booking interface..." />}>
+      <BookingInterfaceContent />
+    </Suspense>
   );
 }
