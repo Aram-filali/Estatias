@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import styles from './BookingSuccess.module.css';
 import LoadingSpinner from '@/src/components/MyWebsite/loadingSpinner';
 
-export default function BookingSuccess() {
+// Create a separate component that uses useSearchParams
+function BookingSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
@@ -186,5 +187,14 @@ export default function BookingSuccess() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function BookingSuccess() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Loading your booking details..." />}>
+      <BookingSuccessContent />
+    </Suspense>
   );
 }
