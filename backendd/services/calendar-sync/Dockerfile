@@ -1,4 +1,4 @@
-FROM node:18-bullseye
+FROM node:20-bullseye
 
 # Installer les dépendances système
 RUN apt-get update && apt-get install -y \
@@ -63,6 +63,7 @@ USER pptruser
 ENV CHROME_BIN=/usr/bin/google-chrome-stable
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--experimental-global-webcrypto"
 
 EXPOSE 3000
 CMD ["npm", "run", "start:prod"]
