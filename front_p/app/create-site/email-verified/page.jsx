@@ -1,16 +1,15 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import VerifyEmail from '../../../components/VerifyEmail/VerifyEmail';
 
-export default function VerifyEmailPage() {
-  // Base hooks
+// Create a separate component for the content that uses searchParams
+function EmailVerifiedContent() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
-  
-  // Use effect for initialization
+
   useEffect(() => {
     try {
       setIsLoading(false);
@@ -21,9 +20,7 @@ export default function VerifyEmailPage() {
     }
   }, []);
 
-  // Render function based on state
   const renderContent = () => {
-    // Show error if there's an error
     if (error) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -40,7 +37,6 @@ export default function VerifyEmailPage() {
       );
     }
 
-    // Show loading state
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -49,9 +45,6 @@ export default function VerifyEmailPage() {
       );
     }
 
-    // Try to render the component - this will handle both cases:
-    // 1. User arrives with a token in URL (from email link)
-    // 2. User arrives without a token (normal visit to verify-email page)
     try {
       return <VerifyEmail />;
     } catch (err) {
@@ -69,6 +62,23 @@ export default function VerifyEmailPage() {
     }
   };
 
-  // Return the rendered content
   return renderContent();
+}
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <EmailVerifiedContent />
+    </Suspense>
+  );
 }
