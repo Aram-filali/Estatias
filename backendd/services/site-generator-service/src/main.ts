@@ -8,15 +8,27 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
-  // Configuration flexible des ports
-  const HTTP_PORT = process.env.PORT || 10000; // Render utilise PORT, pas PORT_RENDER
-  const TCP_PORT = process.env.TCP_PORT || 3007; // Port TCP configurable (défaut 3007)
+  // Configuration flexible des ports avec validation
+  const HTTP_PORT = parseInt(process.env.PORT || '10000', 10);
+  const TCP_PORT = parseInt(process.env.TCP_PORT || '3007', 10);
   const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+  
+  // Validation des ports
+  if (isNaN(HTTP_PORT) || HTTP_PORT < 1 || HTTP_PORT > 65535) {
+    console.error('❌ Port HTTP invalide:', process.env.PORT);
+    process.exit(1);
+  }
+  
+  if (isNaN(TCP_PORT) || TCP_PORT < 1 || TCP_PORT > 65535) {
+    console.error('❌ Port TCP invalide:', process.env.TCP_PORT);
+    process.exit(1);
+  }
   
   console.log('🔧 Configuration Site Generator Service:');
   console.log(`   - HTTP_PORT: ${HTTP_PORT}`);
   console.log(`   - TCP_PORT: ${TCP_PORT}`);
   console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   - Platform: ${process.platform}`);
 
   // 1. Application HTTP principale pour Render
   const httpApp = await NestFactory.create(SiteGeneratorModule);
@@ -26,7 +38,7 @@ async function bootstrap() {
     transport: Transport.TCP,
     options: {
       host: '0.0.0.0',
-      port: parseInt(TCP_PORT.toString()),
+      port: TCP_PORT,
     },
   });
 
@@ -58,7 +70,9 @@ async function bootstrap() {
         tcp: TCP_PORT
       },
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      platform: process.platform,
+      nodeVersion: process.version
     });
   });
 
@@ -91,7 +105,12 @@ async function bootstrap() {
 
   // 6. Démarrage sécurisé des services
   try {
+    // Démarrer d'abord les microservices
+    console.log('🚀 Démarrage des microservices...');
     await httpApp.startAllMicroservices();
+    
+    // Puis démarrer le serveur HTTP
+    console.log('🌐 Démarrage du serveur HTTP...');
     await httpApp.listen(HTTP_PORT, '0.0.0.0');
      
     console.log('✅ Site Generator microservice démarré avec succès:');
@@ -110,23 +129,37 @@ async function bootstrap() {
       console.error('   1. Changer le port TCP_PORT dans les variables d\'environnement');
       console.error('   2. Arrêter le processus utilisant ce port');
       console.error('   3. Utiliser un port différent pour le développement');
+      console.error(`   4. Essayer: netstat -ano | findstr :${error.port}`);
+    } else if (error.code === 'EACCES') {
+      console.error(`🚫 Permission refusée pour le port ${TCP_PORT || HTTP_PORT}`);
+      console.error('💡 Solutions:');
+      console.error('   1. Utiliser un port > 1024 (ex: 8007 au lieu de 4007)');
+      console.error('   2. Exécuter en tant qu\'administrateur (non recommandé)');
+      console.error('   3. Changer TCP_PORT vers un port non privilégié');
+      console.error(`   4. Essayer: set TCP_PORT=8007 && npm run start:dev`);
     }
     
     process.exit(1);
   }
 
   // 7. Gestion propre de l'arrêt
-  process.on('SIGTERM', async () => {
-    console.log('🛑 Arrêt du Site Generator Service...');
-    await httpApp.close();
-    process.exit(0);
-  });
+  const gracefulShutdown = async (signal) => {
+    console.log(`🛑 Signal ${signal} reçu, arrêt du Site Generator Service...`);
+    try {
+      await httpApp.close();
+      console.log('✅ Service arrêté proprement');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'arrêt:', error);
+      process.exit(1);
+    }
+  };
 
-  process.on('SIGINT', async () => {
-    console.log('🛑 Interruption du Site Generator Service...');
-    await httpApp.close();
-    process.exit(0);
-  });
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  
+  // Pour Windows
+  process.on('SIGBREAK', () => gracefulShutdown('SIGBREAK'));
 }
 
 bootstrap().catch(error => {
