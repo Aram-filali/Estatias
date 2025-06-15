@@ -12,6 +12,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
+    "postinstall": "npx puppeteer browsers install chrome",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
