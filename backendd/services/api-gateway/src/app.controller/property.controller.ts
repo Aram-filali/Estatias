@@ -99,6 +99,33 @@ export class PropertyController {
     throw new Error('Invalid property response format');
   }
 
+
+  
+  @Get('all')
+  async getAllProperties() {
+    try {
+      const response = await firstValueFrom(
+        this.propertyClient.send({ cmd: 'get_properties' }, {})
+      );
+      
+      if (response.statusCode !== 200) {
+        throw new HttpException(
+          response.error || 'Error retrieving properties',
+          response.statusCode
+        );
+      }
+      
+      return response.data;
+    } catch (err) {
+      throw new HttpException(
+        err?.message || 'Error retrieving properties',
+        err?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+
+
   @Get('host/:hostId')
   async getPropertiesByHostId(@Param('hostId') hostId: string) {
     try {
@@ -289,6 +316,46 @@ export class PropertyController {
       );
     }
   }
+
+
+
+@Patch(':id/status')
+async updatePropertyStatus(@Param('id') id: string, @Body() updateData: { status: string }) {
+  try {
+    console.log('API Gateway - Received ID:', id); // Add this
+    console.log('API Gateway - Received body:', updateData); // Add this
+    
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'update_property_status' }, { id, status: updateData.status })
+    );
+    
+    if (response.statusCode !== 200) {
+      throw new HttpException(
+        response.error || 'Error updating property status',
+        response.statusCode
+      );
+    }
+    
+    return response.data;
+  } catch (err) {
+    throw new HttpException(
+      err?.message || 'Error updating property status',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
   // =================== NEW AI ENDPOINTS ===================
 

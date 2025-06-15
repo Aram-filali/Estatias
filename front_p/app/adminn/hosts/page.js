@@ -167,6 +167,7 @@ export default function Hosts() {
   };
 
   // Helper function to get available actions based on current status
+  // Helper function to get available actions based on current status
   const getAvailableActions = (currentStatus) => {
     switch (currentStatus) {
       case 'pending':
@@ -179,13 +180,8 @@ export default function Hosts() {
           { status: 'suspended', label: 'Suspend Host', className: styles.suspendButton }
         ];
       case 'suspended':
-        return [
-          { status: 'approved', label: 'Reactivate Host', className: styles.approveButton }
-        ];
       case 'rejected':
-        return [
-          { status: 'approved', label: 'Approve Host', className: styles.approveButton }
-        ];
+        return []; // No actions available for suspended or rejected hosts
       default:
         return [];
     }
@@ -202,69 +198,7 @@ export default function Hosts() {
     
     return formattedUrl;
   };
-/*
-  // Helper function to get document type display name
-  const getDocumentDisplayName = (docType) => {
-    switch (docType) {
-      case 'kbisOrId':
-        return selectedHost?.originalData?.isAgency ? 'KBIS Document' : 'ID Document';
-      case 'proxy':
-        return 'Proxy Document';
-      case 'repId':
-        return 'Representative ID';
-      default:
-        return docType;
-    }
-  };
 
-  // Helper function to handle document viewing/downloading
-  const handleDocumentAction = (url, action = 'view') => {
-    if (!url) return;
-    
-    if (action === 'view') {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } else if (action === 'download') {
-      // Create a temporary link to trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = true;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };*/
-/*
-  // Component to render document items
-  const DocumentItem = ({ docType, url }) => {
-    if (!url) return null;
-
-    return (
-      <div className={styles.documentItem}>
-        <div className={styles.documentInfo}>
-          <FileText className={styles.documentIcon} />
-          <span className={styles.documentName}>
-            {getDocumentDisplayName(docType)}
-          </span>
-        </div>
-        <div className={styles.documentActions}>
-          <button
-            onClick={() => handleDocumentAction(url, 'view')}
-            className={styles.documentActionButton}
-            title="View Document"
-          >
-            <Eye size={16} />
-          </button>
-          <button
-            onClick={() => handleDocumentAction(url, 'download')}
-            className={styles.documentActionButton}
-            title="Download Document"
-          >
-            <Download size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  };*/
 
   // Filter hosts based on search and status
   const filteredHosts = hosts.filter(host => {
