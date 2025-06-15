@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './Sidebar.module.css';
+import styles from './SideBar.module.css';
 import { format, parseISO, addDays } from 'date-fns';
 
 const Sidebar = ({ 
