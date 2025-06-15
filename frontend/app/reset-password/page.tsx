@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import styles from "./ResetPassword.module.css";
 
-const ResetPassword = () => {
+const ResetPasswordForm = () => {
   const searchParams = useSearchParams();
   const [token, setToken] = useState<string | null>(null);
 
@@ -169,6 +169,14 @@ const ResetPassword = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const ResetPassword = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 };
 
