@@ -15,7 +15,7 @@ export class ProxyIntegrationService implements OnModuleInit {
     this.setupEventHandlers();
   }
 
-   private setupEventHandlers() {
+  private setupEventHandlers() {
     const originalStart = this.siteGenerator.startSite.bind(this.siteGenerator);
     const originalStop = this.siteGenerator.stopSite.bind(this.siteGenerator);
 
@@ -23,12 +23,26 @@ export class ProxyIntegrationService implements OnModuleInit {
       const result = await originalStart(hostId);
       
       if (result.url) {
-        // Retourner l'URL avec le chemin Render
-        return {
-          ...result,
-          url: `${process.env.RENDER_EXTERNAL_URL}/preview/${hostId}`
-        };
+        try {
+          const port = new URL(result.url).port;
+          await this.proxyManager.createProxyConfig(hostId, parseInt(port));
+          
+          // Retourner l'URL avec le sous-domaine
+          return {
+            ...result,
+            url: `http://${hostId}.${this.proxyManager['domain']}`
+          };
+        } catch (error) {
+          this.logger.error(`Proxy setup failed: ${error.message}`);
+          return result; // Retourner l'URL originale si le proxy échoue
+        }
       }
       return result;
-    };}
+    };
+
+    this.siteGenerator.stopSite = async (hostId: string) => {
+      await this.proxyManager.removeProxyConfig(hostId);
+      return await originalStop(hostId);
+    };
+  }
 }
