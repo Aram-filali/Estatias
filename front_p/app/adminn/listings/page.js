@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Home, AlertTriangle, Check, Filter, Loader2, X, MapPin, Users, Bed, Bath, Maximize, Calendar, DollarSign } from 'lucide-react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import styles from './listings.module.css';
+import styles from './Listings.module.css';
 import { createPortal } from 'react-dom';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
