@@ -10,7 +10,7 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "prebuild": "rimraf dist",
+    "prebuild": "npx rimraf dist",
     "build": "nest build",
     "postinstall": "npx puppeteer browsers install chrome",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
