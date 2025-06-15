@@ -4,7 +4,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'puppeteer';
 import { ConfigService } from '@nestjs/config';
 import { ProxyService, Proxy } from './proxy.service';
-import UserAgent from 'user-agents'; // Fixed import - use default import
+import UserAgent from 'user-agents';
 
 interface BlockingStatus {
   isBlocked: boolean;
@@ -71,23 +71,72 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       this.currentProxy = proxy || null;
       const headless = this.configService.get<string>('BROWSER_HEADLESS') !== 'false';
       
+      // Detect if running on Render or production environment
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isRender = process.env.RENDER === 'true';
+      
       const launchOptions: any = {
-        headless,
+        headless: headless === false ? false : 'new', // Use new headless mode
         args: [
           '--disable-blink-features=AutomationControlled',
           '--disable-notifications',
-          '--start-maximized',
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
           '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
           '--window-size=1920,1080',
+          '--single-process', // Important for Render
+          '--no-zygote', // Important for Render
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
         ],
         defaultViewport: { width: 1920, height: 1080 },
       };
+
+      // Production-specific settings
+      if (isProduction || isRender) {
+        launchOptions.args.push(
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images', // Reduce bandwidth usage
+          '--disable-javascript', // Only if your scraping doesn't need JS
+          '--disable-default-apps',
+          '--disable-sync',
+          '--disable-translate',
+          '--hide-scrollbars',
+          '--mute-audio'
+        );
+        
+        // Try to find Chrome executable
+        const possiblePaths = [
+          '/usr/bin/google-chrome',
+          '/usr/bin/google-chrome-stable',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          process.env.CHROME_PATH,
+          process.env.GOOGLE_CHROME_BIN
+        ].filter(Boolean);
+
+        // Try each path until we find one that works
+        for (const path of possiblePaths) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(path)) {
+              launchOptions.executablePath = path;
+              this.logger.log(`Using Chrome at: ${path}`);
+              break;
+            }
+          } catch (e) {
+            // Continue to next path
+          }
+        }
+      }
       
-      // Ajouter le proxy si spécifié
+      // Add proxy configuration
       if (this.useProxy && proxy) {
         const proxyUrl = this.proxyService.formatProxyUrl(proxy);
         if (proxyUrl) {
@@ -98,16 +147,45 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       
       this.browser = await puppeteer.launch(launchOptions);
       this.logger.log('Navigateur initialisé avec succès');
+      
     } catch (error) {
       this.logger.error(`Erreur lors de l'initialisation du navigateur: ${error.message}`);
-      throw error;
+      
+      // Fallback: try with minimal configuration
+      if (!this.browser) {
+        this.logger.warn('Tentative avec configuration minimale...');
+        try {
+          const fallbackOptions = {
+            headless: 'new',
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--single-process',
+              '--no-zygote'
+            ]
+          };
+          
+          //this.browser = await puppeteer.launch(fallbackOptions);
+          //this.logger.log('Navigateur initialisé avec configuration de secours');
+        } catch (fallbackError) {
+          this.logger.error(`Erreur de configuration de secours: ${fallbackError.message}`);
+          throw fallbackError;
+        }
+      }
     }
   }
+
   async closeBrowser(): Promise<void> {
     if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.logger.log('Navigateur fermé');
+      try {
+        await this.browser.close();
+        this.browser = null;
+        this.logger.log('Navigateur fermé');
+      } catch (error) {
+        this.logger.warn(`Erreur lors de la fermeture du navigateur: ${error.message}`);
+        this.browser = null;
+      }
     }
   }
 
@@ -145,30 +223,28 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       'Accept-Encoding': 'gzip, deflate, br',
       'Connection': 'keep-alive',
       'Upgrade-Insecure-Requests': '1',
-      'DNT': '1', // Do Not Track
+      'DNT': '1',
     });
 
-    // Configurer un user-agent réaliste (aléatoire si activé)
+    // Configurer un user-agent réaliste
     const userAgent = this.randomizeUserAgent
       ? this.userAgents[Math.floor(Math.random() * this.userAgents.length)]
       : this.userAgents[0];
       
     await page.setUserAgent(userAgent);
 
-    // Augmenter les délais d'attente pour les requêtes réseau et la navigation
-    await page.setDefaultNavigationTimeout(60000);
-    await page.setDefaultTimeout(30000);
+    // Augmenter les délais d'attente
+    await page.setDefaultNavigationTimeout(90000); // Increased for slower environments
+    await page.setDefaultTimeout(60000); // Increased for slower environments
 
-    // Désactiver WebDriver
+    // Désactiver WebDriver detection
     await page.evaluateOnNewDocument(() => {
-      // Supprimer les variables qui peuvent révéler que c'est Puppeteer
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined,
       });
       // @ts-ignore
       window.navigator.chrome = { runtime: {} };
       
-      // Supprimer les fonctions d'automatisation
       const originalQuery = window.navigator.permissions.query;
       // @ts-ignore
       window.navigator.permissions.query = (parameters) => (
@@ -181,28 +257,27 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     return page;
   }
 
+  // Rest of your methods remain the same...
   async simulateHumanBehavior(page: Page): Promise<void> {
     const intensityFactor = this.humanBehaviorIntensity === 'high' ? 3 : 
                            this.humanBehaviorIntensity === 'medium' ? 2 : 1;
     
-    // Nombre d'actions aléatoires à effectuer
     const actionsCount = Math.floor(Math.random() * (5 * intensityFactor)) + (3 * intensityFactor);
     
     for (let i = 0; i < actionsCount; i++) {
-      // Choisir une action aléatoire
       const actionType = Math.floor(Math.random() * 4);
       
       switch(actionType) {
-        case 0: // Scroll aléatoire
+        case 0:
           await this.performRandomScroll(page);
           break;
-        case 1: // Mouvement de souris aléatoire
+        case 1:
           await this.performRandomMouseMovement(page);
           break;
-        case 2: // Pause aléatoire
+        case 2:
           await this.performRandomPause();
           break;
-        case 3: // Interagir avec un élément non-critique
+        case 3:
           await this.performRandomInteraction(page);
           break;
       }
@@ -211,15 +286,13 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   
   private async performRandomScroll(page: Page): Promise<void> {
     try {
-      // Générer une hauteur de défilement aléatoire
       const scrollHeight = Math.floor(Math.random() * (900 - 100 + 1)) + 100;
-      const scrollDirection = Math.random() > 0.2 ? 1 : -1; // 80% scrolling vers le bas
+      const scrollDirection = Math.random() > 0.2 ? 1 : -1;
       
       await page.evaluate((height, direction) => {
         window.scrollBy(0, height * direction);
       }, scrollHeight, scrollDirection);
       
-      // Attente courte après le défilement
       await new Promise(resolve => setTimeout(resolve, Math.random() * (1000 - 200) + 200));
     } catch (error) {
       this.logger.debug('Erreur mineure lors du scroll aléatoire');
@@ -228,7 +301,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   
   private async performRandomMouseMovement(page: Page): Promise<void> {
     try {
-      // Obtenir les dimensions de la page
       const dimensions = await page.evaluate(() => {
         return {
           width: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
@@ -236,21 +308,16 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         };
       });
       
-      // Points aléatoires pour le mouvement de souris
       const startX = Math.floor(Math.random() * dimensions.width);
       const startY = Math.floor(Math.random() * dimensions.height);
       const endX = Math.floor(Math.random() * dimensions.width);
       const endY = Math.floor(Math.random() * dimensions.height);
       
-      // Déplacer la souris de manière fluide
       await page.mouse.move(startX, startY);
       
-      // Nombre de points intermédiaires
       const steps = Math.floor(Math.random() * 5) + 5;
       
-      // Calculer un chemin avec des courbes légères plutôt qu'une ligne droite
       for (let i = 1; i <= steps; i++) {
-        // Ajouter une légère déviation
         const deviation = {
           x: Math.random() * 40 - 20,
           y: Math.random() * 40 - 20
@@ -259,7 +326,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         const nextX = startX + (endX - startX) * (i / steps) + deviation.x;
         const nextY = startY + (endY - startY) * (i / steps) + deviation.y;
         
-        // S'assurer que les coordonnées restent dans les limites
         const boundedX = Math.max(0, Math.min(dimensions.width, nextX));
         const boundedY = Math.max(0, Math.min(dimensions.height, nextY));
         
@@ -267,7 +333,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
       }
       
-      // Mouvement final
       await page.mouse.move(endX, endY);
     } catch (error) {
       this.logger.debug('Erreur mineure lors du mouvement de souris');
@@ -275,7 +340,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   }
   
   private async performRandomPause(): Promise<void> {
-    // Pause aléatoire entre 0.5 et 3 secondes (plus longue avec une intensité élevée)
     const intensity = this.humanBehaviorIntensity === 'high' ? 3 : 
                      this.humanBehaviorIntensity === 'medium' ? 2 : 1;
     const waitTime = Math.random() * (3 * intensity - 0.5) + 0.5;
@@ -284,29 +348,23 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   
   private async performRandomInteraction(page: Page): Promise<void> {
     try {
-      // Liste des sélecteurs communs et non critiques
       const commonSelectors = [
-        'a[href="#"]', // Liens avec ancre
-        'button[type="button"]', // Boutons non-submit
-        '.carousel-control', // Contrôles de carousel
-        '.dropdown-toggle', // Menus déroulants
-        '.accordion-header', // En-têtes d'accordéon
-        '.tab', // Onglets
-        'img[alt]:not([alt=""])' // Images avec attribut alt non vide
+        'a[href="#"]',
+        'button[type="button"]',
+        '.carousel-control',
+        '.dropdown-toggle',
+        '.accordion-header',
+        '.tab',
+        'img[alt]:not([alt=""])'
       ];
       
-      // Sélecteur aléatoire à essayer
       const randomSelector = commonSelectors[Math.floor(Math.random() * commonSelectors.length)];
-      
-      // Trouver tous les éléments correspondant au sélecteur
       const elements = await page.$$(randomSelector);
       
       if (elements.length > 0) {
-        // Prendre un élément aléatoire
         const randomIndex = Math.floor(Math.random() * elements.length);
         const element = elements[randomIndex];
         
-        // Vérifier si l'élément est visible
         const isVisible = await page.evaluate((el) => {
           const rect = el.getBoundingClientRect();
           return rect.width > 0 && rect.height > 0 &&
@@ -315,7 +373,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         }, element);
         
         if (isVisible) {
-          // Scroller jusqu'à l'élément
           await page.evaluate((el) => {
             el.scrollIntoView({
               behavior: 'smooth',
@@ -324,18 +381,14 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
             });
           }, element);
           
-          // Attendre un court instant
           await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 200));
           
-          // 50% de chance de survoler l'élément
           if (Math.random() > 0.5) {
             await element.hover();
             await new Promise(resolve => setTimeout(resolve, Math.random() * 800 + 200));
           }
           
-          // 30% de chance de cliquer sur l'élément, uniquement s'il semble inoffensif
           const isSafeToClick = await page.evaluate((el) => {
-            // Ignorer les éléments qui semblent être des liens externes ou des boutons de soumission
             const href = el.getAttribute('href');
             const type = el.getAttribute('type');
             
@@ -344,9 +397,8 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
           }, element);
           
           if (isSafeToClick && Math.random() > 0.7) {
-            // Cliquer et attendre
             await element.click({
-              delay: Math.random() * 100 + 50 // Délai entre appui et relâchement pour simuler un clic humain
+              delay: Math.random() * 100 + 50
             });
             await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
           }
@@ -357,10 +409,8 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     }
   }
   
-  // Méthode pour gérer les cookies de manière plus humaine
   async manageCookies(page: Page): Promise<void> {
     try {
-      // 70% de chance d'accepter les cookies si une boîte de dialogue est présente
       const cookieSelectors = [
         'button[id*="cookie"][id*="accept"], button[class*="cookie"][class*="accept"]',
         'button:contains("Accept"), button:contains("Accepter")',
@@ -369,18 +419,14 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         '[id*="cookie-consent"] button, [class*="cookie-consent"] button'
       ];
       
-      // Essayer de trouver et interagir avec une boîte de dialogue de cookies
       for (const selector of cookieSelectors) {
         const cookieButtons = await page.$$(selector);
         if (cookieButtons.length > 0) {
-          // Attendre un moment avant d'interagir (comme un humain)
           await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
           
-          // Cliquer sur le premier bouton
           await cookieButtons[0].click();
           this.logger.debug('Boîte de dialogue de cookies détectée et acceptée');
           
-          // Attendre que la boîte de dialogue disparaisse
           await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
           break;
         }
@@ -408,14 +454,11 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  // Méthode corrigée pour la rotation des proxies
   async rotateProxyAndRetry(page: Page): Promise<Page> {
     this.logger.warn('Rotation du proxy détectée - tentative avec un nouveau proxy');
     
-    // Fermer le navigateur actuel
     await this.closeBrowser();
     
-    // Obtenir un nouveau proxy via getNextProxy (méthode existante)
     const newProxy = this.proxyService.getNextProxy();
     
     if (!newProxy) {
@@ -424,22 +467,18 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     
     this.logger.log(`Rotation vers le proxy: ${newProxy.host}:${newProxy.port}`);
     
-    // Initialiser le navigateur avec le nouveau proxy
     await this.initBrowser(newProxy);
     
-    // Retourner une nouvelle page
     return this.getNewPage();
   }
 
-  // Méthode utilitaire pour tester un proxy et récupérer une page
   async getPageWithProxyRotation(maxRetries: number = 3): Promise<Page> {
     let attempts = 0;
     
     while (attempts < maxRetries) {
       try {
-        const page = await this.getNewPage(attempts > 0); // Utiliser un nouveau proxy après le premier échec
+        const page = await this.getNewPage(attempts > 0);
         
-        // Tester la page avec une requête simple
         await page.goto('https://httpbin.org/ip', { waitUntil: 'networkidle0', timeout: 30000 });
         
         this.logger.log('Page obtenue avec succès');
@@ -453,7 +492,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
           throw new Error(`Impossible d'obtenir une page après ${maxRetries} tentatives`);
         }
         
-        // Attendre avant la prochaine tentative
         await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
       }
     }
@@ -461,7 +499,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     throw new Error('Toutes les tentatives ont échoué');
   }
 
-  // Exemple d'usage avec détection de blocage
   async navigateWithBlockingDetection(url: string, maxRetries: number = 3): Promise<Page> {
     let attempts = 0;
     
@@ -469,10 +506,8 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       try {
         const page = await this.getNewPage(attempts > 0);
         
-        // Aller à l'URL
         await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
         
-        // Vérifier si la page est bloquée
         const blockingStatus = await this.detectBlocking(page);
         
         if (blockingStatus.isBlocked) {
@@ -487,7 +522,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
           }
         }
         
-        // Gestion des cookies et comportement humain
         await this.manageCookies(page);
         await this.simulateHumanBehavior(page);
         
@@ -502,7 +536,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
           throw error;
         }
         
-        // Attendre avant la prochaine tentative
         await new Promise(resolve => setTimeout(resolve, 3000 * attempts));
       }
     }
@@ -510,15 +543,9 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     throw new Error(`Navigation échouée après ${maxRetries} tentatives`);
   }
 
-  // Ajouter dans BrowserService
   private async simulateAdvancedHumanBehavior(page: Page): Promise<void> {
-    // Mouvements de souris plus réalistes avec courbes de Bézier
     await this.bezierMouseMovement(page);
-    
-    // Délais variables basés sur une distribution normale
     await this.normalDistributionDelay();
-    
-    // Scroll réaliste avec accélération/décélération
     await this.realisticScroll(page);
   }
 
@@ -531,10 +558,9 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   }
 
   private generateBezierPoints(): Point[] {
-    const points: Point[] = []; // Typage explicite du tableau
+    const points: Point[] = [];
     const steps = 20;
     
-    // Points de contrôle aléatoires
     const cp1 = { x: Math.random() * 500, y: Math.random() * 500 };
     const cp2 = { x: Math.random() * 500, y: Math.random() * 500 };
     
@@ -549,7 +575,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async normalDistributionDelay(): Promise<void> {
-    // Générer un délai avec distribution normale (moyenne 1s, écart-type 0.5s)
     let delay;
     do {
       const u1 = Math.random();
@@ -571,7 +596,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
     
     for (let i = 0; i < steps; i++) {
       const t = i / steps;
-      // Fonction d'accélération/décélération
       const distance = scrollHeight * (1 - Math.pow(1 - t, 3));
       await page.evaluate(y => window.scrollTo(0, y), distance);
       await this.delay(50 + Math.random() * 50);
@@ -579,7 +603,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
   }
 
   async optimizeForAirbnb(page: Page): Promise<void> {
-    // Set realistic Airbnb headers
     await page.setExtraHTTPHeaders({
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
@@ -591,26 +614,21 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       'Upgrade-Insecure-Requests': '1'
     });
   
-    // Set cookies that Airbnb expects
     await page.setCookie({
       name: '_airbed_session_id',
       value: 'random_session_id_' + Math.random().toString(36).substring(2),
       domain: '.airbnb.com'
     });
   
-    // Remove automation traces
     await page.evaluateOnNewDocument(() => {
-      // Remove webdriver property
       delete (navigator as any).__proto__.webdriver;
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined
       });
       
-      // Mock Chrome runtime with proper typing
       const windowAny = window as any;
       if (windowAny.chrome) {
         windowAny.chrome.runtime = {
-          // Mock methods Airbnb might check
           sendMessage: () => Promise.resolve({}),
           connect: () => ({
             postMessage: () => {},
@@ -620,7 +638,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
           })
         };
       } else {
-        // Create chrome object if it doesn't exist
         windowAny.chrome = {
           runtime: {
             sendMessage: () => Promise.resolve({}),
@@ -634,16 +651,14 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         };
       }
   
-      // Additional anti-detection measures
       Object.defineProperty(navigator, 'plugins', {
-        get: () => [1, 2, 3, 4, 5] // Mock some plugins
+        get: () => [1, 2, 3, 4, 5]
       });
-  
+
       Object.defineProperty(navigator, 'languages', {
         get: () => ['en-US', 'en']
       });
   
-      // Override toString to hide function modifications
       const originalToString = Function.prototype.toString;
       Function.prototype.toString = function() {
         if (this === navigator.webdriver) {
@@ -652,7 +667,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
         return originalToString.call(this);
       };
   
-      // Hide chrome property modifications
       Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
         set: undefined,
         enumerable: false,
@@ -660,7 +674,6 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       });
     });
   
-    // Additional viewport and device settings
     await page.setViewport({
       width: 1366,
       height: 768,
@@ -670,22 +683,14 @@ export class BrowserService implements OnModuleInit, OnModuleDestroy {
       isMobile: false
     });
   
-    // Set user agent to a realistic one
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
   }
-// Add to BrowserService
-/*async throttleRequests(page: Page, minDelay = 2000, maxDelay = 5000) {
-  const delay = Math.random() * (maxDelay - minDelay) + minDelay;
-  await page.delay(delay);
-}*/
 
-// Add to BrowserService
-async rotateSession(page: Page) {
-  await this.closeBrowser();
-  await this.initBrowser();
-  return this.getNewPage();
-}
-
+  async rotateSession(page: Page) {
+    await this.closeBrowser();
+    await this.initBrowser();
+    return this.getNewPage();
+  }
 }
