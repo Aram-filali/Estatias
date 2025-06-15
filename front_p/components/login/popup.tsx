@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./Popup.module.css"; // Assure-toi d'ajouter des styles CSS pour la modale
+import styles from "./popup.module.css"; // Assure-toi d'ajouter des styles CSS pour la modale
 
 interface PopupProps {
   message: string;
