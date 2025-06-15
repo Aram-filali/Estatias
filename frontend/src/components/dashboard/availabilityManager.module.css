@@ -1,338 +1,344 @@
 .availManagerMain {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background-color: #f4f7f99f;
-    margin: 0;
-  }
-  
-  .availManagerSection h2 {
-    font-size: 22px;
-    font-weight: 600;
-    color: #333;
-    border-bottom: 2px solid #f4f7f9;
-    /*margin-bottom: 10px;*/
-  }
-  
-  .availManagerContainer {
-    display: flex;
-    gap: 0; /* Ajout de cette propriété pour éliminer l'espace */
-  }
-  
-  .availManagerCalendarSection {
-    margin-top: 30px;
-    flex: 1;
-    width: 550px;
-    /*height:800px;*/
-  }
-  
-  .availManagerPriceSection {
-    display: flex;
-    flex-direction: column;
-    padding: 5px;
-    border-radius: 8px;
-    margin-right: 0 !important; /* Modification de 5px à 0 pour éliminer la marge */
-    width: 300px;
-  }
-  
-  .availManagerDateDisplay {
-    margin-bottom: 15px;
-    padding: 10px;
-    /*background-color: #e4e4e4;*/
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    width:300px;
-  }
-  
-  .availManagerSelectedDates {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 500px;
-    background-color: #e4e4e4;
-    padding: 15px;
-    border-radius: 4px;
-  }
-  
-  .availManagerPricingInputs {
-    width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin-left: 10px;
-  }
-  
-  .availManagerInputGroup {
-    margin-bottom: 5px;
-    width: 500px;
-    margin-top: 5px;
-  }
-  
-  .availManagerFullWidthInput {
-    width: 300px;
-    margin-left: 10px;
-    padding: 12px;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    color: #333;
-    background-color: #f9f9f9;
-    transition: border-color 0.3s ease-in-out;
-  }
-  
-  /*.availManagerFullWidthInput:focus {
-    border-color: #5cb85c;
-  }*/
-  
-  .availManagerError {
-    color: red;
-    font-size: 12px;
-    display: block;
-    margin-top: 5px;
-  }
-  
-  .availManagerAddButton {
-    background-color: #6cb2b7;
-    color: white;
-    /*padding: 12px 15px;*/
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    width: 100%;
-    font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-  }
-  
-  .availManagerAddButton:hover {
-    background-color: #6cb2b7;
-    color: white;
-  }
-  
-  .availManagerAddButton:disabled {
-    background-color: #6cb2b7;
-    color: white;
-    cursor: not-allowed;
-  }
-  
-  .availManagerRemoveBtn {
-    background-color: #121111;
-    color: white;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-left: 10px;
-  }
-  
-  .availManagerList {
-    margin-top: 20px;
-  }
-  
-  .availManagerList ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  .availManagerList li {
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .availManagerList {
-    margin-top: 2rem;
-  }
-  
-  .availManagerListItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.375rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .availManagerRemoveButton {
-    padding: 0.5rem 1rem;
-    background-color: #e53e3e;
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .availManagerRemoveButton:hover {
-    background-color: #c53030;
-  }
-  
-  /* Toggle Switch Styles */
-  .availManagerToggleContainer {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    margin-top: 0px;
-  }
-  
-  .availManagerToggleLabel {
-    font-size: 0.9rem;
-    color: #4a5568;
-    width:250px;
-  }
-  
-  .availManagerToggleSwitch {
-    position: relative;
-    display: inline-block;
-    width: 60px;
-    height: 28px;
-  }
-  
-  .availManagerToggleSwitch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .availManagerToggleSlider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-  }
-  
-  .availManagerToggleSlider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
-  
-  input:checked + .availManagerToggleSlider {
-    background-color: #45bebe;
-  }
-  
-  input:focus + .availManagerToggleSlider {
-    box-shadow: 0 0 1px #45bebe;
-  }
-  
-  input:checked + .availManagerToggleSlider:before {
-    transform: translateX(32px);
-  }
-  .required {
-    color: #e74c3c;
-    margin-left: 0.2rem;
-  }
+  font-family: 'Helvetica Neue', Arial, sans-serif !important;
+  background-color: #f4f7f99f !important;
+  margin: 0 !important;
+}
 
-  /*.availManagerSection {
-    margin-bottom: 2rem;
-  }
-  
-  .availManagerContainer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
-  
-  .availManagerCalendarSection {
-    flex: 1;
-    min-width: 300px;
-  }
-  
-  .availManagerPriceSection {
-    flex: 1;
-    min-width: 300px;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .availManagerDateDisplay {
-    margin-bottom: 1.5rem;
-  }
-  
-  .availManagerSelectedDates {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1rem;
-    position: relative;
-  }
-  
-  .availManagerDateError {
-    color: #e53e3e;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-    position: absolute;
-    bottom: -1.5rem;
-    left: 0;
-  }
-  
-  .availManagerPricingInputs {
-    margin-bottom: 1.5rem;
-  }
-  
-  .availManagerInputGroup {
-    margin-bottom: 1rem;
-    position: relative;
-  }
-  
-  .availManagerFullWidthInput {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.375rem;
-    font-size: 1rem;
-    transition: border-color 0.15s;
-  }
-  
-  .availManagerFullWidthInput:focus {
-    outline: none;
-    border-color: #3182ce;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-  }
-  
-  .availManagerError {
-    color: #e53e3e;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-    position: absolute;
-    bottom: -1.25rem;
-    left: 0;
-  }
-  
-  .availManagerAddButton {
-    padding: 0.75rem 1.5rem;
-    background-color: #3182ce;
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .availManagerAddButton:hover:not(:disabled) {
-    background-color: #45bebe;
-  }
-  
-  .availManagerAddButton:disabled {
-    background-color: #a0aec0;
-    cursor: not-allowed;
-  }*/
-  
+.availManagerSection h2 {
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  border-bottom: 2px solid #f4f7f9 !important;
+}
+
+.availManagerContainer {
+  display: flex !important;
+  gap: 0 !important;
+}
+
+.availManagerCalendarSection {
+  margin-top: 30px !important;
+  flex: 1 !important;
+  width: 550px !important;
+}
+
+.availManagerPriceSection {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 5px !important;
+  border-radius: 8px !important;
+  margin-right: 0 !important;
+  width: 300px !important;
+}
+
+.availManagerDateDisplay {
+  margin-bottom: 15px !important;
+  padding: 10px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 300px !important;
+}
+
+.availManagerSelectedDates {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 500px !important;
+  background-color: #e4e4e4 !important;
+  padding: 15px !important;
+  border-radius: 4px !important;
+}
+
+.availManagerPricingInputs {
+  width: 400px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  margin-left: 10px !important;
+}
+
+.availManagerInputGroup {
+  margin-bottom: 5px !important;
+  width: 500px !important;
+  margin-top: 5px !important;
+}
+
+.availManagerFullWidthInput {
+  width: 300px !important;
+  margin-left: 10px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  color: #333 !important;
+  background-color: #f9f9f9 !important;
+  transition: border-color 0.3s ease-in-out !important;
+}
+
+.availManagerError {
+  color: red !important;
+  font-size: 12px !important;
+  display: block !important;
+  margin-top: 5px !important;
+}
+
+.availManagerAddButton {
+  background-color: #6cb2b7 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.availManagerAddButton:hover {
+  background-color: #6cb2b7 !important;
+  color: white !important;
+}
+
+.availManagerAddButton:disabled {
+  background-color: #6cb2b7 !important;
+  color: white !important;
+  cursor: not-allowed !important;
+}
+
+.availManagerRemoveBtn {
+  background-color: #121111 !important;
+  color: white !important;
+  padding: 5px 10px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  margin-left: 10px !important;
+}
+
+.availManagerList {
+  margin-top: 20px !important;
+}
+
+.availManagerList ul {
+  list-style-type: none !important;
+  padding: 0 !important;
+}
+
+.availManagerList li {
+  padding: 10px !important;
+  margin: 5px 0 !important;
+  background-color: #f5f5f5 !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.availManagerList {
+  margin-top: 2rem !important;
+}
+
+.availManagerListItem {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.375rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.availManagerRemoveButton {
+  padding: 0.5rem 1rem !important;
+  background-color: #e53e3e !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+}
+
+.availManagerRemoveButton:hover {
+  background-color: #c53030 !important;
+}
+
+/* Toggle Switch Styles */
+.availManagerToggleContainer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  margin-bottom: 1.5rem !important;
+  margin-top: 0px !important;
+}
+
+.availManagerToggleLabel {
+  font-size: 0.9rem !important;
+  color: #4a5568 !important;
+  width: 250px !important;
+}
+
+.availManagerToggleSwitch {
+  position: relative !important;
+  display: inline-block !important;
+  width: 60px !important;
+  height: 28px !important;
+}
+
+.availManagerToggleSwitch input {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.availManagerToggleSlider {
+  position: absolute !important;
+  cursor: pointer !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: #ccc !important;
+  transition: .4s !important;
+  border-radius: 34px !important;
+}
+
+.availManagerToggleSlider:before {
+  position: absolute !important;
+  content: "" !important;
+  height: 20px !important;
+  width: 20px !important;
+  left: 4px !important;
+  bottom: 4px !important;
+  background-color: white !important;
+  transition: .4s !important;
+  border-radius: 50% !important;
+}
+
+input:checked + .availManagerToggleSlider {
+  background-color: #45bebe !important;
+}
+
+input:focus + .availManagerToggleSlider {
+  box-shadow: 0 0 1px #45bebe !important;
+}
+
+input:checked + .availManagerToggleSlider:before {
+  transform: translateX(32px) !important;
+}
+
+.required {
+  color: #e74c3c !important;
+  margin-left: 0.2rem !important;
+}
+
+/* Nouveaux styles pour le container de sélection d'availability */
+.availabilitySetupContainer {
+  background-color: #f8fbff !important;
+  border: 1px solid #e6f0ff !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  margin-bottom: 32px !important;
+  width: 100% !important;
+  display: center !important;
+}
+
+.availabilitySetupTitle {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: #2d3748 !important;
+  margin-bottom: 24px !important;
+  margin-top: 0 !important;
+}
+
+.availabilitySetupOptions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.availabilitySetupOption {
+  background-color: white !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.availabilitySetupOption:hover {
+  border-color: #3182ce !important;
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.1) !important;
+}
+
+.availabilitySetupOptionActive {
+  border-color: #3182ce !important;
+  background-color: #f7fafc !important;
+  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.15) !important;
+}
+
+.availabilitySetupOptionIcon {
+  font-size: 24px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #edf2f7 !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.availabilitySetupOptionActive .availabilitySetupOptionIcon {
+  background-color: #bee3f8 !important;
+}
+
+.availabilitySetupOptionContent {
+  flex: 1 !important;
+}
+
+.availabilitySetupOptionTitle {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #2d3748 !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.availabilitySetupOptionDescription {
+  font-size: 14px !important;
+  color: #718096 !important;
+  line-height: 1.5 !important;
+  margin: 0 0 12px 0 !important;
+}
+
+.availabilitySetupOptionStatus {
+  font-size: 14px !important;
+  color: #38a169 !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.availabilitySetupSyncButton {
+  background-color: #3182ce !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.availabilitySetupSyncButton:hover {
+  background-color: #2c5aa0 !important;
+}

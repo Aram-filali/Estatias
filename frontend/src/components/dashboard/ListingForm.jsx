@@ -21,6 +21,7 @@ import { MdOutlineSmokingRooms, MdOutlinePets, MdOutlineMyLocation, MdMyLocation
 import React, { useCallback, useState, useEffect } from 'react';
 import AvailabilityManager from './AvailabilityManager';
 import "./mainphoto.css";
+import SEOBoostPopup from './AI/SEOBoost';
 
 export default function ListingForm({ initialData, onSubmit, onCancel }) {
   const { user, loading } = useFirebaseAuth();
@@ -31,6 +32,10 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
   const [userLocation, setUserLocation] = useState(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSEOBoostPopup, setShowSEOBoostPopup] = useState(false);
+    const [pendingSubmissionData, setPendingSubmissionData] = useState(null);
+      const [isUploading, setIsUploading] = useState(false);
+      const [uploadProgress, setUploadProgress] = useState(0);
 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
@@ -381,6 +386,73 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
     );
   };
 
+  const [showSyncPopup, setShowSyncPopup] = useState(false);
+
+  const [syncData, setSyncData] = useState(null);
+  const [isSyncedAvailabilities, setIsSyncedAvailabilities] = useState(false);
+
+// 2. Fixed handleSyncComplete function with proper error handling
+const handleSyncComplete = (syncResult) => {
+  console.log('🔄 Sync completed with data:', syncResult);
+  
+  try {
+    // Stocker les données de synchronisation
+    if (syncResult && syncResult.syncData) {
+      console.log('📊 Setting sync data:', syncResult.syncData);
+      setSyncData(syncResult.syncData);
+      setIsSyncedAvailabilities(true);
+    }
+    
+    // Mettre à jour les availabilities
+    if (syncResult && syncResult.availabilities && Array.isArray(syncResult.availabilities)) {
+      console.log('📅 Setting availabilities:', syncResult.availabilities);
+      setAvailabilities(syncResult.availabilities);
+    }
+    
+    // Fermer le popup de sync
+    setShowSyncPopup(false);
+    
+    // Afficher une notification de succès
+    if (typeof safeSetNotification === 'function') {
+      safeSetNotification({
+        show: true,
+        message: `${syncResult.availabilities?.length || 0} dates synchronisées avec succès !`,
+        type: 'success'
+      });
+    }
+    
+    // Force re-render by updating a timestamp or trigger
+    console.log('✅ Sync complete, data should now be visible');
+    
+  } catch (error) {
+    console.error('❌ Error in handleSyncComplete:', error);
+    if (typeof safeSetNotification === 'function') {
+      safeSetNotification({
+        show: true,
+        message: 'Erreur lors de la synchronisation des données',
+        type: 'error'
+      });
+    }
+  }
+};
+  /*const [availabilities, setAvailabilities] = useState([]);
+  const [currentAvailability, setCurrentAvailability] = useState({
+    start_time: "",
+    end_time: "",
+    price: "",
+    touristTax: "",
+  });*/
+
+  
+
+  // Mise à jour synchronisée de formData lorsque availabilities change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      availabilities
+    }));
+  }, [availabilities, setFormData]);
+
   const shouldShowLotSize = () => {
     return formData.type !== "Appartement";
   };
@@ -401,6 +473,748 @@ export default function ListingForm({ initialData, onSubmit, onCancel }) {
         return "Space";      
     }
   };
+
+  // État pour les coordonnées
+  const [coordinates, setCoordinates] = useState({
+      latitude: 0,
+      longitude: 0
+    });
+    
+    // État pour suivre la source de la dernière mise à jour (pour éviter les boucles infinies)
+    const [lastUpdateSource, setLastUpdateSource] = useState(null);
+
+
+
+   const handleActualSubmit = async (overrideData = {}) => {
+  console.log('=== DÉBUT handleActualSubmit ===');
+  console.log('overrideData reçu:', overrideData);
+  console.log('formData actuel:', { title: formData.title, description: formData.description });
+
+  setIsUploading(true);
+  setUploadProgress(0);
+
+  try {
+    const finalFormData = {
+      ...formData,
+      ...overrideData
+    };
+
+    console.log('Données fusionnées:', {
+      title: finalFormData.title,
+      description: finalFormData.description
+    });
+
+    console.log('=== DONNÉES DE SOUMISSION ===');
+    console.log('formData.title:', formData.title);
+    console.log('formData.description:', formData.description);
+    console.log('overrideData:', overrideData);
+    console.log('finalFormData final:', {
+      title: finalFormData.title,
+      description: finalFormData.description
+    });
+
+    const mainPhotoUrls = [];
+    for (let i = 0; i < mainPhotos.length; i++) {
+      const photo = mainPhotos[i];
+      if (photo instanceof File) {
+        const downloadURL = await uploadToFirebase(photo, `properties/${firebaseUserId}/main`);
+        mainPhotoUrls.push(downloadURL);
+      } else if (typeof photo === 'string') {
+        mainPhotoUrls.push(photo);
+      } else if (photo && photo.preview) {
+        const downloadURL = await uploadToFirebase(photo.file || photo, `properties/${firebaseUserId}/main`);
+        mainPhotoUrls.push(downloadURL);
+      }
+      setUploadProgress(Math.round((i + 1) / mainPhotos.length * 50));
+    }
+
+    const propertySpaces = [];
+    for (let i = 0; i < apartmentSpaces.length; i++) {
+      const space = apartmentSpaces[i];
+      const spacePhotoUrls = [];
+
+      if (space.photos && Array.isArray(space.photos)) {
+        for (let j = 0; j < space.photos.length; j++) {
+          const photo = space.photos[j];
+          if (photo instanceof File) {
+            const downloadURL = await uploadToFirebase(
+              photo,
+              `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
+            );
+            spacePhotoUrls.push(downloadURL);
+          } else if (typeof photo === 'string') {
+            spacePhotoUrls.push(photo);
+          } else if (photo && photo.preview) {
+            const downloadURL = await uploadToFirebase(
+              photo.file || photo,
+              `properties/${firebaseUserId}/spaces/${space.space_id || `space-${i}`}`
+            );
+            spacePhotoUrls.push(downloadURL);
+          }
+        }
+      }
+
+      propertySpaces.push({
+        space_id: space.space_id || `space-${i}-${Date.now()}`,
+        type: space.type || '',
+        area: !isNaN(parseFloat(space.area)) ? parseFloat(space.area) : 0,
+        photos: spacePhotoUrls
+      });
+
+      setUploadProgress(50 + Math.round((i + 1) / apartmentSpaces.length * 50));
+    }
+
+    const validLatitude = !isNaN(parseFloat(coordinates.latitude)) ? parseFloat(coordinates.latitude) : 0;
+    const validLongitude = !isNaN(parseFloat(coordinates.longitude)) ? parseFloat(coordinates.longitude) : 0;
+
+    const meansOfPayment = Array.isArray(finalFormData.means_of_payment)
+      ? finalFormData.means_of_payment
+      : Object.entries(finalFormData.paymentMethods || {})
+          .filter(([_, value]) => value === true)
+          .map(([key, _]) => key);
+
+    const propertyData = {
+      firebaseUid: firebaseUserId,
+      title: finalFormData.title ? finalFormData.title.trim() : '',
+      description: finalFormData.description ? finalFormData.description.trim() : '',
+      availabilities: (availabilities || []).map(avail => ({
+        start_time: avail.start_time || '',
+        end_time: avail.end_time || '',
+        price: !isNaN(parseFloat(avail.price)) && avail.price > 0 ? parseFloat(avail.price) : 0,
+        otherPlatformPrice: avail.otherPlatformPrice ? parseFloat(avail.otherPlatformPrice) : null,
+        isPrice: Boolean(avail.isPrice),
+        touristTax: !isNaN(parseFloat(avail.touristTax)) && avail.touristTax > 0 ? parseFloat(avail.touristTax) : 0,
+      })),
+      syncData: syncData || null,
+      isSyncedProperty: isSyncedAvailabilities,
+      mainPhotos: mainPhotoUrls,
+      type: finalFormData.type ? finalFormData.type.trim() : '',
+      apartmentSpaces: propertySpaces,
+      address: finalFormData.address ? finalFormData.address.trim() : '',
+      country: finalFormData.country ? finalFormData.country.trim() : '',
+      city: finalFormData.city ? finalFormData.city.trim() : '',
+      latitude: validLatitude,
+      longitude: validLongitude,
+      size: isNaN(parseFloat(finalFormData.size)) ? 0 : parseFloat(finalFormData.size),
+      lotSize:
+        finalFormData.type === 'Appartement'
+          ? 0
+          : isNaN(parseFloat(finalFormData.lotSize))
+          ? 0
+          : parseFloat(finalFormData.lotSize),
+      floorNumber: isNaN(parseInt(finalFormData.floorNumber, 10)) ? 0 : parseInt(finalFormData.floorNumber, 10),
+      numberOfBalconies: isNaN(parseInt(finalFormData.numberOfBalconies, 10))
+        ? 0
+        : parseInt(finalFormData.numberOfBalconies, 10),
+      rooms: isNaN(parseInt(finalFormData.rooms, 10)) ? 0 : parseInt(finalFormData.rooms, 10),
+      bedrooms: isNaN(parseInt(finalFormData.bedrooms, 10)) ? 0 : parseInt(finalFormData.bedrooms, 10),
+      bathrooms: isNaN(parseInt(finalFormData.bathrooms, 10)) ? 0 : parseInt(finalFormData.bathrooms, 10),
+      beds_Number: isNaN(parseInt(finalFormData.beds_Number, 10)) ? 0 : parseInt(finalFormData.beds_Number, 10),
+      maxGuest: isNaN(parseInt(finalFormData.maxGuest, 10)) ? 0 : parseInt(finalFormData.maxGuest, 10),
+      minNight: isNaN(parseInt(finalFormData.minNight, 10)) ? 0 : parseInt(finalFormData.minNight, 10),
+      maxNight: isNaN(parseInt(finalFormData.maxNight, 10)) ? 0 : parseInt(finalFormData.maxNight, 10),
+      amenities: finalFormData.amenities || {},
+      policies: finalFormData.policies || {},
+      means_of_payment: meansOfPayment,
+      phone: finalFormData.phone || '',
+      email: finalFormData.email || '',
+      website: finalFormData.website || '',
+    };
+
+    console.log('=== DONNÉES ENVOYÉES AU SERVEUR ===');
+    console.log('Titre final:', propertyData.title);
+    console.log('Description finale:', propertyData.description);
+    console.log('PropertyData complet:', JSON.stringify(propertyData, null, 2));
+
+    const response = await axios.post('http://localhost:3000/properties', propertyData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    console.log('Server response:', response.data);
+
+    safeSetNotification({
+      show: true,
+      message: 'Property created successfully!',
+      type: 'success',
+    });
+
+      router.push(`http://localhost:3002/MyWebsite/property/view/${response.data.id}`);
+  } catch (error) {
+    console.error('Error details:', error);
+
+    let errorMessage = 'An error occurred while saving the property.';
+
+    if (error.response) {
+      console.error('Server error status:', error.response.status);
+      console.error('Server error data:', error.response.data);
+      errorMessage = error.response.data.message || error.response.data.error || errorMessage;
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+      errorMessage = 'No response from server. Please check your internet connection.';
+    } else {
+      console.error('General error:', error.message);
+      errorMessage = error.message;
+    }
+
+    safeSetNotification({
+      show: true,
+      message: `Error: ${errorMessage}`,
+      type: 'error',
+    });
+  } finally {
+    setIsUploading(false);
+    setUploadProgress(0);
+  }
+};
+   // 1. Ajout d'états pour gérer les notifications
+const [notification, setNotification] = useState({
+  show: false,
+  message: '',
+  type: 'success', // 'success' ou 'error'
+});
+
+const safeSetNotification = (notificationData) => {
+  // If this is an error notification, check if we're handling calendar navigation
+  if (notificationData.show && notificationData.type === 'error') {
+    // Check if any calendar navigation button is the active element or was recently clicked
+    const isCalendarButton = document.activeElement && (
+      document.activeElement.classList.contains('navvButton') ||
+      document.activeElement.closest('.calendarNavigation')
+    );
+    
+    // Skip showing the notification if we're in calendar navigation
+    if (isCalendarButton) {
+      console.log('Prevented notification during calendar navigation');
+      return;
+    }
+  }
+  
+  // Set the notification state normally
+  setNotification(notificationData);
+};
+
+// 2. Composant de notification
+const Notification = ({ type, message, onClose }) => {
+  // Add auto-close functionality
+  useEffect(() => {
+    if (type === 'error') {
+      // For errors, add a longer timeout
+      const timer = setTimeout(() => {
+        if (onClose) onClose();
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      // For success messages, shorter timeout
+      const timer = setTimeout(() => {
+        if (onClose) onClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [type, onClose]);
+// Check if it's a calendar navigation triggered error
+const isCalendarNavigationError = 
+type === 'error' && 
+document.activeElement && 
+(document.activeElement.classList.contains('navvButton') || 
+ document.activeElement.closest('.calendarNavigation'));
+
+// Don't render if it's from calendar navigation
+if (isCalendarNavigationError) {
+return null;
+}
+
+return (
+  <div 
+    className={`notification ${type === 'success' ? 'success-notification' : 'error-notification'}`}
+    style={{
+      position: 'fixed',
+      marginTop: '60px',
+      top: '20px',
+      right: '20px',
+      padding: '15px 20px',
+      borderRadius: '5px',
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+      zIndex: 2000,
+      maxWidth: '350px',
+      backgroundColor: type === 'success' ? '#4caf50' : '#f44336',
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}
+  >
+    <div>{message}</div>
+    <button 
+      onClick={onClose}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: 'white',
+        fontSize: '16px',
+        marginLeft: '10px',
+        cursor: 'pointer'
+      }}
+    >
+      ×
+    </button>
+  </div>
+);
+};
+
+
+
+const handleSEOBoost = async (generatedContent = {}) => {
+  console.log('=== DÉBUT handleSEOBoost ===');
+  console.log('Contenu généré reçu:', generatedContent);
+  console.log('FormData actuel:', {
+    title: formData.title,
+    description: formData.description
+  });
+  
+  setShowSEOBoostPopup(false);
+  
+  try {
+    // 🔥 CORRECTION : Utiliser le contenu généré au lieu du formData actuel
+    const overrideData = {
+      title: generatedContent.title || formData.title || '',
+      description: generatedContent.description || formData.description || ''
+    };
+    
+    console.log('Données override finales:', overrideData);
+    
+    // Passer les données générées à handleActualSubmit
+    await handleActualSubmit(overrideData);
+    
+  } catch (error) {
+    console.error('Error during SEO boost:', error);
+    safeSetNotification({
+      show: true,
+      message: 'Error during submission. Please try again.',
+      type: 'error'
+    });
+  }
+};
+
+// ✅ CORRECTION : Ces fonctions mettent à jour le formData pour l'affichage UI
+const handleTitleGenerated = (title) => {
+  console.log('=== TITRE GÉNÉRÉ ===', title);
+  setFormData(prev => {
+    const updated = { ...prev, title };
+    console.log('FormData mis à jour avec titre:', updated);
+    return updated;
+  });
+};
+
+const handleDescriptionGenerated = (description) => {
+  console.log('=== DESCRIPTION GÉNÉRÉE ===', description);
+  setFormData(prev => {
+    const updated = { ...prev, description };
+    console.log('FormData mis à jour avec description:', updated);
+    return updated;
+  });
+};
+
+// GARDER handleSkipSEO simple
+const handleSkipSEO = async () => {
+  setShowSEOBoostPopup(false);
+  await handleActualSubmit();
+};
+
+// Handle closing popup without action
+const handleClosePopup = () => {
+  setShowSEOBoostPopup(false);
+  setPendingSubmissionData(null);
+};
+
+  // Fonction pour uploader une photo vers Firebase Storage
+  const uploadToFirebase = async (file, path) => {
+    try {
+      // Accès au service Firebase Storage
+      const storage = getStorage();
+      
+      // Créer une référence avec un nom unique pour éviter les écrasements
+      const timestamp = Date.now();
+      const uniqueFileName = `${timestamp}_${file.name.replace(/\s+/g, '_')}`;
+      const fullPath = `${path}/${uniqueFileName}`;
+      
+      const storageRef = ref(storage, fullPath);
+      
+      // Upload du fichier
+      const snapshot = await uploadBytes(storageRef, file);
+      
+      // Récupérer l'URL de téléchargement
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading file to Firebase:", error);
+      throw error;
+    }
+  };
+
+const validateField = (name, value) => {
+  // Special handling for policy fields
+  if (name.startsWith('policies.')) {
+    const policyName = name.split('.')[1];
+    
+    // If it's a required policy field and empty
+    const requiredPolicyFields = ['check_in_start', 'check_in_end', 'check_out_start', 'check_out_end', 'cancellation_policy'];
+    if (requiredPolicyFields.includes(policyName) && !value) {
+      return `${policyName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} is required`;
+    }
+  }
+  
+  // For regular fields
+  const rule = validationRules[name];
+  if (!rule) return "";
+  
+  return rule.validate ? rule.validate(value) : "";
+};
+
+// Optional: Helper to test if times should be compared
+const areValidTimesForComparison = (startTime, endTime) => {
+  return startTime && endTime && startTime.trim() !== '' && endTime.trim() !== '';
+};
+
+const validationRules = {
+  title: {
+    required: true,
+    minLength: 3,
+    maxLength: 100,
+    validate: (value) => {
+      if (!value.trim()) return "Title is required";
+      if (value.trim().length < 3) return "Title must be at least 3 characters";
+      if (value.trim().length > 100) return "Title must be at most 100 characters";
+      return "";
+    }
+  },
+  phone: {
+    pattern: /^\+?[0-9\s\-()]{8,20}$/,
+    validate: (value) => {
+      if (value && !/^\+?[0-9\s\-()]{8,20}$/.test(String(value))) {
+        return "Please enter a valid phone number";
+      }
+      return "";
+    }
+  },
+  email: {
+    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    validate: (value) => {
+      if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value))) {
+        return "Please enter a valid email address";
+      }
+      return "";
+    }
+  },
+  website: {
+    pattern: /^(https?:\/\/)?(www\.)?[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}(:[0-9]{1,5})?(\/.*)?$/,
+    validate: (value) => {
+      if (value && !/^(https?:\/\/)?(www\.)?[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}(:[0-9]{1,5})?(\/.*)?$/.test(String(value))) {
+        return "Please enter a valid website URL";
+      }
+      return "";
+    }
+  },
+  description: {
+    required: true,
+    minLength: 20,
+    validate: (value) => {
+      if (!value.trim()) return "Description is required";
+      if (value.trim().length < 20) return "Description must be at least 20 characters";
+      return "";
+    }
+  },
+  type: {
+    required: true,
+    validate: (value) => !value.trim() ? "Property type is required" : ""
+  },
+  address: {
+    required: true,
+    validate: (value) => !value.trim() ? "Address is required" : ""
+  },
+  country: {
+    required: true,
+    validate: (value) => !value.trim() ? "Country is required" : ""
+  },
+  city: {
+    required: true,
+    validate: (value) => !value.trim() ? "City is required" : ""
+  },
+  size: {
+    required: true,
+    pattern: /^\d+(\.\d+)?$/,
+    validate: (value) => {
+      if (value === undefined || value === null || value === '') {
+        return "Living Area is required";
+      }
+      
+      // Convert to string if it's a number
+      const stringValue = typeof value === 'string' ? value : String(value);
+      
+      if (!/^\d+(\.\d+)?$/.test(stringValue)) {
+        return "Living area must be a number";
+      }
+      
+      const numericValue = parseFloat(stringValue);
+      if (numericValue > 1000) {
+        return "Living area cannot exceed 1000 square meters";
+      }
+      
+      return "";
+    }
+  },
+  lotSize: {
+    validate: (value) => {
+      // Only validate if the property type is not apartment
+      if (formData.type !== "Appartement") {
+        if (!value) return "Total land area is required";
+        if (value && !/^\d+(\.\d+)?$/.test(String(value))) return "Total land area must be a number";
+        if (value && parseFloat(value) > 10000) return "Total land area cannot exceed 10000 square meters";
+      }
+      return "";
+    }
+  },
+  floorNumber: {
+    validate: (value) => {
+      // Seulement requis si le type est "Appartement"
+      if (formData.type === "Appartement" && !value) {
+        return "Floor number is required for apartments";
+      }
+      
+      // Validation supplémentaire si une valeur est fournie
+      if (value && !/^\d+$/.test(String(value))) {
+        return "Floor number must be a positive integer";
+      }
+      
+      if (value && parseInt(value) > 100) {
+        return "Floor number cannot exceed 100";
+      }
+      
+      return "";
+    }
+  },
+  numberOfBalconies: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Number of balconies is required";
+      if (value && !/^\d+$/.test(String(value))) return "Number of balconies must be a positive integer";
+      if (parseInt(value) > 10) return "Number of balconies cannot exceed 10";
+      return "";
+    }
+  },
+  rooms: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Number of rooms is required";
+      if (!/^\d+$/.test(String(value))) return "Number of rooms must be a positive integer";
+      if (parseInt(value) > 30) return "Number of rooms cannot exceed 30";
+      return "";
+    }
+  },
+  bedrooms: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Number of bedrooms is required";
+      if (!/^\d+$/.test(String(value))) return "Number of bedrooms must be a positive integer";
+      if (parseInt(value) > 20) return "Number of bedrooms cannot exceed 20";
+      return "";
+    }
+  },
+  bathrooms: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Number of bathrooms is required";
+      if (!/^\d+$/.test(String(value))) return "Number of bathrooms must be a positive integer";
+      if (parseInt(value) > 15) return "Number of bathrooms cannot exceed 15";
+      return "";
+    }
+  },
+  maxGuest: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Maximum guests is required";
+      if (!/^\d+$/.test(String(value))) return "Maximum guests must be a positive integer";
+      if (parseInt(value) > 300) return "Maximum guests cannot exceed 300";
+      return "";
+    }
+  },
+  beds_Number: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Number of beds is required";
+      if (!/^\d+$/.test(String(value))) return "Number of beds must be a positive integer";
+      if (parseInt(value) > 30) return "Number of beds cannot exceed 30";
+      return "";
+    }
+  },
+  paymentMethods: {
+    validate: () => {
+      // Vérifie si au moins une méthode de paiement est sélectionnée
+      const hasPaymentMethod = Object.values(formData.paymentMethods).some(method => method === true);
+      // Retourne une erreur UNIQUEMENT si aucune méthode n'est sélectionnée
+      return !hasPaymentMethod ? "At least one payment method must be selected" : "";
+    }
+  },
+  minNight: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Minimum nights is required";
+      if (!/^\d+$/.test(String(value))) return "Must be a positive integer";
+      const maxNight = parseInt(formData.maxNight) || 0;
+      if (maxNight > 0 && parseInt(value) > maxNight) {
+        return "Cannot exceed maximum nights";
+      }
+      return "";
+    }
+  },
+  
+  maxNight: {
+    required: true,
+    pattern: /^\d+$/,
+    validate: (value) => {
+      if (!value) return "Maximum nights is required";
+      if (!/^\d+$/.test(String(value))) return "Must be a positive integer";
+      const minNight = parseInt(formData.minNight) || 0;
+      if (minNight > 0 && parseInt(value) < minNight) {
+        return "Must be greater than minimum nights";
+      }
+      return "";
+    }
+  },  
+
+  // Make sure policy rules are properly defined
+  'policies.check_in_start': {
+    required: true,
+    validate: (value) => !value ? "Check-in start time is required" : ""
+  },
+  'policies.check_in_end': {
+    required: true,
+    validate: (value) => !value ? "Check-in end time is required" : ""
+  },
+  'policies.check_out_start': {
+    required: true,
+    validate: (value) => !value ? "Check-out start time is required" : ""
+  },
+  'policies.check_out_end': {
+    required: true,
+    validate: (value) => !value ? "Check-out end time is required" : ""
+  },
+  'policies.cancellation_policy': {
+    required: true,
+    validate: (value) => {
+      if (!value) return "Cancellation policy is required";
+      return "";
+    }
+  },
+  'policies.cleaning_maintenance': {
+    required: true,
+    minLength: 10,
+    validate: (value) => {
+      if (!value || value.trim() === "") return "Cleaning maintenance information is required";
+      if (value.trim().length < 10) return "Cleaning maintenance information must be at least 10 characters";
+      return "";
+    }
+  }
+};
+
+const validateFormBeforeSubmit = (triggerNotification = true) => {
+  const newErrors = {};
+  let isValid = true;
+
+  // Validate all fields except photos and payment methods
+  Object.keys(validationRules).forEach(fieldName => {
+    if (fieldName.startsWith('photos_') || fieldName === 'paymentMethods') return;
+    
+    let value;
+    if (fieldName.includes('.')) {
+      const [parent, child] = fieldName.split('.');
+      value = formData[parent]?.[child];
+    } else {
+      value = formData[fieldName];
+    }
+    
+    const error = validateField(fieldName, value);
+    if (error) {
+      newErrors[fieldName] = error;
+      isValid = false;
+    }
+  });
+
+  // Validate min/max night
+  const minNight = parseInt(formData.minNight || '0');
+  const maxNight = parseInt(formData.maxNight || '0');
+  if (minNight > maxNight) {
+    newErrors.minNight = "Minimum nights cannot exceed maximum nights";
+    newErrors.maxNight = "Maximum nights must be greater than minimum nights";
+    isValid = false;
+  }
+
+  // Validate payment methods only on submit
+  const hasPaymentMethod = Object.values(formData.paymentMethods || {}).some(method => method);
+  if (!hasPaymentMethod) {
+    newErrors.paymentMethods = "At least one payment method must be selected";
+    isValid = false;
+  }
+
+  // Validate photos only on submit
+  if (!mainPhotos || mainPhotos.length < 2) {
+    newErrors.mainPhotos = "At least two main photos are required";
+    isValid = false;
+  }
+
+  apartmentSpaces.forEach((space, index) => {
+    if (!space.photos || space.photos.length === 0) {
+      newErrors[`photos_${index}`] = "At least one photo is required for this space";
+      isValid = false;
+    }
+  });
+
+  setErrors(newErrors);
+  
+  // Only show notification if the function was explicitly called for validation
+  // AND not during calendar navigation
+  if (!isValid && triggerNotification) {
+    // Check if we're currently handling a calendar navigation event
+    const isCalendarNavigation = document.activeElement && 
+      (document.activeElement.classList.contains('navvButton') || 
+      document.activeElement.closest('.calendarNavigation'));
+    
+    // Only show notification if we're not navigating calendar
+    if (!isCalendarNavigation) {
+      safeSetNotification({
+        show: true,
+        message: "Please correct the errors in the form before proceeding.",
+        type: 'error'
+      });
+      
+      // Faire défiler jusqu'à la première erreur
+      const firstErrorElement = document.querySelector('.error');
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }
+  
+  return isValid;
+};
+
+// GARDER handleFormSubmit identique
+const handleFormSubmit = (e) => {
+  e.preventDefault();
+  //setSubmitAttempted(true);
+  
+  const isValid = validateFormBeforeSubmit();
+  if (isValid) {
+    setShowSEOBoostPopup(true);
+  }
+};
 
   const validateCurrentTab = () => {
     const newErrors = {};
@@ -987,23 +1801,23 @@ const handleSubmit = async (e) => {
   }
 };
 
+const handleAvailabilitiesChange = useCallback((newAvailabilities) => {
+  setAvailabilities(newAvailabilities);
+  setFormData(prev => ({
+    ...prev,
+    availabilities: newAvailabilities
+  }));
+}, [setFormData]);
+
+const handleRemoveAvailability = useCallback((index) => {
+  setAvailabilities(prev => {
+    const newAvailabilities = [...prev];
+    newAvailabilities.splice(index, 1);
+    return newAvailabilities;
+  });
+}, []);
+
 const renderAvailability = () => {
-  const handleAvailabilitiesChange = useCallback((newAvailabilities) => {
-    setAvailabilities(newAvailabilities);
-    setFormData(prev => ({
-      ...prev,
-      availabilities: newAvailabilities
-    }));
-  }, [setFormData]);
-
-  const handleRemoveAvailability = useCallback((index) => {
-    setAvailabilities(prev => {
-      const newAvailabilities = [...prev];
-      newAvailabilities.splice(index, 1);
-      return newAvailabilities;
-    });
-  }, []);
-
   return (
     <section className="section">
       <div className="availability-container">
@@ -1827,11 +2641,12 @@ const renderTabContent = () => {
   }
 };
 
-const handleNext = () => {
+ const handleNext = () => {
+  // Valider l'onglet courant avant de passer au suivant
   if (!validateCurrentTab()) {
-    const errorFields = Object.keys(errors);
-    if (errorFields.length > 0) {
-      const firstErrorField = errorFields[0];
+    // Trouver le premier champ en erreur
+    const firstErrorField = Object.keys(errors).find(field => errors[field]);
+    if (firstErrorField) {
       const element = document.querySelector(`[name="${firstErrorField}"]`);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1840,10 +2655,42 @@ const handleNext = () => {
     }
     return;
   }
-  
+
+  // Passer à l'onglet suivant
   const currentIndex = tabs.indexOf(currentTab);
   if (currentIndex < tabs.length - 1) {
     setCurrentTab(tabs[currentIndex + 1]);
+    
+    // Nettoyer les erreurs de l'onglet précédent
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      const fieldsToClear = getTabFields(currentTab);
+      fieldsToClear.forEach(field => delete newErrors[field]);
+      return newErrors;
+    });
+  }
+};
+
+// Fonction utilitaire pour obtenir les champs d'un onglet
+const getTabFields = (tab) => {
+  switch(tab) {
+    case 'basic info':
+      return ['title', 'description', 'type', 'phone', 'email'];
+    case 'details':
+      return ['size', 'rooms', 'bedrooms', 'bathrooms', 'beds_Number', 'maxGuest', 'minNight', 'maxNight', 'mainPhotos'];
+    case 'location':
+      return ['address', 'country', 'city', 'state'];
+    case 'spaces':
+      return apartmentSpaces.flatMap((_, index) => [
+        `space_id_${index}`, 
+        `type_${index}`, 
+        `area_${index}`, 
+        `photos_${index}`
+      ]);
+    case 'payment':
+      return ['paymentMethods'];
+    default:
+      return [];
   }
 };
 
@@ -1855,52 +2702,824 @@ const handleBack = () => {
 };
 
 return (
-  <div className={styles.formContainer}>
-    <div className={styles.formHeader}>
-      <h2>{initialData ? 'Edit Listing' : 'Create New Listing'}</h2>
-      <button onClick={onCancel} className={styles.closeButton}>
-        <X size={24} />
+<div className={styles.formContainer}>
+
+  <div className={styles.tabs}>
+    {tabs.map(tab => (
+      <button
+        key={tab}
+        className={`${styles.tab} ${currentTab === tab ? styles.activeTab : ''}`}
+        onClick={() => setCurrentTab(tab)}
+      >
+        {tab.charAt(0).toUpperCase() + tab.slice(1)}
       </button>
-    </div>
+    ))}
+  </div>
 
-    <div className={styles.tabs}>
-      {tabs.map(tab => (
-        <button
-          key={tab}
-          className={`${styles.tab} ${currentTab === tab ? styles.activeTab : ''}`}
-          onClick={() => setCurrentTab(tab)}
-        >
-          {tab.charAt(0).toUpperCase() + tab.slice(1)}
-        </button>
-      ))}
-    </div>
+  <form onSubmit={handleFormSubmit} className={styles.formContent}>
+    {currentTab === 'basic info' && (
+      <>
+        <div className={styles.tabContent}>
+          <h3>Basic Information</h3>
+          <div className={styles.formGroup}>
+            <label>Title*</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title || ''}
+              onChange={handleChange}
+              required
+            />
+            {errors.title && <span className={styles.error}>{errors.title}</span>}
+          </div>
 
-    <form onSubmit={handleSubmit} className={styles.formContent}>
-      {renderTabContent()}
+          <div className={styles.formGroup}>
+            <label>Description*</label>
+            <textarea
+              name="description"
+              value={formData.description || ''}
+              onChange={handleChange}
+              rows={4}
+              required
+            />
+            {errors.description && <span className={styles.error}>{errors.description}</span>}
+          </div>
 
-      <div className={styles.formActions}>
-        {currentTab !== tabs[0] && (
-          <button
-            type="button"
-            onClick={handleBack}
-            className={styles.secondaryButton}
+          <div className={styles.formGroup}>
+            <label>Property Type*</label>
+            <select
+              name="type"
+              value={formData.type || ''}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select type</option>
+              <option value="Hotel">Hotel</option>
+              <option value="Appartement">Appartement</option>
+              <option value="Villa">Villa</option>
+              <option value="Room">Room</option>
+              <option value="Cabin">Cabin</option>
+            </select>
+            {errors.type && <span className={styles.error}>{errors.type}</span>}
+          </div>
+        </div>
+
+        <div className={styles.tabContent}>
+          <h3>Contact Information</h3>
+          <div className={styles.formGroup}>
+            <label>Phone*</label>
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone || ''}
+              onChange={handleChange}
+              required
+            />
+            {errors.phone && <span className={styles.error}>{errors.phone}</span>}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Email*</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email || ''}
+              onChange={handleChange}
+              required
+            />
+            {errors.email && <span className={styles.error}>{errors.email}</span>}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Website</label>
+            <input
+              type="text"
+              name="website"
+              value={formData.website || ''}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+      </>
+    )}
+
+    {currentTab === 'details' && (
+      <>
+        <div className={styles.tabContent}>
+          <h3>Property Photos</h3>
+          <div className={styles.formGroup}>
+            <label>Main Photos (Minimum 2)*</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleMainPhotoUpload}
+              style={{ display: 'none' }}
+              id="mainPhotoInput"
+            />
+            <button
+              type="button"
+              onClick={() => document.getElementById('mainPhotoInput').click()}
+              className={styles.uploadButton}
+            >
+              Choose File
+            </button>
+
+            <div className={styles.photoGrid}>
+              {mainPhotos && mainPhotos.map((photo, photoIndex) => (
+                <div key={photoIndex} className="photo-preview-container">
+                  <div className="photo-preview">
+                    <img 
+                      src={typeof photo === 'string' ? photo : URL.createObjectURL(photo)} 
+                      alt={`Property preview ${photoIndex + 1}`} 
+                      className="preview-image"
+                    />
+                    <button
+                      type="button"
+                      className="remove-photo-btn"
+                      onClick={() => removeMainPhoto(photoIndex)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {(!mainPhotos || mainPhotos.length < 2) && <span className={styles.error}>Minimum 2 photos required</span>}
+          </div>
+        </div>
+
+        <div className={styles.tabContent}>
+          <h3>Property Details</h3>
+          <div className={styles.twoColumnLayout}>
+            <div className={styles.column}>
+              <div className={styles.formGroup}>
+                <label>Living area (m²)*</label>
+                <input
+                  type="number"
+                  name="size"
+                  value={formData.size || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.size && <span className={styles.error}>{errors.size}</span>}
+              </div>
+
+              {shouldShowFloor() && (
+                <div className={styles.formGroup}>
+                  <label>Floor Number*</label>
+                  <input
+                    type="number"
+                    name="floorNumber"
+                    value={formData.floorNumber || ''}
+                    onChange={handleChange}
+                    min="1"
+                    required
+                  />
+                  {errors.floorNumber && <span className={styles.error}>{errors.floorNumber}</span>}
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label>Number of rooms*</label>
+                <input
+                  type="number"
+                  name="rooms"
+                  value={formData.rooms || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.rooms && <span className={styles.error}>{errors.rooms}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Bathrooms*</label>
+                <input
+                  type="number"
+                  name="bathrooms"
+                  value={formData.bathrooms || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.bathrooms && <span className={styles.error}>{errors.bathrooms}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Maximum capacity (guests)*</label>
+                <input
+                  type="number"
+                  name="maxGuest"
+                  value={formData.maxGuest || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.maxGuest && <span className={styles.error}>{errors.maxGuest}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Maximum nights*</label>
+                <input
+                  type="number"
+                  name="maxNight"
+                  value={formData.maxNight || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.maxNight && <span className={styles.error}>{errors.maxNight}</span>}
+              </div>
+            </div>
+
+            <div className={styles.column}>
+              {shouldShowLotSize() && (
+                <div className={styles.formGroup}>
+                  <label>Total land area (m²)*</label>
+                  <input
+                    type="number"
+                    name="lotSize"
+                    value={formData.lotSize || ''}
+                    onChange={handleChange}
+                    min="1"
+                    required
+                  />
+                  {errors.lotSize && <span className={styles.error}>{errors.lotSize}</span>}
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label>Number of Balconies*</label>
+                <input
+                  type="number"
+                  name="numberOfBalconies"
+                  value={formData.numberOfBalconies || ''}
+                  onChange={handleChange}
+                  min="0"
+                  required
+                />
+                {errors.numberOfBalconies && <span className={styles.error}>{errors.numberOfBalconies}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Bedrooms*</label>
+                <input
+                  type="number"
+                  name="bedrooms"
+                  value={formData.bedrooms || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.bedrooms && <span className={styles.error}>{errors.bedrooms}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Number of beds*</label>
+                <input
+                  type="number"
+                  name="beds_Number"
+                  value={formData.beds_Number || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.beds_Number && <span className={styles.error}>{errors.beds_Number}</span>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Minimum nights*</label>
+                <input
+                  type="number"
+                  name="minNight"
+                  value={formData.minNight || ''}
+                  onChange={handleChange}
+                  min="1"
+                  required
+                />
+                {errors.minNight && <span className={styles.error}>{errors.minNight}</span>}
+              </div>
+            </div>
+          </div>
+          {renderAvailability()}
+        </div>
+      </>
+    )}
+
+    {currentTab === 'location' && (
+      <div className={styles.tabContent}>
+        <h3>Location</h3>
+        <div className={styles.formGroup}>
+          <label>Address*</label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address || ''}
+            onChange={handleChange}
+            required
+          />
+          {errors.address && <span className={styles.error}>{errors.address}</span>}
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Country*</label>
+          <input
+            type="text"
+            name="country"
+            value={formData.country || ''}
+            onChange={handleChange}
+            required
+          />
+          {errors.country && <span className={styles.error}>{errors.country}</span>}
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>City*</label>
+          <input
+            type="text"
+            name="city"
+            value={formData.city || ''}
+            onChange={handleChange}
+            required
+          />
+          {errors.city && <span className={styles.error}>{errors.city}</span>}
+        </div>
+
+        <div className={styles.formGroup}>
+          <button 
+            type="button" 
+            onClick={getCurrentLocation}
+            disabled={isLoadingLocation}
           >
-            Back
+            <MdMyLocation size={18} style={{ marginRight: '5px' }} />
+            {isLoadingLocation ? 'Loading...' : 'Use my current location'}
           </button>
-        )}
-        
-        <button
-          type={currentTab === tabs[tabs.length - 1] ? 'submit' : 'button'}
-          className={`${styles.primaryButton} ${Object.keys(errors).length > 0 ? styles.hasErrors : ''}`}
-          onClick={currentTab === tabs[tabs.length - 1] ? undefined : handleNext}
-          disabled={isSubmitting}
-        >
-          {currentTab === tabs[tabs.length - 1] ? 'Submit Listing' : 'Next'}
-          {Object.keys(errors).length > 0 && currentTab !== tabs[tabs.length - 1] && (
-            <span className={styles.errorIndicator}>!</span>
-          )}
+        </div>
+
+        <div className={styles.mapContainer}>
+          <iframe
+            title="Location"
+            src={mapUrl}
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
+      </div>
+    )}
+
+    {currentTab === 'spaces' && (
+      <div className={styles.tabContent}>
+        <h3>{formData.type ? `${formData.type} ${getSpaceTypeName()}s` : "Property Spaces"}</h3>
+
+        {apartmentSpaces.map((space, index) => (
+          <div key={index} className={styles.spaceContainer}>
+            <div className={styles.twoColumnLayout}>
+              <div className={styles.column}>
+                <div className={styles.formGroup}>
+                  <label>Space ID*</label>
+                  <input
+                    type="text"
+                    name="space_id"
+                    placeholder="Space ID"
+                    value={space.space_id || ''}
+                    onChange={(e) => handleApartmentSpaceChange(index, e)}
+                    required
+                  />
+                  {errors[`space_id_${index}`] && <span className={styles.error}>{errors[`space_id_${index}`]}</span>}
+                </div>
+              </div>
+              
+              <div className={styles.column}>
+                <div className={styles.formGroup}>
+                  <label>Type*</label>
+                  <input
+                    type="text"
+                    name="type"
+                    placeholder="Type"
+                    value={space.type || ''}
+                    onChange={(e) => handleApartmentSpaceChange(index, e)}
+                    required
+                  />
+                  {errors[`type_${index}`] && <span className={styles.error}>{errors[`type_${index}`]}</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Area (sqm)*</label>
+              <input
+                type="text"
+                name="area"
+                placeholder="Area (sqm)"
+                value={space.area || ''}
+                onChange={(e) => handleApartmentSpaceChange(index, e)}
+                required
+              />
+              {errors[`area_${index}`] && <span className={styles.error}>{errors[`area_${index}`]}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Photos*</label>
+              <input
+                type="file"
+                id={`space-${index}-photo-input`}
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => addPhotoToSpace(index, e)}
+              />
+              <button 
+                type="button"
+                onClick={() => document.getElementById(`space-${index}-photo-input`).click()}
+              >
+                Choose File
+              </button>
+
+              <div className={styles.photoGrid}>
+                {space.photos && space.photos.map((photo, photoIndex) => (
+                  <div key={photoIndex} className={styles.photoPreview}>
+                    <img
+                      src={typeof photo === 'string' ? photo : URL.createObjectURL(photo)}
+                      alt={`Space photo ${photoIndex + 1}`}
+                      className={styles.previewImage}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeSpacePhoto(index, photoIndex)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {(!space.photos || space.photos.length === 0) && <span className={styles.error}>At least one photo is required</span>}
+            </div>
+
+            {index > 0 && (
+              <button
+                type="button"
+                onClick={() => removeApartmentSpace(index)}
+                className={styles.removeButton}
+              >
+                Remove Space
+              </button>
+            )}
+          </div>
+        ))}
+
+        <button type="button" onClick={addApartmentSpace} className={styles.addButton}>
+          Add New {formData.type ? `${formData.type} ${getSpaceTypeName()}` : "Space"}
         </button>
       </div>
-    </form>
-  </div>
+    )}
+
+    {currentTab === 'amenities' && (
+      <div className={styles.tabContent}>
+        <h3>Amenities</h3>
+        
+        <div className={styles.amenitiesSection}>
+          <h4>Essential Amenities</h4>
+          <div className={styles.checkboxGroup}>
+            {Object.entries({
+              WiFi: 'WiFi',
+              Kitchen: 'Kitchen',
+              Washer: 'Washer',
+              Dryer: 'Dryer',
+              Free_parking: 'Free parking',
+              Air_conditioning: 'Air conditioning',
+              Heating: 'Heating',
+              TV: 'TV',
+              Breakfast: 'Breakfast',
+              Laptop_friendly_workspace: 'Laptop-friendly workspace',
+              Crib: 'Crib',
+              Hair_dryer: 'Hair dryer',
+              Iron: 'Iron',
+              Essentials: 'Essentials'
+            }).map(([key, label]) => (
+              <label key={key}>
+                <input
+                  type="checkbox"
+                  name={key}
+                  checked={formData.amenities?.[key] || false}
+                  onChange={handleAmenitiesChange}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.amenitiesSection}>
+          <h4>Safety Features</h4>
+          <div className={styles.checkboxGroup}>
+            {Object.entries({
+              Smoke_alarm: 'Smoke alarm',
+              Carbon_monoxide_alarm: 'Carbon monoxide alarm',
+              Fire_extinguisher: 'Fire extinguisher',
+              First_aid_kit: 'First aid kit',
+              Lock_on_bedroom_door: 'Lock on bedroom door'
+            }).map(([key, label]) => (
+              <label key={key}>
+                <input
+                  type="checkbox"
+                  name={key}
+                  checked={formData.amenities?.[key] || false}
+                  onChange={handleAmenitiesChange}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.amenitiesSection}>
+          <h4>Other Features</h4>
+          <div className={styles.checkboxGroup}>
+            {Object.entries({
+              Hangers: 'Hangers',
+              Shampoo: 'Shampoo',
+              Garden_or_backyard: 'Garden or backyard',
+              Patio_or_balcony: 'Patio or balcony',
+              BBQ_grill: 'BBQ grill'
+            }).map(([key, label]) => (
+              <label key={key}>
+                <input
+                  type="checkbox"
+                  name={key}
+                  checked={formData.amenities?.[key] || false}
+                  onChange={handleAmenitiesChange}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {currentTab === 'policies' && (
+      <div className={styles.tabContent}>
+        <h3>Policies</h3>
+        
+        <div className={styles.checkboxGroup}>
+          <label>
+            <input
+              type="checkbox"
+              name="smoking"
+              checked={formData.policies.smoking}
+              onChange={handlePoliciesChange}
+            />
+            <MdOutlineSmokingRooms size={20} style={{ marginRight: '8px' }} />
+            Smoking
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="pets"
+              checked={formData.policies.pets}
+              onChange={handlePoliciesChange}
+            />
+            <MdOutlinePets size={20} style={{ marginRight: '8px' }} />
+            Pets
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="parties_or_events"
+              checked={formData.policies.parties_or_events}
+              onChange={handlePoliciesChange}
+            />
+            <GiPartyPopper size={20} style={{ marginRight: '8px' }} />
+            Parties or Events
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="guests_allowed"
+              checked={formData.policies.guests_allowed}
+              onChange={handlePoliciesChange}
+            />
+            <BsPersonRaisedHand size={20} style={{ marginRight: '8px' }} />
+            Guests Allowed
+          </label>
+        </div>
+
+        <div className={styles.twoColumnLayout}>
+          <div className={styles.column}>
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Check-in Start*
+              </label>
+              <input
+                type="time"
+                name="check_in_start"
+                value={formData.policies.check_in_start}
+                onChange={handlePoliciesChange}
+                required
+              />
+              {errors['policies.check_in_start'] && <span className={styles.error}>{errors['policies.check_in_start']}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Check-out Start*
+              </label>
+              <input
+                type="time"
+                name="check_out_start"
+                value={formData.policies.check_out_start}
+                onChange={handlePoliciesChange}
+                required
+              />
+              {errors['policies.check_out_start'] && <span className={styles.error}>{errors['policies.check_out_start']}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Quiet Hours Start
+              </label>
+              <input
+                type="time"
+                name="quiet_hours_start"
+                value={formData.policies.quiet_hours_start}
+                onChange={handlePoliciesChange}
+              />
+            </div>
+          </div>
+          
+          <div className={styles.column}>
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Check-in End*
+              </label>
+              <input
+                type="time"
+                name="check_in_end"
+                value={formData.policies.check_in_end}
+                onChange={handlePoliciesChange}
+                required
+              />
+              {errors['policies.check_in_end'] && <span className={styles.error}>{errors['policies.check_in_end']}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Check-out End*
+              </label>
+              <input
+                type="time"
+                name="check_out_end"
+                value={formData.policies.check_out_end}
+                onChange={handlePoliciesChange}
+                required
+              />
+              {errors['policies.check_out_end'] && <span className={styles.error}>{errors['policies.check_out_end']}</span>}
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>
+                <IoCalendarOutline size={20} style={{ marginRight: '8px' }} />
+                Quiet Hours End
+              </label>
+              <input
+                type="time"
+                name="quiet_hours_end"
+                value={formData.policies.quiet_hours_end}
+                onChange={handlePoliciesChange}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Cleaning Maintenance*</label>
+          <input
+            type="text"
+            name="cleaning_maintenance"
+            value={formData.policies.cleaning_maintenance}
+            onChange={handlePoliciesChange}
+            required
+          />
+          {errors['policies.cleaning_maintenance'] && <span className={styles.error}>{errors['policies.cleaning_maintenance']}</span>}
+        </div>
+
+        <div className={styles.formGroup}>
+          <label>Cancellation Policy*</label>
+          <select
+            name="cancellation_policy"
+            value={formData.policies.cancellation_policy}
+            onChange={handlePoliciesChange} 
+            className={styles.formSelect}
+            required
+          >
+            <option value="">Select a policy</option>
+            <option value="Flexible - Full refund 1 day prior to arrival">Flexible - Full refund 1 day prior to arrival</option>
+            <option value="Moderate - Full refund 5 days prior to arrival">Moderate - Full refund 5 days prior to arrival</option>
+            <option value="Strict - 50% refund until 1 week prior to arrival">Strict - 50% refund until 1 week prior to arrival</option>
+            <option value="Non-refundable">Non-refundable</option>
+          </select>
+          {errors['policies.cancellation_policy'] && <span className={styles.error}>{errors['policies.cancellation_policy']}</span>}
+        </div>
+      </div>
+    )}
+
+    {currentTab === 'payment' && (
+      <div className={styles.tabContent}>
+        <h3>Means of payment*</h3>
+        <p className={styles.textMuted}>
+          Please check at least one payment method.
+        </p>
+        
+        <div className={styles.checkboxGroup}>
+          <label>
+            <input
+              type="checkbox"
+              name="credit card"
+              onChange={handlePaymentChange}
+              checked={formData.means_of_payment?.includes('credit card')}
+            />
+            <FaCreditCard size={20} style={{ marginRight: '8px' }} />
+            Credit Card
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="debit card"
+              onChange={handlePaymentChange}
+              checked={formData.means_of_payment?.includes('debit card')}
+            />
+            <FaCreditCard size={20} style={{ marginRight: '8px' }} />
+            Debit Card
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="cash"
+              onChange={handlePaymentChange}
+              checked={formData.means_of_payment?.includes('cash')}
+            />
+            <FaMoneyBillAlt size={20} style={{ marginRight: '8px' }} />
+            Cash
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              name="check"
+              onChange={handlePaymentChange}
+              checked={formData.means_of_payment?.includes('check')}
+            />
+            <CiMoneyCheck1 size={25} style={{ marginRight: '8px' }} />
+            Check
+          </label>
+        </div>
+        {errors.paymentMethods && <span className={styles.error}>{errors.paymentMethods}</span>}
+      </div>
+    )}
+
+    <div className={styles.formActions}>
+      {currentTab !== tabs[0] && (
+        <button
+          type="button"
+          onClick={handleBack}
+          className={styles.secondaryButton}
+        >
+          Back
+        </button>
+      )}
+      
+      <button
+        type={currentTab === tabs[tabs.length - 1] ? 'submit' : 'button'}
+        className={`${styles.primaryButton} ${Object.keys(errors).length > 0 ? styles.hasErrors : ''}`}
+        onClick={currentTab === tabs[tabs.length - 1] ? undefined : handleNext}
+        disabled={isSubmitting}
+      >
+        {currentTab === tabs[tabs.length - 1] ? 'Submit Listing' : 'Next'}
+        {Object.keys(errors).length > 0 && currentTab !== tabs[tabs.length - 1] && (
+          <span className={styles.errorIndicator}>!</span>
+        )}
+      </button>
+      <SEOBoostPopup 
+      isOpen={showSEOBoostPopup}
+      onClose={handleClosePopup}
+      onBoost={handleSEOBoost}
+      onSkip={handleSkipSEO}
+      formData={formData}
+      onTitleGenerated={handleTitleGenerated}
+      onDescriptionGenerated={handleDescriptionGenerated}
+    />
+
+    </div>
+  </form>
+</div>
 );}

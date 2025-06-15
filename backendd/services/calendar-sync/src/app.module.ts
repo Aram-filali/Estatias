@@ -3,7 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppService } from './app.service';
-import { DatabaseModule } from '../config/database.module';
+import { DatabaseModule } from './database.module';
 import { ConfigModule } from './config/config.module'; // Import your custom ConfigModule
 
 // Modules
