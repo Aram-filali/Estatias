@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import VerifyEmailContent from './VerifyEmailContent';
+import VerifyEmailContent from './verifyEmailContent';
 
 // Loading fallback component
 function LoadingFallback() {
