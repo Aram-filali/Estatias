@@ -1,10 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import VerifyEmailComponent from '../../src/components/VerifyEmail/VerifyEmail';
 
-export default function VerifyEmailPage() {
+function VerifyEmailPageContent() {
   // IMPORTANT: Always call hooks at the top level, before any conditional logic
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,4 +70,16 @@ export default function VerifyEmailPage() {
 
   // Return the rendered content
   return renderContent();
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <VerifyEmailPageContent />
+    </Suspense>
+  );
 }
