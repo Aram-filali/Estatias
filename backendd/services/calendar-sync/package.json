@@ -16,7 +16,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start": "node --max-old-space-size=512 ./dist/src/main.js",
-    "start:prod": "node --max-old-space-size=512 ./dist/src/main.js",
+    "start:prod": "node --max-old-space-size=512 $(find dist -name 'main.js' -type f | head -1)",
     "build:prod": "NODE_OPTIONS='--max-old-space-size=1024' nest build",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
