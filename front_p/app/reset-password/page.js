@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from 'axios';
 import styles from "./ResetPassword.module.css";
 
-const ResetPasswordPage = () => {
+// Composant qui contient la logique avec useSearchParams
+const ResetPasswordForm = () => {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -180,6 +181,27 @@ const ResetPasswordPage = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Composant de fallback pour le chargement
+const LoadingFallback = () => (
+  <div className={styles.container}>
+    <div className="fixed top-0 left-0 w-full h-full">
+      <div className="w-full h-full bg-[url('/bg-city.jpg')] bg-cover bg-center filter blur-sm"></div>
+    </div>
+    <div className={styles.formContainer}>
+      <p className={styles.loadingText}>Loading...</p>
+    </div>
+  </div>
+);
+
+// Composant principal avec Suspense
+const ResetPasswordPage = () => {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 };
 
