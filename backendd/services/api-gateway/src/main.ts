@@ -8,6 +8,7 @@ async function bootstrap() {
   // Configuration CORS pour production
   app.enableCors({
     origin: [
+      'https://estatias.com',
       'http://localhost:3000',
       'http://localhost:3001', 
       'http://localhost:3002', 
