@@ -24,6 +24,7 @@ async function bootstrap() {
       'http://localhost:3002',
       'https://your-frontend.vercel.app',
       'https://your-front-p.vercel.app',
+      'https://estatias-7qr38xop7-aram-filali-soumaya-ayadis-projects.vercel.app',
       ngrokUrl, // Ajouter l'URL ngrok dynamiquement
       /https:\/\/.*\.ngrok-free\.app$/, // Pattern pour tous les domaines ngrok
       /https:\/\/.*\.ngrok\.io$/, // Pattern pour anciens domaines ngrok
