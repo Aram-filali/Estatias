@@ -55,7 +55,7 @@ const Login = () => {
   const validateFullName = (fullname) => {
     // Trim whitespace and check if it has at least 2 non-whitespace characters
     const trimmed = fullname.trim();
-    return trimmed.length >= 2 && /^[a-zA-Z\s]+$/.test(trimmed);
+    return trimmed.length >= 4 && /^[a-zA-Z\s]+$/.test(trimmed);
   };
 
   // Sanitize input function
@@ -90,7 +90,7 @@ const Login = () => {
     
     // Validate full name
     if (!validateFullName(sanitizedFullName)) {
-      errors.push("Full name must be at least 2 characters and contain only letters and spaces");
+      errors.push("Full name must be at least 4 characters and contain only letters and spaces");
     }
     
     // Validate email format
@@ -650,7 +650,7 @@ const Login = () => {
             <h1>Create your account</h1>
             <input
               type="text"
-              placeholder="Full name (min. 2 characters)"
+              placeholder="Full name"
               value={fullname}
               onChange={handleFullNameChange}
               disabled={isSubmitting}

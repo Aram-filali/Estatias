@@ -2181,5 +2181,157 @@ Please keep this email and attachments for your records.
   }*/
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // 2. Add method to BookingEmailService (booking microservice)
+/**
+ * Send a booking cancellation email to the guest
+ */
+async sendBookingCancellationEmail(booking: any): Promise<boolean> {
+  const { customer, propertyId, checkInDate, checkOutDate, nights, guests, pricing, id } = booking;
+  const to = customer.email;
+  
+  if (!to) {
+    this.logger.error('No email address provided for booking cancellation');
+    return false;
+  }
+
+  try {
+    const [property] = await Promise.all([
+      this.getPropertyDetails(propertyId),
+    ]);
+
+    // Convert dates to readable format
+    const formattedCheckIn = new Date(checkInDate).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const formattedCheckOut = new Date(checkOutDate).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    const info = await this.transporter.sendMail({
+      from: `"${this.fromName}" <${this.fromEmail}>`,
+      to: to,
+      subject: `Booking Cancellation Confirmation #${id}`,
+      text: this.getCancellationPlainTextEmail(booking, property, formattedCheckIn, formattedCheckOut),
+      html: this.getCancellationHtmlEmail(booking, property, formattedCheckIn, formattedCheckOut)
+    });
+    
+    this.logger.log(`📩 Booking cancellation email sent successfully to ${to}: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    this.logger.error('❌ Error sending booking cancellation email:', error);
+    throw new Error(`Error sending booking cancellation email: ${error.message}`);
+  }
+}
+
+/**
+ * Get plain text version of the cancellation email
+ */
+private getCancellationPlainTextEmail(booking: any, property: any, formattedCheckIn: string, formattedCheckOut: string): string {
+  const { customer, nights, guests, pricing, id } = booking;
+  
+  return `
+    Booking Cancellation Confirmation #${id}
+    
+    Dear ${customer.fullName},
+    
+    Your booking has been successfully canceled. Here are the details of your canceled reservation:
+    
+    CANCELED BOOKING DETAILS:
+    Property: ${property.title}
+    Check-in: ${formattedCheckIn}
+    Check-out: ${formattedCheckOut}
+    Number of nights: ${nights}
+    
+    GUESTS:
+    Adults: ${guests.adults}
+    Children: ${guests.children || 0}
+    Infants: ${guests.infants || 0}
+    
+    We're sorry to see you cancel your reservation. If you have any questions or need assistance with future bookings, please don't hesitate to contact our support team.
+    
+    Thank you for using our service!
+    
+    Best regards,
+    The Support Team
+  `;
+}
+
+/**
+ * Get HTML version of the cancellation email
+ */
+private getCancellationHtmlEmail(booking: any, property: any, formattedCheckIn: string, formattedCheckOut: string): string {
+  const { customer, nights, guests, pricing, id } = booking;
+  
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 5px;">
+      <div style="text-align: center; background-color: #dc3545; color: white; padding: 15px; border-radius: 4px;">
+        <h1 style="margin: 0;">Booking Canceled</h1>
+        <p style="margin: 5px 0 0;">Ref: #${id}</p>
+      </div>
+      
+      <div style="padding: 20px 0;">
+        <p>Dear <strong>${customer.fullName}</strong>,</p>
+        
+        <p>Your booking has been successfully canceled. Here are the details of your canceled reservation:</p>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Canceled Booking Details</h3>
+          <p><strong>Property:</strong> ${property.title}</p>
+          <p><strong>Check-in:</strong> ${formattedCheckIn}</p>
+          <p><strong>Check-out:</strong> ${formattedCheckOut}</p>
+          <p><strong>Number of nights:</strong> ${nights}</p>
+          
+          <h3 style="color: #333;">Guests</h3>
+          <p><strong>Adults:</strong> ${guests.adults}</p>
+          <p><strong>Children:</strong> ${guests.children || 0}</p>
+          <p><strong>Infants:</strong> ${guests.infants || 0}</p>
+        </div>
+        
+        
+        
+        <p>We're sorry to see you cancel your reservation. If you have any questions or need assistance with future bookings, please don't hesitate to contact our support team.</p>
+        
+        <p>Thank you for using our service!</p>
+        
+        <p>Best regards,<br>The Support Team</p>
+      </div>
+      
+      <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e4e4e4; color: #777; font-size: 12px;">
+        <p>This is an automated email, please do not reply directly to this message.</p>
+      </div>
+    </div>
+  `;
+}
   
 }

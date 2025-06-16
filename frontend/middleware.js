@@ -20,24 +20,6 @@ export async function middleware(request) {
       allowGuests: true
     }
   };
-  // Check if the current path requires protection
-  let requiredRoles = protectedRoutes[pathname];
-  
-  // Special handling for MyWebsite routes (any path starting with /MyWebsite)
-  if (pathname.startsWith('/MyWebsite')) {
-    requiredRoles = ['host'];
-  }
-
-
-
-  // Check for blocked routes (like payments for hosts)
-  let blockedConfig = null;
-  for (const [route, config] of Object.entries(blockedRoutes)) {
-    if (pathname.startsWith(route)) {
-      blockedConfig = config;
-      break;
-    }
-  }
 
   // Get user data from cookies
     const authToken = request.cookies.get('authToken')?.value;
@@ -48,6 +30,17 @@ export async function middleware(request) {
 
 
 
+    
+  // Check for blocked routes (like payments for hosts)
+  let blockedConfig = null;
+  for (const [route, config] of Object.entries(blockedRoutes)) {
+    if (pathname.startsWith(route)) {
+      blockedConfig = config;
+      break;
+    }
+  }
+
+  
     // Handle blocked routes (like payments for hosts)
   if (blockedConfig) {
     // If user is authenticated and has a blocked role
@@ -58,27 +51,45 @@ export async function middleware(request) {
     
     // If user is authenticated and has an allowed role, let them through
     if (authToken && userRole && blockedConfig.allowedRoles.includes(userRole)) {
+        console.log('Access allowed for role:', userRole, 'on path:', pathname);
       return NextResponse.next();
     }
     
     // If guests are allowed and user is not authenticated, let them through
     if (blockedConfig.allowGuests && !authToken) {
+        console.log('Access allowed for guest on path:', pathname);
       return NextResponse.next();
     }
     
-    // If user is authenticated but doesn't have allowed role and isn't blocked, check further
-    if (authToken && userRole && !blockedConfig.allowedRoles.includes(userRole) && !blockedConfig.blockedRoles.includes(userRole)) {
-      // This handles edge cases - you might want to redirect or allow based on your needs
+   // If user is authenticated but role is not explicitly allowed or blocked
+    // For payment routes, this would be any other role besides 'host' and 'user'
+    if (authToken && userRole) {
+      console.log('Access blocked for undefined role:', userRole, 'on path:', pathname);
       return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+    
+    // If no auth token and guests not allowed
+    if (!authToken && !blockedConfig.allowGuests) {
+      console.log('Access blocked for unauthenticated user on path:', pathname);
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
-  if (requiredRoles) {
-    
-    
+
+  // Check if the current path requires protection
+  let requiredRoles = protectedRoutes[pathname];
+  
+  // Special handling for MyWebsite routes (any path starting with /MyWebsite)
+  if (pathname.startsWith('/MyWebsite')) {
+    requiredRoles = ['host'];
+  }
+
+
+
+  if (requiredRoles) { 
     if (!authToken) {
       console.log('No auth token, redirecting to login');
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL('/Login', request.url));
     }
     
     // Check if user role matches required roles
