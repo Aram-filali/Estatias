@@ -8,6 +8,7 @@ import {
   onAuthStateChanged,
   EmailAuthProvider,
 } from "firebase/auth";
+import ProtectedRoute from '@/src/components/ProtectedRoute';
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
@@ -35,6 +36,7 @@ const setUserProfile = (userData) => {
 };
 
 export default function EditProfile() {
+ 
   const [profileData, setProfileData] = useState({
     firebaseUid: "",
     fullname: "",
@@ -301,6 +303,7 @@ export default function EditProfile() {
   };
 
   return (
+    <ProtectedRoute allowedRoles={['user']}>
     <div className={styles.container}>
       <div className={styles.card}>
         <h1 className={styles.mainTitle}>Manage Your Account</h1>
@@ -471,5 +474,6 @@ export default function EditProfile() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

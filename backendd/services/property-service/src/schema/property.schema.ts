@@ -215,6 +215,22 @@ export class Property extends Document {
 
   @Prop({ type: String, default: "pending", enum: ["pending", "active", "approved", "rejected", "suspended"] })
   status: string;
+
+
+
+
+  @Prop({ type: Number, default: 0, min: 0, max: 5 })
+  rating: number;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  reviewCount: number;
+
+
+
+
+
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
+PropertySchema.index({ rating: -1 });
+PropertySchema.index({ reviewCount: -1 });

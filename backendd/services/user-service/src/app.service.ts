@@ -5,6 +5,7 @@ import {
   NotFoundException, 
   UnauthorizedException, 
   InternalServerErrorException, 
+  ConflictException,
   BadRequestException 
 } from '@nestjs/common';
 import { FirebaseAdminService } from './firebase/firebase';
@@ -30,56 +31,70 @@ export class UserService {
   ) {}
   
 
-  async signupUser(fullname: string, email: string, password: string) {  
-    const userExists = await this.findOneByEmail(email);
-    if (userExists) {
-      throw new Error('User already exists in DB');
-    }
-  
-    let firebaseUser;
-  
-    try {
-      firebaseUser = await this.firebaseAdminService.firebaseApp.auth().createUser({
-        displayName: fullname,
-        email,
-        password,
-        emailVerified: false // Désactive le compte jusqu'à vérification
-      });
-  
-      // Envoi de l'email de vérification
-      const emailVerificationLink = await this.firebaseAdminService.firebaseApp
-        .auth()
-        .generateEmailVerificationLink(email);
-  
-      // Envoyer le lien via votre service SMTP
-      await this.emailService.sendVerificationEmail(email, firebaseUser.uid);
-  
-    } catch (error) {
-      if (error.code === 'auth/email-already-exists') {
-        throw new Error('Email is already in use by another account (Firebase)');
-      } else {
-        throw new Error(`Firebase error: ${error.message}`);
-      }
-    }
-  
-    // Force le rôle à 'user'
-    const role = 'user';
-    await this.firebaseAdminService.firebaseApp.auth().setCustomUserClaims(firebaseUser.uid, { 
-      role,
-      emailVerified: false // Ajoute cette info dans les claims
+  async signupUser(fullname: string, email: string, password: string) {
+  const userExists = await this.findOneByEmail(email);
+  if (userExists) {
+    throw new ConflictException('User already exists in DB');
+  }
+
+  let firebaseUser;
+
+  try {
+    firebaseUser = await this.firebaseAdminService.firebaseApp.auth().createUser({
+      displayName: fullname,
+      email,
+      password,
+      emailVerified: false
     });
-  
+
+    // Generate email verification link
+    const emailVerificationLink = await this.firebaseAdminService.firebaseApp
+      .auth()
+      .generateEmailVerificationLink(email);
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(email, firebaseUser.uid);
+
+  } catch (error) {
+    if (error.code === 'auth/email-already-exists') {
+      throw new ConflictException('Email is already in use by another account (Firebase)');
+    } else if (error.code === 'auth/weak-password') {
+      throw new BadRequestException('Password is too weak');
+    } else if (error.code === 'auth/invalid-email') {
+      throw new BadRequestException('Invalid email format');
+    } else {
+      throw new InternalServerErrorException(`Firebase error: ${error.message}`);
+    }
+  }
+
+  // Set custom claims
+  const role = 'user';
+  await this.firebaseAdminService.firebaseApp.auth().setCustomUserClaims(firebaseUser.uid, {
+    role,
+    emailVerified: false
+  });
+
+  try {
     const newUser = await this.createUser({
       fullname,
       email,
       firebaseUid: firebaseUser.uid,
       role,
-      emailVerified: false // Stocke l'état de vérification dans MongoDB
+      emailVerified: false
     });
-  
-    console.log('User created with default "user" role: ', newUser);
+
+    console.log('User created with default "user" role:', newUser);
     return newUser;
+  } catch (dbError) {
+    // If user creation in DB fails, clean up Firebase user
+    try {
+      await this.firebaseAdminService.firebaseApp.auth().deleteUser(firebaseUser.uid);
+    } catch (cleanupError) {
+      console.error('Failed to cleanup Firebase user:', cleanupError);
+    }
+    throw new InternalServerErrorException('Failed to create user in database');
   }
+}
   
   async createUser(userData: CreateUserDto): Promise<User> {
     const user = new this.userModel(userData);

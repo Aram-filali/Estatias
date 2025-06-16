@@ -24,9 +24,18 @@ export class UserController {
       );
       return response;
     } catch (error) {
+      // Extract status code safely
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (error.status && typeof error.status === 'number') {
+        statusCode = error.status;
+      } else if (error.statusCode && typeof error.statusCode === 'number') {
+        statusCode = error.statusCode;
+      }
+      
       throw new HttpException(
-        error.message || 'Error during user creation', 
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR
+        error.message || 'Error during user creation',
+        statusCode
       );
     }
   }
@@ -201,19 +210,38 @@ async testJwt() {
 }
 
   @Post('login')
-  async loginUser(@Body() credentials: { idToken?: string, email?: string, password?: string }) {
-    try {
-      const response = await firstValueFrom(
-        this.userClient.send({ cmd: 'login_user' }, credentials)
-      );
-      return response;
-    } catch (error) {
+async loginUser(@Body() credentials: { idToken?: string, email?: string, password?: string }) {
+  try {
+    const response = await firstValueFrom(
+      this.userClient.send({ cmd: 'login_user' }, credentials)
+    );
+    return response;
+  } catch (error) {
+    console.error('API Gateway Login Error:', error);
+    
+    // Handle microservice errors properly
+    if (error.status && typeof error.status === 'number') {
       throw new HttpException(
-        error.message || 'Authentication failed', 
-        error.status || HttpStatus.UNAUTHORIZED
+        error.message || 'Authentication failed',
+        error.status
       );
     }
+    
+    // Handle RpcException errors from microservices
+    if (error.error && error.error.status) {
+      throw new HttpException(
+        error.error.message || error.message || 'Authentication failed',
+        error.error.status
+      );
+    }
+    
+    // Default error handling
+    throw new HttpException(
+      error.message || 'Authentication failed',
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
+}
 
   @Post('signup-google')
   async signupGoogle(@Body('idToken') idToken: string) {

@@ -27,38 +27,54 @@ export class UserController {
   ) {}
 
   @MessagePattern({ cmd: 'signup_user' })
-async signupUser(@Payload() body: CreateUserDto) {
-  const fullname = body.fullname || '';
-  const password = body.password ?? '';
-  const role = body.role ?? 'user';  // Role par défaut est 'user'
+  async signupUser(@Payload() body: CreateUserDto) {
+    const fullname = body.fullname || '';
+    const password = body.password ?? '';
+    const role = body.role ?? 'user';
 
-  if (typeof body.email !== 'string') {
-    throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
-  }
+    if (typeof body.email !== 'string') {
+      throw new RpcException({
+        message: 'Invalid email',
+        statusCode: HttpStatus.BAD_REQUEST
+      });
+    }
 
-  const userExists = await this.userService.findOneByEmail(body.email);
-  if (userExists) {
-    throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
-  }
+    const userExists = await this.userService.findOneByEmail(body.email);
+    if (userExists) {
+      throw new RpcException({
+        message: 'User already exists',
+        statusCode: HttpStatus.BAD_REQUEST
+      });
+    }
 
-  try {
-    // 🔹 Appeler le service pour inscrire l'utilisateur avec le rôle
-    const newUser = await this.userService.signupUser(fullname, body.email, password);
-    
-    // 🔹 Générer un token JWT
-    const payload = { email: newUser.email, sub: newUser._id, role: newUser.role };
-    const accessToken = this.jwtService.sign(payload);
-    
-    // 🔹 Renvoyer le message avec le token et l'utilisateur
-    return { message: 'User created successfully', access_token: accessToken, user: newUser };
-  } catch (error) {
-    console.error('Error during signup:', error);
-    throw new HttpException(
-      error.message || 'Error during user signup', 
-      HttpStatus.INTERNAL_SERVER_ERROR
-    );
+    try {
+      const newUser = await this.userService.signupUser(fullname, body.email, password);
+      
+      const payload = { email: newUser.email, sub: newUser._id, role: newUser.role };
+      const accessToken = this.jwtService.sign(payload);
+      
+      return { 
+        message: 'User created successfully', 
+        access_token: accessToken, 
+        user: newUser 
+      };
+    } catch (error) {
+      console.error('Error during signup:', error);
+      
+      // Handle specific error cases
+      if (error.message?.includes('already exists')) {
+        throw new RpcException({
+          message: error.message,
+          statusCode: HttpStatus.CONFLICT
+        });
+      }
+      
+      throw new RpcException({
+        message: error.message || 'Error during user signup',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR
+      });
+    }
   }
-}
 
 @MessagePattern({ cmd: 'verify_email' })
 async verifyEmailMicroservice(@Payload() data: { token: string, debug?: boolean }) {
@@ -184,25 +200,41 @@ async verifyEmailMicroservice(@Payload() data: { token: string, debug?: boolean 
   }
 }
 
-  @MessagePattern({ cmd: 'login_user' })
+ @MessagePattern({ cmd: 'login_user' })
   async loginUser(@Payload() body: { idToken?: string, email?: string, password?: string }) {
     try {
+      console.log('Login request received:', { hasIdToken: !!body.idToken });
+      
       if (body.idToken) {
-        const decodedToken = await this.userService.loginUser(body.idToken, '', '');
-        return { 
-          message: 'Authentication successful', 
-          user: decodedToken,
-          role: decodedToken.role
+        const userResult = await this.userService.loginUser(body.idToken, '', '');
+        return {
+          message: 'Authentication successful',
+          user: userResult,
+          role: userResult.role
         };
       }
       
-      return new HttpException('No valid authentication method provided', HttpStatus.BAD_REQUEST);
+      throw new RpcException({
+        message: 'No valid authentication method provided',
+        status: HttpStatus.BAD_REQUEST
+      });
+      
     } catch (error) {
-      console.error('Login error:', error);
-      throw new HttpException(
-        error.message || 'Authentication failed', 
-        error.status || HttpStatus.UNAUTHORIZED
-      );
+      console.error('Microservice Login error:', error);
+      
+      // Convert HttpException to RpcException for proper microservice communication
+      if (error instanceof HttpException) {
+        throw new RpcException({
+          message: error.message,
+          status: error.getStatus()
+        });
+      }
+      
+      // Handle other errors
+      throw new RpcException({
+        message: error.message || 'Authentication failed',
+        status: error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      });
     }
   }
 
