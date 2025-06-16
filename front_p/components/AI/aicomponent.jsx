@@ -37,166 +37,154 @@ const SEOContentGenerator = ({
     }
   }, [formData?.type, isOpen]);
 
- // Fonction pour obtenir l'URL de base de l'API
-const getApiBaseUrl = () => {
-  // En production, utilisez l'URL de votre API Gateway déployée
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_API_URL || 'https://api-gateway-hcq3.onrender.com';
-  }
-  // En développement, utilisez localhost
-  return process.env.REACT_APP_API_URL || 'http://localhost:3000';
-};
+  const generateContent = async () => {
+    if (!userPrompt.trim()) {
+      setError('Please describe what you want to highlight in your listing');
+      return;
+    }
 
-const generateContent = async () => {
-  if (!userPrompt.trim()) {
-    setError('Please describe what you want to highlight in your listing');
-    return;
-  }
+    setIsGenerating(true);
+    setError('');
 
-  setIsGenerating(true);
-  setError('');
+    try {
+      const requestData = {
+        propertyType: formData.type,
+        location: `${formData.city}, ${formData.state || ''}, ${formData.country}`.replace(', ,', ','),
+        bedrooms: parseInt(formData.bedrooms) || undefined,
+        bathrooms: parseInt(formData.bathrooms) || undefined,
+        amenities: formData.amenities ? Object.keys(formData.amenities).filter(key => formData.amenities[key]) : [],
+        userPrompt: userPrompt.trim(),
+        tone: 'professional',
+        language: 'en'
+      };
 
-  try {
-    const requestData = {
-      propertyType: formData.type,
-      location: `${formData.city}, ${formData.state || ''}, ${formData.country}`.replace(', ,', ','),
-      bedrooms: parseInt(formData.bedrooms) || undefined,
-      bathrooms: parseInt(formData.bathrooms) || undefined,
-      amenities: formData.amenities ? Object.keys(formData.amenities).filter(key => formData.amenities[key]) : [],
-      userPrompt: userPrompt.trim(),
-      tone: 'professional',
-      language: 'en'
-    };
+      console.log('Sending request:', requestData);
 
-    console.log('Sending request:', requestData);
+      const possibleEndpoints = [
+        `${API_BASE_URL}/properties/ai/generate-content`,
+      ];
 
-    const apiBaseUrl = getApiBaseUrl();
-    const possibleEndpoints = [
-      `${apiBaseUrl}/properties/ai/generate-content`,
-    ];
+      let response;
+      let lastError;
 
-    let response;
-    let lastError;
+      for (const endpoint of possibleEndpoints) {
+        try {
+          console.log(`Trying endpoint: ${endpoint}`);
+          
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify(requestData)
+          });
 
-    for (const endpoint of possibleEndpoints) {
-      try {
-        console.log(`Trying endpoint: ${endpoint}`);
-        
-        response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          },
-          body: JSON.stringify(requestData)
-        });
-
-        if (response.ok) {
-          console.log(`Success with endpoint: ${endpoint}`);
-          break;
-        } else if (response.status !== 404) {
-          lastError = new Error(`HTTP error! status: ${response.status}`);
-          break;
+          if (response.ok) {
+            console.log(`Success with endpoint: ${endpoint}`);
+            break;
+          } else if (response.status !== 404) {
+            lastError = new Error(`HTTP error! status: ${response.status}`);
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+          continue;
         }
-      } catch (error) {
-        lastError = error;
-        continue;
       }
-    }
 
-    if (!response || !response.ok) {
-      const errorText = await response?.text() || '';
-      console.error('Response error:', errorText);
-      
-      if (response?.status === 404) {
-        throw new Error('API endpoint not found. Please check your backend server configuration.');
-      } else if (errorText.includes('<!DOCTYPE html>')) {
-        throw new Error('Server returned HTML instead of JSON. The API endpoint may not exist.');
-      } else {
-        throw new Error(`HTTP error! status: ${response?.status}, message: ${errorText}`);
+      if (!response || !response.ok) {
+        const errorText = await response?.text() || '';
+        console.error('Response error:', errorText);
+        
+        if (response?.status === 404) {
+          throw new Error('API endpoint not found. Please check your backend server configuration.');
+        } else if (errorText.includes('<!DOCTYPE html>')) {
+          throw new Error('Server returned HTML instead of JSON. The API endpoint may not exist.');
+        } else {
+          throw new Error(`HTTP error! status: ${response?.status}, message: ${errorText}`);
+        }
       }
-    }
 
-    const data = await response.json();
-    console.log('Response received:', data);
-
-    if (data && (data.title || data.data)) {
-      const content = data.data || data;
-      setGeneratedContent({
-        title: content.title,
-        description: content.description,
-        keywords: content.suggestions?.keywords || content.keywords || []
-      });
-      setError('');
-    } else {
-      setError('Invalid response format from server');
-    }
-  } catch (error) {
-    console.error('Generation error:', error);
-    
-    if (error.message.includes('404') || error.message.includes('not found')) {
-      setError('API endpoint not found. Please check your backend server and ensure the route is properly configured.');
-    } else if (error.message.includes('Unexpected token') || error.message.includes('HTML instead of JSON')) {
-      setError('Server configuration error. The API is returning HTML instead of JSON.');
-    } else if (error.message.includes('Failed to fetch')) {
-      setError('Connection error. Please check if your backend server is running on port 3001.');
-    } else {
-      setError(`Connection error: ${error.message}`);
-    }
-  } finally {
-    setIsGenerating(false);
-  }
-};
-
-const loadSuggestions = async () => {
-  try {
-    const apiBaseUrl = getApiBaseUrl();
-    const possibleEndpoints = [
-      `${apiBaseUrl}/properties/ai/content-suggestions`,
-    ];
-
-    let response;
-    
-    for (const endpoint of possibleEndpoints) {
-      try {
-        response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          },
-          body: JSON.stringify({
-            propertyType: formData.type,
-            location: `${formData.city}, ${formData.country}`
-          })
-        });
-
-        if (response.ok) break;
-        if (response.status !== 404) break;
-      } catch (error) {
-        continue;
-      }
-    }
-
-    if (response && response.ok) {
       const data = await response.json();
-      console.log('Suggestions received:', data);
+      console.log('Response received:', data);
 
-      if (Array.isArray(data)) {
-        setSuggestions(data);
-      } else if (data.data && Array.isArray(data.data)) {
-        setSuggestions(data.data);
+      if (data && (data.title || data.data)) {
+        const content = data.data || data;
+        setGeneratedContent({
+          title: content.title,
+          description: content.description,
+          keywords: content.suggestions?.keywords || content.keywords || []
+        });
+        setError('');
       } else {
-        setSuggestions([]);
+        setError('Invalid response format from server');
       }
-    } else {
+    } catch (error) {
+      console.error('Generation error:', error);
+      
+      if (error.message.includes('404') || error.message.includes('not found')) {
+        setError('API endpoint not found. Please check your backend server and ensure the route is properly configured.');
+      } else if (error.message.includes('Unexpected token') || error.message.includes('HTML instead of JSON')) {
+        setError('Server configuration error. The API is returning HTML instead of JSON.');
+      } else if (error.message.includes('Failed to fetch')) {
+        setError('Connection error. Please check if your backend server is running on port 3001.');
+      } else {
+        setError(`Connection error: ${error.message}`);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const loadSuggestions = async () => {
+    try {
+      const possibleEndpoints = [
+        `${API_BASE_URL}/properties/ai/content-suggestions`,
+      ];
+
+      let response;
+      
+      for (const endpoint of possibleEndpoints) {
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({
+              propertyType: formData.type,
+              location: `${formData.city}, ${formData.country}`
+            })
+          });
+
+          if (response.ok) break;
+          if (response.status !== 404) break;
+        } catch (error) {
+          continue;
+        }
+      }
+
+      if (response && response.ok) {
+        const data = await response.json();
+        console.log('Suggestions received:', data);
+
+        if (Array.isArray(data)) {
+          setSuggestions(data);
+        } else if (data.data && Array.isArray(data.data)) {
+          setSuggestions(data.data);
+        } else {
+          setSuggestions([]);
+        }
+      } else {
+        setSuggestions(getDefaultSuggestions(formData.type));
+      }
+    } catch (error) {
+      console.error('Error loading suggestions:', error);
       setSuggestions(getDefaultSuggestions(formData.type));
     }
-  } catch (error) {
-    console.error('Error loading suggestions:', error);
-    setSuggestions(getDefaultSuggestions(formData.type));
-  }
-};
+  };
 
   const getDefaultSuggestions = (propertyType) => {
     const type = propertyType?.toLowerCase();

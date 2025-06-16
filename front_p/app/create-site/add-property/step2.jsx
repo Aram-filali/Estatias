@@ -1671,7 +1671,6 @@ const handleActualSubmit = async (overrideData = {}) => {
       description: finalFormData.description
     });
 
-    // Upload des photos principales
     const mainPhotoUrls = [];
     for (let i = 0; i < mainPhotos.length; i++) {
       const photo = mainPhotos[i];
@@ -1687,7 +1686,6 @@ const handleActualSubmit = async (overrideData = {}) => {
       setUploadProgress(Math.round((i + 1) / mainPhotos.length * 50));
     }
 
-    // Upload des photos d'espaces
     const propertySpaces = [];
     for (let i = 0; i < apartmentSpaces.length; i++) {
       const space = apartmentSpaces[i];
@@ -1786,70 +1784,9 @@ const handleActualSubmit = async (overrideData = {}) => {
     console.log('Description finale:', propertyData.description);
     console.log('PropertyData complet:', JSON.stringify(propertyData, null, 2));
 
-    // Configuration API directe avec gestion environnement
-    const getApiUrl = () => {
-      // En production, utiliser l'URL de l'API Gateway sur Render
-      if (process.env.NODE_ENV === 'production') {
-        return process.env.NEXT_PUBLIC_API_URL || 'https://api-gateway-hcq3.onrender.com';
-      }
-      // En développement, utiliser localhost
-      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    };
-
-    const apiUrl = getApiUrl();
-    console.log('API URL utilisée:', apiUrl);
-
-    // Obtenir le token d'authentification Firebase
-    const auth = getAuth();
-    const user = auth.currentUser;
-    let authToken = null;
-    
-    if (user) {
-      try {
-        authToken = await user.getIdToken(true); // Force refresh du token
-        console.log('Token d\'authentification obtenu');
-      } catch (error) {
-        console.error('Erreur lors de l\'obtention du token:', error);
-      }
-    }
-
-    // Configuration des headers avec authentification
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-
-    // Fonction pour effectuer la requête avec retry
-    const makeRequest = async (retryCount = 0) => {
-      try {
-        const response = await axios.post(`${apiUrl}/properties`, propertyData, {
-          headers,
-          timeout: 60000, // 60 secondes timeout
-          withCredentials: true, // Pour les cookies si nécessaire
-        });
-        return response;
-      } catch (error) {
-        // Si c'est une erreur de timeout ou de réseau, on peut retry
-        if (retryCount < 2 && (
-          error.code === 'ECONNABORTED' || 
-          error.code === 'ENOTFOUND' ||
-          error.code === 'ECONNREFUSED' ||
-          (error.response && error.response.status >= 500)
-        )) {
-          console.log(`Tentative ${retryCount + 1} échouée, nouvelle tentative dans 2 secondes...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          return makeRequest(retryCount + 1);
-        }
-        throw error;
-      }
-    };
-
-    // Effectuer la requête
-    const response = await makeRequest();
+    const response = await axios.post('http://localhost:3000/properties', propertyData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
 
     console.log('Server response:', response.data);
 
@@ -1862,7 +1799,6 @@ const handleActualSubmit = async (overrideData = {}) => {
     setTimeout(() => {
       nextStep();
     }, 1500);
-
   } catch (error) {
     console.error('Error details:', error);
 
@@ -1871,56 +1807,13 @@ const handleActualSubmit = async (overrideData = {}) => {
     if (error.response) {
       console.error('Server error status:', error.response.status);
       console.error('Server error data:', error.response.data);
-      
-      const status = error.response.status;
-      const data = error.response.data;
-      
-      // Messages d'erreur spécifiques selon le status
-      switch (status) {
-        case 400:
-          errorMessage = data.message || 'Invalid data provided. Please check your form.';
-          break;
-        case 401:
-          errorMessage = 'Authentication failed. Please log in again.';
-          break;
-        case 403:
-          errorMessage = 'Access denied. You don\'t have permission to perform this action.';
-          break;
-        case 404:
-          errorMessage = 'API endpoint not found. Please contact support.';
-          break;
-        case 413:
-          errorMessage = 'File too large. Please reduce the size of your images.';
-          break;
-        case 422:
-          errorMessage = data.message || 'Validation error. Please check your data.';
-          break;
-        case 429:
-          errorMessage = 'Too many requests. Please wait a moment and try again.';
-          break;
-        case 500:
-          errorMessage = 'Server error. Please try again later.';
-          break;
-        case 503:
-          errorMessage = 'Service temporarily unavailable. Please try again later.';
-          break;
-        default:
-          errorMessage = data.message || data.error || `Server error (${status})`;
-      }
+      errorMessage = error.response.data.message || error.response.data.error || errorMessage;
     } else if (error.request) {
       console.error('No response received:', error.request);
-      if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out. Please check your internet connection and try again.';
-      } else if (error.code === 'ENOTFOUND') {
-        errorMessage = 'Cannot connect to server. Please check your internet connection.';
-      } else if (error.code === 'ECONNREFUSED') {
-        errorMessage = 'Connection refused by server. Please try again later.';
-      } else {
-        errorMessage = 'No response from server. Please check your internet connection.';
-      }
+      errorMessage = 'No response from server. Please check your internet connection.';
     } else {
       console.error('General error:', error.message);
-      errorMessage = error.message || 'An unexpected error occurred.';
+      errorMessage = error.message;
     }
 
     safeSetNotification({
@@ -1933,7 +1826,6 @@ const handleActualSubmit = async (overrideData = {}) => {
     setUploadProgress(0);
   }
 };
-
 
 const handleSEOBoost = async (generatedContent = {}) => {
   console.log('=== DÉBUT handleSEOBoost ===');

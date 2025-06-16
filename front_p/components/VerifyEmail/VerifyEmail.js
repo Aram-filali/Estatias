@@ -28,12 +28,8 @@ export default function VerifyEmail() {
 
 // Configuration de l'URL de base de l'API
 const getApiBaseUrl = () => {
-  // En production, utilisez l'URL de votre API Gateway déployée
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.NEXT_PUBLIC_API_URL || 'https://api-gateway-hcq3.onrender.com';
-  }
   // En développement, utilisez localhost
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  return 'http://localhost:3000';
 };
 
 const verifyToken = async () => {
