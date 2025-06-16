@@ -3,7 +3,15 @@ import { MessagePattern, Payload, EventPattern} from '@nestjs/microservices';
 import { NotificationService } from './notification.service';
 import { HostService } from '../app.service';
 
-
+interface ReviewNotification {
+  reviewId: string;
+  propertyId: string;
+  hostId: string;
+  userEmail: string;
+  rating: number;
+  comment?: string;
+  propertyName?: string;
+}
 
 
 interface PropertyStatusNotification {
@@ -67,4 +75,27 @@ export class NotificationController {
       this.logger.error(`Error handling property status update notification: ${error.message}`, error.stack);
     }
   }
+
+
+
+  @EventPattern('new_review_created')
+async handleNewReview(@Payload() data: ReviewNotification) {
+  this.logger.log(`Received new review notification for host: ${data.hostId}`);
+  
+  try {
+    // Fetch the host to get their email address
+    const host = await this.hostService.findByFirebaseId(data.hostId); // or findByFirebaseUid if using Firebase UID
+    
+    if (!host) {
+      this.logger.error(`Host with ID ${data.hostId} not found`);
+      return;
+    }
+    
+    // Send notification email to the host
+    await this.notificationService.sendNewReviewAlert(host, data);
+    this.logger.log(`New review alert email sent to host: ${host.email}`);
+  } catch (error) {
+    this.logger.error(`Error handling new review notification: ${error.message}`, error.stack);
+  }
+}
 }

@@ -66,7 +66,7 @@ export const Profile = () => {
 
   const handleLogout = () => {
     clearUserProfile();
-    router.push("/login");
+    router.push("/Login");
   };
 
   return (

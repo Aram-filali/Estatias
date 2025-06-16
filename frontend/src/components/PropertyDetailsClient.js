@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import MapComponent from '@/src/components/Map';
-import PropertyReview from '@/src/components/PropertyReview';
+import PropertyReview from '@/src/components/review/PropertyReview';
 import BookingComponent from '@/src/components/bookingComponent';
 import styles from '@/styles/propertyDetails.module.css';
 
