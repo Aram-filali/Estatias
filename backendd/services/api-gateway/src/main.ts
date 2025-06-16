@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
+import * as ngrok from 'ngrok';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -44,12 +45,18 @@ async function bootstrap() {
   });
 
   // Port configuration pour Render (IMPORTANT!)
-  const port = process.env.PORT || 3000;
+  const port = 3000;
   
   // Bind to 0.0.0.0 pour Render (TRÈS IMPORTANT!)
-  await app.listen(port, '0.0.0.0');
+  await app.listen(3000);
+
+
+const url = await ngrok.connect(3000);
   
-  console.log(`API Gateway is running on: ${process.env.NODE_ENV === 'production' ? `Port ${port}` : `http://localhost:${port}`}`);
+  console.log('Ngrok available at:',url);
+
+  
+  console.log(`API Gateway is running on: ${port}  url  ${url} `);
 }
 
 bootstrap();
