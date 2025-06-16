@@ -462,7 +462,7 @@ async cancelBooking(id: string): Promise<any> {
     
     // Send cancellation email
     try {
-      //await this.emailService.sendBookingCanceledEmail(updatedBooking);
+      await this.emailService.sendBookingCancellationEmail(updatedBooking);
       this.logger.log(`Booking cancellation email sent to ${updatedBooking.customer.email}`);
     } catch (emailError) {
       this.logger.error(`Failed to send cancellation email: ${emailError.message}`, emailError.stack);
@@ -471,17 +471,23 @@ async cancelBooking(id: string): Promise<any> {
     
     // Notify host service about the cancellation
     try {
-      const notificationData = {
+      const hostNotificationData = {
         bookingId: updatedBooking.id,
         hostId: updatedBooking.hostId,
         propertyId: updatedBooking.propertyId,
-        status: updatedBooking.status,
+        checkInDate: updatedBooking.checkInDate,
+        checkOutDate: updatedBooking.checkOutDate,
+        guests: updatedBooking.guests,
+        customer: {
+          fullName: updatedBooking.customer.fullName,
+          email: updatedBooking.customer.email
+        },
         cancellationDate: updatedBooking.cancellationDate,
-        updatedAt: new Date()
+        status: updatedBooking.status
       };
       
       // Uncomment when ready to use
-      this.hostServiceClient.emit('booking_canceled', notificationData);
+      this.hostServiceClient.emit('booking_canceled', hostNotificationData);
       this.logger.log(`Host notification event emitted about booking cancellation`);
     } catch (notificationError) {
       this.logger.error(`Failed to notify host service: ${notificationError.message}`, notificationError.stack);

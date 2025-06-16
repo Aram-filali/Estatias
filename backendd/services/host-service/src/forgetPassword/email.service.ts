@@ -30,6 +30,26 @@ interface BookingNotification {
   };
 }
 
+
+interface BookingCancellationNotification {
+  bookingId: string;
+  hostId: string;
+  propertyId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  guests: {
+    adults: number;
+    children?: number;
+    infants?: number;
+  };
+  customer: {
+    fullName: string;
+    email: string;
+  };
+  cancellationDate: Date;
+  status: string;
+}
+
 @Injectable()
 export class EmailService {
   private transporter;
@@ -351,4 +371,83 @@ async sendVerificationEmail(to, userId) {
       throw error;
     }
   }
+
+
+
+  async sendBookingCancellationAlert(host: Host, bookingData: BookingCancellationNotification): Promise<void> {
+  this.logger.log(`Preparing booking cancellation alert email for host: ${host.email}`);
+  
+  // Determine host name based on profile type
+  const hostName = host.isAgency 
+    ? host.businessName 
+    : `${host.firstName} ${host.lastName}`;
+  
+  // Calculate total guests
+  const totalGuests = bookingData.guests.adults + 
+    (bookingData.guests.children || 0) + 
+    (bookingData.guests.infants || 0);
+  
+  // Format cancellation date
+  const formattedCancellationDate = new Date(bookingData.cancellationDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  // Generate direct URL to booking details
+  const bookingUrl = `${this.dashboardUrl}/MyWebsite/bookings`;
+
+  // Prepare email content
+  const mailOptions = {
+    from: `"${this.fromName}" <${this.fromEmail}>`,
+    to: host.email,
+    subject: '🚫 Booking Cancellation Alert',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e4e4e4; border-radius: 8px;">
+        <h2 style="color: #dc3545; text-align: center;">Booking Canceled</h2>
+        <p style="font-size: 16px;">Hello ${hostName},</p>
+        <p style="font-size: 16px;">A guest has canceled their booking for your property.</p>
+        
+        <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <h3 style="margin-top: 0; color: #721c24;">Canceled Booking Details:</h3>
+          <ul style="list-style-type: none; padding-left: 0;">
+            <li><strong>Booking ID:</strong> ${bookingData.bookingId}</li>
+            <li><strong>Property ID:</strong> ${bookingData.propertyId}</li>
+            <li><strong>Guest:</strong> ${bookingData.customer.fullName}</li>
+            <li><strong>Guest Email:</strong> ${bookingData.customer.email}</li>
+            <li><strong>Check-in:</strong> ${bookingData.checkInDate}</li>
+            <li><strong>Check-out:</strong> ${bookingData.checkOutDate}</li>
+            <li><strong>Guests:</strong> ${totalGuests} total</li>
+            <li><strong>Canceled on:</strong> ${formattedCancellationDate}</li>
+          </ul>
+        </div>
+        
+        <div style="background-color: #d1ecf1; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #bee5eb;">
+          <p style="margin: 0; color: #0c5460;"><strong>Good News:</strong> Your property dates are now available again for new bookings!</p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${bookingUrl}" style="background-color: #007bff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">View All Bookings</a>
+        </div>
+        
+        <p style="font-size: 16px;">The canceled dates are now automatically available for new reservations on your calendar.</p>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666; text-align: center;">
+          <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+      </div>
+    `,
+  };
+  
+  try {
+    await this.transporter.sendMail(mailOptions);
+    this.logger.log(`Booking cancellation alert email sent successfully to ${host.email}`);
+  } catch (error) {
+    this.logger.error(`Failed to send booking cancellation alert email: ${error.message}`, error.stack);
+    throw error;
+  }
+}
 }

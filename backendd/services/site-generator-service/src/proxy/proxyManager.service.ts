@@ -65,6 +65,22 @@ export class ProxyManagerService implements OnApplicationShutdown {
     this.init();
   }
 
+  // Add getter for domain to allow access from other services
+  public getDomain(): string {
+    return this.domain;
+  }
+
+  // Add method to generate site URL
+public async generateSiteUrl(hostId: string): Promise<string> {
+  const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
+  
+  if (host && host.domainName) {
+    return `http://${host.domainName}.${this.domain}`;
+  }
+  
+  return `http://${hostId}.${this.domain}`;
+}
+
   private async init(): Promise<void> {
     try {
       // Ensure the Nginx config directory exists
@@ -97,7 +113,7 @@ export class ProxyManagerService implements OnApplicationShutdown {
   /**
    * Creates or updates proxy configuration for a specific host
    */
-  async createProxyConfig(hostId: string, port: number | undefined | null): Promise<void> {
+  async createProxyConfig(hostId: string, port: number | undefined | null): Promise<string> {
     try {
       // Log les valeurs reçues pour aider au débogage
       this.logger.log(`Creating proxy config for hostId: ${hostId}, port: ${port}`);
@@ -127,16 +143,14 @@ export class ProxyManagerService implements OnApplicationShutdown {
       const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
       
       // Utiliser le domainName s'il existe, sinon utiliser l'hostId comme fallback
-      const serverName = host?.domainName 
-        ? `${host.domainName}.${this.domain}` 
-        : `${hostId}.${this.domain}`;
+      const subdomain = host?.domainName || hostId;
+      const serverName = `${subdomain}.${this.domain}`;
 
       this.logger.log(`Using server name: ${serverName} for hostId: ${hostId}`);
 
       const configPath = path.join(this.nginxSitesDir, `${hostId}.conf`);
 
       // Configuration améliorée pour tous les environnements
-      // Ajout de buffering et timeouts augmentés
       const configContent = `# Configuration for ${serverName}
 server {
     listen 80;
@@ -207,7 +221,8 @@ server {
         }
       }
       
-      return;
+      // Return the complete URL
+      return `http://${serverName}`;
     } catch (error) {
       this.logger.error(`Error creating proxy config for ${hostId}: ${error.message}`);
       throw error;
@@ -515,109 +530,6 @@ server {
       return;
     } catch (error) {
       this.logger.error(`Error ensuring main nginx.conf: ${error.message}`);
-      throw error;
-    }
-  }
-
-  private async ensureIncludeDirective(): Promise<void> {
-    try {
-      const mainNginxConfPath = path.join(this.nginxConfigDir, 'nginx.conf');
-      
-      // Check if the file exists
-      if (await fs.pathExists(mainNginxConfPath)) {
-        let content = await fs.readFile(mainNginxConfPath, 'utf8');
-        const includeDir = path.join(this.nginxConfigDir, 'conf.d').replace(/\\/g, '/');
-        const includeDirective = `include ${includeDir}/*.conf;`;
-        const sitesIncludeDirective = `include ${this.nginxSitesDir.replace(/\\/g, '/')}/*.conf;`;
-        
-        // Check if both include directives already exist
-        let needsUpdate = false;
-        
-        if (!content.includes(includeDirective) && !content.includes('include conf.d/*.conf;')) {
-          needsUpdate = true;
-        }
-        
-        if (!content.includes(sitesIncludeDirective) && !content.includes('include sites-enabled/*.conf;')) {
-          needsUpdate = true;
-        }
-        
-        if (needsUpdate) {
-          // Find the http block
-          const httpBlockMatch = content.match(/http\s*{([^}]*)}/s);
-          if (httpBlockMatch) {
-            const httpBlockContent = httpBlockMatch[1];
-            const updatedHttpBlockContent = httpBlockContent + `
-    # Include dynamic sites configurations
-    ${includeDirective}
-    ${sitesIncludeDirective}
-`;
-            content = content.replace(httpBlockMatch[0], `http {${updatedHttpBlockContent}}`);
-            
-            await fs.writeFile(mainNginxConfPath, content);
-            this.logger.log(`Added include directives to ${mainNginxConfPath}`);
-          } else {
-            this.logger.warn(`Could not find http block in ${mainNginxConfPath}`);
-            
-            // Create a backup of the original nginx.conf
-            await fs.copy(mainNginxConfPath, `${mainNginxConfPath}.bak`);
-            
-            // Create a new nginx.conf with the include directives
-            const newContent = `
-worker_processes auto;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    include       mime.types;
-    default_type  application/octet-stream;
-    sendfile        on;
-    keepalive_timeout  65;
-    
-    # Client buffer size
-    client_max_body_size 10m;
-
-    # Include dynamic sites configurations
-    ${includeDirective}
-    ${sitesIncludeDirective}
-}`;
-            
-            await fs.writeFile(mainNginxConfPath, newContent);
-            this.logger.log(`Created new nginx.conf with include directives at ${mainNginxConfPath}`);
-          }
-        }
-      } else {
-        this.logger.warn(`Main Nginx config not found at ${mainNginxConfPath}. Creating it...`);
-        
-        // Create a basic nginx.conf with our include directives
-        const includeDir = path.join(this.nginxConfigDir, 'conf.d').replace(/\\/g, '/');
-        const basicConfig = `
-worker_processes auto;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    include       mime.types;
-    default_type  application/octet-stream;
-    sendfile        on;
-    keepalive_timeout  65;
-    
-    # Client buffer size
-    client_max_body_size 10m;
-
-    # Include dynamic sites configurations
-    include ${includeDir}/*.conf;
-    include ${this.nginxSitesDir.replace(/\\/g, '/')}/*.conf;
-}`;
-        
-        await fs.writeFile(mainNginxConfPath, basicConfig);
-        this.logger.log(`Created new nginx.conf with include directives at ${mainNginxConfPath}`);
-      }
-    } catch (error) {
-      this.logger.error(`Error updating main nginx.conf: ${error.message}`);
       throw error;
     }
   }

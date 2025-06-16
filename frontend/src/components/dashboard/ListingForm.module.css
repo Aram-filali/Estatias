@@ -12,7 +12,7 @@
   margin-bottom: 2rem !important;
   position: relative !important;
   overflow: hidden !important;
-  height: 100% !important;
+  height: 2500px !important;
   opacity: 1 !important; /* Enlevez l'opacité 0 */
   transform: translateY(0) !important; /* Enlevez le translateY initial */
   /* Gardez l'animation si vous voulez quand même un effet */

@@ -23,6 +23,29 @@ interface BookingNotification {
   };
 }
 
+
+
+
+
+interface BookingCancellationNotification {
+  bookingId: string;
+  hostId: string;
+  propertyId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  guests: {
+    adults: number;
+    children?: number;
+    infants?: number;
+  };
+  customer: {
+    fullName: string;
+    email: string;
+  };
+  cancellationDate: Date;
+  status: string;
+}
+
 @Controller()
   
 
@@ -169,4 +192,28 @@ export class EmailController {
       this.logger.error(`Error handling new booking notification: ${error.message}`, error.stack);
     }
   }
+
+
+
+  // 4. Add event handler to host email controller
+@EventPattern('booking_canceled')
+async handleBookingCancellation(@Payload() data: BookingCancellationNotification) {
+  this.logger.log(`Received booking cancellation notification for host: ${data.hostId}`);
+  
+  try {
+    // Fetch the host to get their email address
+    const host = await this.hostService.findByFirebaseUid(data.hostId);
+    
+    if (!host) {
+      this.logger.error(`Host with ID ${data.hostId} not found`);
+      return;
+    }
+    
+    // Send notification email to the host
+    await this.emailService.sendBookingCancellationAlert(host, data);
+    this.logger.log(`Booking cancellation alert email sent to host: ${host.email}`);
+  } catch (error) {
+    this.logger.error(`Error handling booking cancellation notification: ${error.message}`, error.stack);
+  }
+}
 }
