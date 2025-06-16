@@ -161,11 +161,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
   );
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://a2b9-102-173-35-213.ngrok-free.app'  
-    : 'http://localhost:3000'
-  );
+// Add this at the top of your file, outside of your component
+// This ensures all API calls use the same base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const Prices: React.FC<{ 
   showButton?: boolean, 
@@ -190,8 +188,6 @@ const Prices: React.FC<{
       onPlanSelect(newSelectedPlanId);
     }
   };
-
- // Enhanced handleContinue function with better error handling and debugging
 
   const handleContinue = async () => {
     const auth = getAuth();
@@ -320,6 +316,7 @@ const Prices: React.FC<{
       setLoading(false);
     }
   };
+
 
   return (
     <div className={`${styles.pricesContainer} mt-[0px]`}>
