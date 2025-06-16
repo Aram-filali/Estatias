@@ -26,96 +26,111 @@ export default function VerifyEmail() {
       return;
     }
 
-    const verifyToken = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        const endpointUrl = `${apiUrl}/hosts/verify-email`;
-        
-        const response = await axios({
-          method: 'post',
-          url: endpointUrl,
-          data: { token: initialToken },
-          headers: { 'Content-Type': 'application/json' },
-          validateStatus: (status) => status >= 200 && status < 500,
-        });
-        
-        if (response.data.error || response.status >= 400) {
-          throw new Error(response.data.message || 'Verification failed');
-        }
-        
-        setStatus('success');
-        setMessage(response.data.message || 'Your email has been successfully verified!');
-        
-        try {
-          localStorage.setItem('emailVerified', 'true');
+// Configuration de l'URL de base de l'API
+const getApiBaseUrl = () => {
+  // En production, utilisez l'URL de votre API Gateway déployée
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://api-gateway-hcq3.onrender.com';
+  }
+  // En développement, utilisez localhost
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+};
 
-        } catch (storageError) {
-          console.warn('Could not store verification status:', storageError);
-        }
-        
-      } catch (error) {
-        console.error('Verification error:', error);
-        setStatus('error');
-        
-        if (error.response?.data) {
-          setMessage(
-            typeof error.response.data === 'string'
-              ? error.response.data
-              : error.response.data.message || `Server error: ${error.response.status}`
-          );
-        } else if (error.request) {
-          setMessage('No response from server. Please check your network connection.');
-        } else {
-          setMessage(error.message || 'An unknown error occurred during verification');
-        }
-
-        try {
-          const tokenParts = initialToken.split('.');
-          if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]));
-            if (payload.email) setEmail(payload.email);
-          }
-        } catch (tokenError) {
-          console.error('Failed to extract email from token:', tokenError);
-        }
-      }
-    };
+const verifyToken = async () => {
+  try {
+    const apiUrl = getApiBaseUrl();
+    const endpointUrl = `${apiUrl}/hosts/verify-email`;
     
-    verifyToken();
-  }, [router]);
-
-  const handleResendVerification = async () => {
-    if (!email && !manualEmail) {
-      setMessage('Cannot resend verification email: email address not found');
-      return;
+    console.log('API Base URL:', apiUrl);
+    console.log('Verification endpoint:', endpointUrl);
+    
+    const response = await axios({
+      method: 'post',
+      url: endpointUrl,
+      data: { token: initialToken },
+      headers: { 'Content-Type': 'application/json' },
+      validateStatus: (status) => status >= 200 && status < 500,
+    });
+    
+    if (response.data.error || response.status >= 400) {
+      throw new Error(response.data.message || 'Verification failed');
     }
-
-    setIsResending(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const emailToUse = email || manualEmail;
+    
+    setStatus('success');
+    setMessage(response.data.message || 'Your email has been successfully verified!');
+    
+    try {
+      localStorage.setItem('emailVerified', 'true');
+    } catch (storageError) {
+      console.warn('Could not store verification status:', storageError);
+    }
+    
+  } catch (error) {
+    console.error('Verification error:', error);
+    setStatus('error');
+    
+    if (error.response?.data) {
+      setMessage(
+        typeof error.response.data === 'string'
+          ? error.response.data
+          : error.response.data.message || `Server error: ${error.response.status}`
+      );
+    } else if (error.request) {
+      setMessage('No response from server. Please check your network connection.');
+    } else {
+      setMessage(error.message || 'An unknown error occurred during verification');
+    }
 
     try {
-      const response = await axios.post(`${apiUrl}/hosts/resend-verification`, {
-        email: emailToUse,
-      });
-
-      if (response.data.success) {
-        setResendSuccess(true);
-        setMessage('A new verification email has been sent. Please check your inbox.');
-      } else {
-        throw new Error(response.data.message || 'Failed to resend verification email');
+      const tokenParts = initialToken.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload.email) setEmail(payload.email);
       }
-    } catch (error) {
-      console.error('Error resending verification email:', error);
-      setMessage(
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to resend verification email. Please try again later.'
-      );
-    } finally {
-      setIsResending(false);
+    } catch (tokenError) {
+      console.error('Failed to extract email from token:', tokenError);
     }
-  };
+  }
+};
+
+verifyToken();
+}, [router]);
+
+const handleResendVerification = async () => {
+  if (!email && !manualEmail) {
+    setMessage('Cannot resend verification email: email address not found');
+    return;
+  }
+
+  setIsResending(true);
+  const apiUrl = getApiBaseUrl();
+  const emailToUse = email || manualEmail;
+
+  console.log('Resending verification to:', emailToUse);
+  console.log('Using API URL:', apiUrl);
+
+  try {
+    const response = await axios.post(`${apiUrl}/hosts/resend-verification`, {
+      email: emailToUse,
+    });
+
+    if (response.data.success) {
+      setResendSuccess(true);
+      setMessage('A new verification email has been sent. Please check your inbox.');
+    } else {
+      throw new Error(response.data.message || 'Failed to resend verification email');
+    }
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    setMessage(
+      error.response?.data?.message ||
+      error.message ||
+      'Failed to resend verification email. Please try again later.'
+    );
+  } finally {
+    setIsResending(false);
+  }
+};
   
   const handleManualEmailSubmit = (e) => {
     e.preventDefault();

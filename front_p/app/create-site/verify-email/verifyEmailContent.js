@@ -51,24 +51,139 @@ export default function VerifyEmailContent() {
   }, [router]);
 
   // Fonction pour vérifier l'état de vérification de l'email sur le serveur
-  const checkEmailVerificationStatus = async () => {
-    if (!email) {
-      setInitialCheckComplete(true);
-      return;
-    }
+// Fonction pour obtenir l'URL de base de l'API
+const getApiBaseUrl = () => {
+  // En production, utilisez l'URL de votre API Gateway déployée
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://api-gateway-hcq3.onrender.com';
+  }
+  // En développement, utilisez localhost
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+};
 
+// Fonction pour vérifier l'état de vérification de l'email sur le serveur
+const checkEmailVerificationStatus = async () => {
+  if (!email) {
+    setInitialCheckComplete(true);
+    return;
+  }
+
+  try {
+    const apiUrl = getApiBaseUrl();
+    const response = await axios({
+      method: 'post',
+      url: `${apiUrl}/hosts/check-verification-status`,
+      data: { email },
+      headers: { 'Content-Type': 'application/json' },
+      validateStatus: (status) => status >= 200 && status < 500,
+    });
+
+    if (response.data.verified) {
+      // L'email est déjà vérifié selon le serveur
+      setAlreadyVerified(true);
+      
+      // Mettre à jour localStorage
+      if (typeof window !== 'undefined') {
+        const progress = localStorage.getItem('userSignupProgress');
+        if (progress) {
+          const parsedProgress = JSON.parse(progress);
+          localStorage.setItem('userSignupProgress', JSON.stringify({
+            ...parsedProgress,
+            emailVerified: true,
+            step: 'email_verified',
+            timestamp: new Date().toISOString(),
+          }));
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to check email verification status:', error);
+  } finally {
+    setInitialCheckComplete(true);
+  }
+};
+
+useEffect(() => {
+  if (!token) return;
+
+  const verifyToken = async (tokenToVerify) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      setVerifying(true);
+      const apiUrl = getApiBaseUrl();
+      const endpointUrl = `${apiUrl}/hosts/verify-email`;
+
       const response = await axios({
         method: 'post',
-        url: `${apiUrl}/hosts/check-verification-status`,
-        data: { email },
+        url: endpointUrl,
+        data: { token: tokenToVerify },
         headers: { 'Content-Type': 'application/json' },
         validateStatus: (status) => status >= 200 && status < 500,
       });
 
-      if (response.data.verified) {
-        // L'email est déjà vérifié selon le serveur
+      if (response.data.error || response.status >= 400) {
+        throw new Error(response.data.message || 'Verification failed');
+      }
+
+      const success = response.data.success;
+      if (success) {
+        if (typeof window !== 'undefined') {
+          const progress = localStorage.getItem('userSignupProgress');
+          if (progress) {
+            const parsedProgress = JSON.parse(progress);
+            localStorage.setItem('userSignupProgress', JSON.stringify({
+              ...parsedProgress,
+              emailVerified: true,
+              step: 'email_verified',
+              timestamp: new Date().toISOString(),
+            }));
+          }
+        }
+        setVerified(true);
+
+        // Set timeout for redirection after verification success
+        setTimeout(() => {
+          setIsNavigating(true);
+          router.push('/create-site/add-property');
+        }, 5000); // Reduced to 5 seconds for better UX
+      } else {
+        setError('The verification link is invalid or has expired. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error verifying email:', err);
+      setError('An error occurred during verification. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  verifyToken(token);
+}, [token, router]);
+
+useEffect(() => {
+  if (countdown > 0) {
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  } else if (countdown === 0 && resendDisabled) {
+    setResendDisabled(false);
+  }
+}, [countdown, resendDisabled]);
+
+const handleResendEmail = async () => {
+  setResendDisabled(true);
+  setCountdown(60);
+
+  try {
+    const apiUrl = getApiBaseUrl();
+    const response = await axios({
+      method: 'post',
+      url: `${apiUrl}/hosts/resend-verification`,
+      data: { email },
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (response.data.success) {
+      // Vérifier si l'email est déjà vérifié
+      if (response.data.message && response.data.message.includes('already verified')) {
         setAlreadyVerified(true);
         
         // Mettre à jour localStorage
@@ -84,143 +199,39 @@ export default function VerifyEmailContent() {
             }));
           }
         }
-      }
-    } catch (error) {
-      console.error('Failed to check email verification status:', error);
-    } finally {
-      setInitialCheckComplete(true);
-    }
-  };
-
-  useEffect(() => {
-    if (!token) return;
-
-    const verifyToken = async (tokenToVerify) => {
-      try {
-        setVerifying(true);
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        const endpointUrl = `${apiUrl}/hosts/verify-email`;
-
-        const response = await axios({
-          method: 'post',
-          url: endpointUrl,
-          data: { token: tokenToVerify },
-          headers: { 'Content-Type': 'application/json' },
-          validateStatus: (status) => status >= 200 && status < 500,
-        });
-
-        if (response.data.error || response.status >= 400) {
-          throw new Error(response.data.message || 'Verification failed');
-        }
-
-        const success = response.data.success;
-        if (success) {
-          if (typeof window !== 'undefined') {
-            const progress = localStorage.getItem('userSignupProgress');
-            if (progress) {
-              const parsedProgress = JSON.parse(progress);
-              localStorage.setItem('userSignupProgress', JSON.stringify({
-                ...parsedProgress,
-                emailVerified: true,
-                step: 'email_verified',
-                timestamp: new Date().toISOString(),
-              }));
-            }
-          }
-          setVerified(true);
-
-          // Set timeout for redirection after verification success
-          setTimeout(() => {
-            setIsNavigating(true);
-            router.push('/create-site/add-property');
-          }, 5000); // Reduced to 5 seconds for better UX
-        } else {
-          setError('The verification link is invalid or has expired. Please try again.');
-        }
-      } catch (err) {
-        console.error('Error verifying email:', err);
-        setError('An error occurred during verification. Please try again.');
-      } finally {
-        setVerifying(false);
-      }
-    };
-
-    verifyToken(token);
-  }, [token, router]);
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (countdown === 0 && resendDisabled) {
-      setResendDisabled(false);
-    }
-  }, [countdown, resendDisabled]);
-
-  const handleResendEmail = async () => {
-    setResendDisabled(true);
-    setCountdown(60);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await axios({
-        method: 'post',
-        url: `${apiUrl}/hosts/resend-verification`,
-        data: { email },
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.data.success) {
-        // Vérifier si l'email est déjà vérifié
-        if (response.data.message && response.data.message.includes('already verified')) {
-          setAlreadyVerified(true);
-          
-          // Mettre à jour localStorage
-          if (typeof window !== 'undefined') {
-            const progress = localStorage.getItem('userSignupProgress');
-            if (progress) {
-              const parsedProgress = JSON.parse(progress);
-              localStorage.setItem('userSignupProgress', JSON.stringify({
-                ...parsedProgress,
-                emailVerified: true,
-                step: 'email_verified',
-                timestamp: new Date().toISOString(),
-              }));
-            }
-          }
-        } else {
-          // Message de succès pour les emails non vérifiés
-          alert('Verification email resent successfully!');
-        }
       } else {
-        alert('Failed to send email. Please try again.');
-        setResendDisabled(false);
-        setCountdown(0);
+        // Message de succès pour les emails non vérifiés
+        alert('Verification email resent successfully!');
       }
-    } catch (error) {
-      console.error('Failed to resend email:', error);
+    } else {
       alert('Failed to send email. Please try again.');
       setResendDisabled(false);
       setCountdown(0);
     }
-  };
-
-  const handleManualContinue = () => {
-    setIsNavigating(true);
-    router.push('/create-site/add-property');
-  };
-
-  // Afficher un loader pendant la vérification initiale
-  if (!initialCheckComplete || verifying) {
-    return (
-      <div className={styles.container1}>
-        <div className={styles.contentBox1}>
-          <div className={styles.loadingSpinner1}></div>
-          <p className={styles.subtitle1}>Verifying your email status...</p>
-        </div>
-      </div>
-    );
+  } catch (error) {
+    console.error('Failed to resend email:', error);
+    alert('Failed to send email. Please try again.');
+    setResendDisabled(false);
+    setCountdown(0);
   }
+};
+
+const handleManualContinue = () => {
+  setIsNavigating(true);
+  router.push('/create-site/add-property');
+};
+
+// Afficher un loader pendant la vérification initiale
+if (!initialCheckComplete || verifying) {
+  return (
+    <div className={styles.container1}>
+      <div className={styles.contentBox1}>
+        <div className={styles.loadingSpinner1}></div>
+        <p className={styles.subtitle1}>Verifying your email status...</p>
+      </div>
+    </div>
+  );
+}
 
   if (verified) {
     return (

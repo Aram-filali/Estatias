@@ -135,7 +135,11 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
 // Add this at the top of your file, outside of your component
 // This ensures all API calls use the same base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://sitegenerator.onrender.com'  // Remplacez par votre URL Render
+    : 'http://localhost:3000'
+  );
 
 const Prices: React.FC<{ 
   showButton?: boolean, 
