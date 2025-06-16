@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, Link, DollarSign } from 'lucide-react';
-import styles from './calendarSync.module.css';
+import styles from './CalendarSync.module.css';
 
 const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
   const [step, setStep] = useState('intro');
@@ -17,217 +17,205 @@ const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
   const [individualPricing, setIndividualPricing] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-const handlePlatformSelect = (platform) => {
-  setSelectedPlatform(platform);
-  setStep('url-input');
-};
+  const handlePlatformSelect = (platform) => {
+    setSelectedPlatform(platform);
+    setStep('url-input');
+  };
 
-const validateUrl = (url, platform) => {
-  try {
-    new URL(url);
-  } catch {
-    return { valid: false, message: "The entered URL is not valid. Please enter a complete URL (e.g., https://www.hometogo.com/...)" };
-  }
+  const validateUrl = (url, platform) => {
+    try {
+      new URL(url);
+    } catch {
+      return { valid: false, message: "The entered URL is not valid. Please enter a complete URL (e.g., https://www.hometogo.com/...)" };
+    }
 
-  switch (platform) {
-    case 'hometogo':
-      if (!url.includes('hometogo.')) {
-        return { valid: false, message: "The URL must be a valid HomeToGo URL (e.g., https://www.hometogo.com/rental/...)" };
+    switch (platform) {
+      case 'hometogo':
+        if (!url.includes('hometogo.')) {
+          return { valid: false, message: "The URL must be a valid HomeToGo URL (e.g., https://www.hometogo.com/rental/...)" };
+        }
+        break;
+      
+      case 'airbnb-booking':
+        if (!url.includes('airbnb.') && !url.includes('booking.')) {
+          return { valid: false, message: "The URL must be a valid Airbnb or Booking URL" };
+        }
+        break;
+    }
+
+    return { valid: true };
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return 'Invalid date';
       }
-      break;
-    
-    case 'airbnb-booking':
-      if (!url.includes('airbnb.') && !url.includes('booking.')) {
-        return { valid: false, message: "The URL must be a valid Airbnb or Booking URL" };
-      }
-      break;
-  }
-
-  return { valid: true };
-};
-
-const formatDate = (dateString) => {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      console.warn('Invalid date string:', dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
       return 'Invalid date';
     }
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  } catch (error) {
-    console.error('Error formatting date:', error, dateString);
-    return 'Invalid date';
-  }
-};
+  };
 
-// Configuration de l'URL de base de l'API
-const getApiBaseUrl = () => {
-  // En production, utilisez l'URL de votre API Gateway déployée
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_API_URL || 'https://api-gateway-hcq3.onrender.com';
-  }
-  // En développement, utilisez localhost
-  return 'http://localhost:3000';
-};
-
-const handleUrlSubmit = async () => {
-  if (!syncUrl.trim()) {
-    alert('Please enter a URL');
-    return;
-  }
-  
-  const validation = validateUrl(syncUrl, selectedPlatform);
-  if (!validation.valid) {
-    alert(validation.message);
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    let response;
-    let result;
-    
-    const apiBaseUrl = getApiBaseUrl();
-    console.log('API Base URL:', apiBaseUrl);
-    console.log('Selected platform:', selectedPlatform);
-    console.log('Sync URL:', syncUrl);
-    
-    if (selectedPlatform === 'airbnb-booking') {
-      console.log('Using Airbnb/Booking POST endpoint');
-      
-      response = await fetch(`${apiBaseUrl}/cal-sync/ical/test-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: syncUrl.trim()
-        })
-      });
-      
-      result = await response.json();
-      
-      if (!response.ok || !result.valid) {
-        throw new Error(result.message || 'Invalid iCal URL');
-      }
-      
-      if (result.data && result.data.availabilities && Array.isArray(result.data.availabilities)) {
-        const availableDates = result.data.availabilities
-          .filter(availability => availability.available === true)
-          .slice(0, 50);
-        
-        setSyncedDates(availableDates.map(availability => ({
-          date: availability.date,
-          available: true
-        })));
-      } else {
-        const mockDates = [
-          { date: '2024-06-15', available: true },
-          { date: '2024-06-25', available: true },
-          { date: '2024-07-05', available: true },
-          { date: '2024-07-15', available: true },
-        ];
-        setSyncedDates(mockDates);
-      }
-      
-    } else if (selectedPlatform === 'hometogo') {
-      console.log('Using HomeToGo POST endpoint');
-      
-      if (!syncUrl || syncUrl.trim() === '') {
-        throw new Error('Empty or invalid URL');
-      }
-      
-      response = await fetch(`${apiBaseUrl}/cal-sync/scraping/test-direct`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: syncUrl.trim(),
-          platform: 'hometogo'
-        })
-      });
-      
-      result = await response.json();
-      console.log('HomeToGo API response:', result);
-      
-      if (!response.ok) {
-        const errorMessage = result?.message || result?.error || `HTTP error ${response.status}`;
-        throw new Error(`API Error: ${errorMessage}`);
-      }
-      
-      if (result.success === false) {
-        const errorMessage = result.message || result.error || 'Scraping test failed';
-        throw new Error(`HomeToGo Error: ${errorMessage}`);
-      }
-      
-      if (result.data && result.data.availabilities && Array.isArray(result.data.availabilities)) {
-        const availableDates = result.data.availabilities
-          .filter(availability => availability.available === true || availability.isAvailable === true)
-          .slice(0, 50);
-        
-        setSyncedDates(availableDates.map(availability => ({
-          date: availability.date || availability.start_date || availability.startDate,
-          available: true
-        })));
-      } else if (result.availabilities && Array.isArray(result.availabilities)) {
-        const availableDates = result.availabilities
-          .filter(availability => availability.available === true || availability.isAvailable === true)
-          .slice(0, 50);
-        
-        setSyncedDates(availableDates.map(availability => ({
-          date: availability.date || availability.start_date || availability.startDate,
-          available: true
-        })));
-      } else {
-        console.log('No real data found, using mock data for demo');
-        
-        const mockHomeToGoDates = [
-          { date: '2024-06-20', available: true },
-          { date: '2024-07-10', available: true },
-          { date: '2024-07-20', available: true },
-          { date: '2024-08-05', available: true },
-        ];
-        setSyncedDates(mockHomeToGoDates);
-      }
+  const handleUrlSubmit = async () => {
+    if (!syncUrl.trim()) {
+      alert('Please enter a URL');
+      return;
     }
     
-    setStep('price-setup');
-    
-  } catch (error) {
-    console.error('Sync error:', error);
-    
-    let errorMessage = error.message;
-    
-    if (errorMessage.includes('Invalid public URL') || 
-        errorMessage.includes('Failed to fetch') || 
-        errorMessage.includes('Network Error') ||
-        errorMessage.includes('API Error')) {
-      
-      errorMessage += '\n\n📝 Valid URL examples:\n';
-      
-      if (selectedPlatform === 'hometogo') {
-        errorMessage += '• https://www.hometogo.com/rental/1e012a37973ae981\n';
-        errorMessage += '• https://www.hometogo.com/location/property-name\n';
-        errorMessage += '• https://www.hometogo.com/vacation-rental/property-name\n';
-        errorMessage += '\n💡 Make sure the URL is publicly accessible';
-      } else if (selectedPlatform === 'airbnb-booking') {
-        errorMessage += '• https://calendar.airbnb.com/calendar/ical/12345678.ics?s=token\n';
-        errorMessage += '• https://www.booking.com/calendar/ical/property-id.ics\n';
-        errorMessage += '\n💡 Use the complete iCal URL provided by the platform';
-      }
+    const validation = validateUrl(syncUrl, selectedPlatform);
+    if (!validation.valid) {
+      alert(validation.message);
+      return;
     }
     
-    alert(`❌ Synchronization error:\n\n${errorMessage}`);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    
+    try {
+      let response;
+      let result;
+      
+      console.log('Selected platform:', selectedPlatform);
+      console.log('Sync URL:', syncUrl);
+      
+      if (selectedPlatform === 'airbnb-booking') {
+        console.log('Using Airbnb/Booking POST endpoint');
+        
+        response = await fetch('http://localhost:3000/cal-sync/ical/test-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: syncUrl.trim()
+          })
+        });
+        
+        result = await response.json();
+        
+        if (!response.ok || !result.valid) {
+          throw new Error(result.message || 'Invalid iCal URL');
+        }
+        
+        if (result.data && result.data.availabilities && Array.isArray(result.data.availabilities)) {
+          const availableDates = result.data.availabilities
+            .filter(availability => availability.available === true)
+            .slice(0, 50);
+          
+          setSyncedDates(availableDates.map(availability => ({
+            date: availability.date,
+            available: true
+          })));
+        } else {
+          const mockDates = [
+            { date: '2024-06-15', available: true },
+            { date: '2024-06-25', available: true },
+            { date: '2024-07-05', available: true },
+            { date: '2024-07-15', available: true },
+          ];
+          setSyncedDates(mockDates);
+        }
+        
+      } else if (selectedPlatform === 'hometogo') {
+        console.log('Using HomeToGo POST endpoint');
+        
+        if (!syncUrl || syncUrl.trim() === '') {
+          throw new Error('Empty or invalid URL');
+        }
+        
+        response = await fetch('http://localhost:3000/cal-sync/scraping/test-direct', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: syncUrl.trim(),
+            platform: 'hometogo'
+          })
+        });
+        
+        result = await response.json();
+        console.log('HomeToGo API response:', result);
+        
+        if (!response.ok) {
+          const errorMessage = result?.message || result?.error || `HTTP error ${response.status}`;
+          throw new Error(`API Error: ${errorMessage}`);
+        }
+        
+        if (result.success === false) {
+          const errorMessage = result.message || result.error || 'Scraping test failed';
+          throw new Error(`HomeToGo Error: ${errorMessage}`);
+        }
+        
+        if (result.data && result.data.availabilities && Array.isArray(result.data.availabilities)) {
+          const availableDates = result.data.availabilities
+            .filter(availability => availability.available === true || availability.isAvailable === true)
+            .slice(0, 50);
+          
+          setSyncedDates(availableDates.map(availability => ({
+            date: availability.date || availability.start_date || availability.startDate,
+            available: true
+          })));
+        } else if (result.availabilities && Array.isArray(result.availabilities)) {
+          const availableDates = result.availabilities
+            .filter(availability => availability.available === true || availability.isAvailable === true)
+            .slice(0, 50);
+          
+          setSyncedDates(availableDates.map(availability => ({
+            date: availability.date || availability.start_date || availability.startDate,
+            available: true
+          })));
+        } else {
+          console.log('No real data found, using mock data for demo');
+          
+          const mockHomeToGoDates = [
+            { date: '2024-06-20', available: true },
+            { date: '2024-07-10', available: true },
+            { date: '2024-07-20', available: true },
+            { date: '2024-08-05', available: true },
+          ];
+          setSyncedDates(mockHomeToGoDates);
+        }
+      }
+      
+      setStep('price-setup');
+      
+    } catch (error) {
+      console.error('Sync error:', error);
+      
+      let errorMessage = error.message;
+      
+      if (errorMessage.includes('Invalid public URL') || 
+          errorMessage.includes('Failed to fetch') || 
+          errorMessage.includes('Network Error') ||
+          errorMessage.includes('API Error')) {
+        
+        errorMessage += '\n\n📝 Valid URL examples:\n';
+        
+        if (selectedPlatform === 'hometogo') {
+          errorMessage += '• https://www.hometogo.com/rental/1e012a37973ae981\n';
+          errorMessage += '• https://www.hometogo.com/location/property-name\n';
+          errorMessage += '• https://www.hometogo.com/vacation-rental/property-name\n';
+          errorMessage += '\n💡 Make sure the URL is publicly accessible';
+        } else if (selectedPlatform === 'airbnb-booking') {
+          errorMessage += '• https://calendar.airbnb.com/calendar/ical/12345678.ics?s=token\n';
+          errorMessage += '• https://www.booking.com/calendar/ical/property-id.ics\n';
+          errorMessage += '\n💡 Use the complete iCal URL provided by the platform';
+        }
+      }
+      
+      alert(`❌ Synchronization error:\n\n${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleBulkPriceChange = (field, value) => {
     setBulkPricing(prev => ({
