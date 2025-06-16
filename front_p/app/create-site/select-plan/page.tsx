@@ -163,7 +163,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://api-gateway-hcq3.onrender.com'  // Remplacez par votre URL Render
+    ? 'https://a2b9-102-173-35-213.ngrok-free.app'  
     : 'http://localhost:3000'
   );
 
