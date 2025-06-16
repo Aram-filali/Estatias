@@ -191,133 +191,189 @@ const Prices: React.FC<{
     }
   };
 
-  const handleContinue = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
+ // Enhanced handleContinue function with better error handling and debugging
+
+const handleContinue = async () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    console.error("No user logged in");
+    setErrorMessage('You need to be logged in to continue');
+    setShowError(true);
+    return;
+  }
   
-    if (!user) {
-      console.error("Aucun utilisateur connecté");
-      setErrorMessage('You need to be logged in to continue');
-      setShowError(true);
-      return;
-    }
-    
-    const currentHostId = user.uid;
-  
-    if (!selectedPlanId) {
-      console.error('Aucun plan sélectionné');
-      setErrorMessage('Please select a plan before continuing');
-      setShowError(true);
-      return;
-    }
-  
-    const selectedPlan = HOSTING_PLANS.find(plan => plan.id === selectedPlanId);
-  
-    try {
-      setLoading(true);
-  
-      const idToken = await user.getIdToken();
-  
-      // First API call with consistent base URL
-      const planUpdateResponse = await axios.post(
-        `${API_BASE_URL}/hosts/plan`,
-        {
-          firebaseUid: currentHostId,
-          plan: selectedPlan?.name,
-          websiteUrl: `${currentHostId.toLowerCase()}.resa.com`,
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          isTrialActive: true,
+  const currentHostId = user.uid;
+
+  if (!selectedPlanId) {
+    console.error('No plan selected');
+    setErrorMessage('Please select a plan before continuing');
+    setShowError(true);
+    return;
+  }
+
+  const selectedPlan = HOSTING_PLANS.find(plan => plan.id === selectedPlanId);
+
+  if (!selectedPlan) {
+    console.error('Selected plan not found');
+    setErrorMessage('Invalid plan selection');
+    setShowError(true);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setShowError(false);
+
+    // Get fresh ID token
+    const idToken = await user.getIdToken(true); // Force refresh
+
+    // Prepare payload
+    const payload = {
+      firebaseUid: currentHostId,
+      plan: selectedPlan.name,
+      websiteUrl: `${currentHostId.toLowerCase()}.resa.com`,
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      isTrialActive: true,
+    };
+
+    console.log('API Base URL:', API_BASE_URL);
+    console.log('Payload being sent:', payload);
+    console.log('Authorization header present:', !!idToken);
+
+    // First API call - Plan registration
+    const planUpdateResponse = await axios.post(
+      `${API_BASE_URL}/hosts/plan`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
+      }
+    );
+
+    console.log('Plan registration successful:', planUpdateResponse.data);
+
+    // If plan registration is successful, proceed with site generation
+    try {
+      console.log('Starting site generation...');
+      
+      const siteGenerationResponse = await axios.post(
+        `${API_BASE_URL}/site-generator/${currentHostId}/generate`,
+        null, // No body needed
         {
           headers: {
-            Authorization: `Bearer ${idToken}`,
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
           },
+          timeout: 600000, // 10 minute timeout for site generation
         }
       );
       
-      console.log('Plan data sent to backend:', {
-        firebaseUid: currentHostId,  
-        plan: selectedPlan?.name,
-        websiteUrl: `${currentHostId.toLowerCase()}.resa.com`,
-        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        isTrialActive: true,
-      });
-  
-      if (planUpdateResponse.status !== 201) {
-        console.error("Échec de l'enregistrement du plan:", planUpdateResponse.data);
-        setErrorMessage('Failed to register your plan. Please try again later.');
-        setShowError(true);
-        setLoading(false);
-        return;
-      }
-  
-      console.log('Plan enregistré avec succès:', planUpdateResponse.data);
+      console.log('Site generation response:', siteGenerationResponse.data);
       
-      try {
-        // Call to site-generator microservice endpoint - no body data needed
-        // The hostId is passed in the URL path parameter instead
-        const siteGenerationResponse = await axios.post(
-          `${API_BASE_URL}/site-generator/${currentHostId}/generate`,
-          null, // No body needed, hostId is in the URL
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-            // The microservice is set to use a 10 minute timeout, so we should match that
-            timeout: 600000, 
-          }
-        );
-        
-        console.log('Site generation response:', siteGenerationResponse.data);
-        
-        // Le service retourne maintenant un objet avec message et url
-        if (siteGenerationResponse.data && siteGenerationResponse.data.url) {
-          // Redirect to success page with the URL as a parameter
-          router.push(`/success?url=${encodeURIComponent(siteGenerationResponse.data.url)}&message=${encodeURIComponent(siteGenerationResponse.data.message)}`);
-        } else {
-          // Si l'URL n'est pas présente dans la réponse, simplement rediriger vers le dashboard
-          router.push('/dashboard');
-        }
-      } catch (error) {
-        console.error('Site generation error:', error);
-        
-        // Afficher des informations détaillées sur l'erreur
-        if (axios.isAxiosError(error)) {
-          if (error.response) {
-            // La requête a été faite et le serveur a répondu avec un code d'état en dehors de la plage 2xx
-            console.error('Server error response:', error.response.data);
-            console.error('Status code:', error.response.status);
-            
-            // Si le microservice a renvoyé un message d'erreur spécifique
-            if (error.response.data && error.response.data.error) {
-              setErrorMessage(`Site generation failed: ${error.response.data.error}`);
-            } else {
-              setErrorMessage('Failed to generate your site. Please try again later.');
-            }
-          } else if (error.request) {
-            // La requête a été faite mais aucune réponse n'a été reçue (timeout probable)
-            console.error('No response received (possible timeout):', error.request);
-            setErrorMessage('Site generation timed out. This process may take longer than expected, please check your dashboard later.');
-          } else {
-            // Quelque chose s'est passé lors de la configuration de la requête
-            console.error('Request setup error:', error.message);
-            setErrorMessage(`Error setting up the request: ${error.message}`);
-          }
-        } else {
-          console.error('Unexpected error:', error);
-          setErrorMessage('An unexpected error occurred during site generation.');
-        }
-        
-        setShowError(true);
-        setLoading(false);
+      if (siteGenerationResponse.data && siteGenerationResponse.data.url) {
+        router.push(`/success?url=${encodeURIComponent(siteGenerationResponse.data.url)}&message=${encodeURIComponent(siteGenerationResponse.data.message)}`);
+      } else {
+        router.push('/dashboard');
       }
-    } catch (error) {
-      console.error('Error processing request:', error);
-      setErrorMessage('An unexpected error occurred. Please try again later.');
+    } catch (siteGenError) {
+      console.error('Site generation error:', siteGenError);
+      
+      if (axios.isAxiosError(siteGenError)) {
+        if (siteGenError.response) {
+          console.error('Site generation server error:', {
+            status: siteGenError.response.status,
+            data: siteGenError.response.data,
+            headers: siteGenError.response.headers
+          });
+          
+          const errorMsg = siteGenError.response.data?.error || 
+                          siteGenError.response.data?.message || 
+                          'Site generation failed';
+          setErrorMessage(`Site generation failed: ${errorMsg}`);
+        } else if (siteGenError.request) {
+          console.error('Site generation timeout/network error:', siteGenError.request);
+          setErrorMessage('Site generation timed out. Please check your dashboard later.');
+        } else {
+          console.error('Site generation request setup error:', siteGenError.message);
+          setErrorMessage(`Site generation error: ${siteGenError.message}`);
+        }
+      } else {
+        console.error('Unexpected site generation error:', siteGenError);
+        setErrorMessage('An unexpected error occurred during site generation.');
+      }
+      
       setShowError(true);
-      setLoading(false);
     }
-  };
+  } catch (planError) {
+    console.error('Plan registration error:', planError);
+    
+    if (axios.isAxiosError(planError)) {
+      if (planError.response) {
+        // Server responded with error status
+        console.error('Plan registration server error:', {
+          status: planError.response.status,
+          statusText: planError.response.statusText,
+          data: planError.response.data,
+          headers: planError.response.headers
+        });
+        
+        // Try to extract meaningful error message
+        let errorMsg = 'Failed to register your plan';
+        
+        if (planError.response.data) {
+          if (typeof planError.response.data === 'string') {
+            errorMsg = planError.response.data;
+          } else if (planError.response.data.error) {
+            errorMsg = planError.response.data.error;
+          } else if (planError.response.data.message) {
+            errorMsg = planError.response.data.message;
+          }
+        }
+        
+        // Specific handling for common HTTP status codes
+        switch (planError.response.status) {
+          case 400:
+            errorMsg = 'Invalid request data. Please check your plan selection.';
+            break;
+          case 401:
+            errorMsg = 'Authentication failed. Please log in again.';
+            break;
+          case 403:
+            errorMsg = 'Access denied. Please check your permissions.';
+            break;
+          case 404:
+            errorMsg = 'API endpoint not found. Please contact support.';
+            break;
+          case 500:
+            errorMsg = 'Server error. Please try again later or contact support.';
+            break;
+        }
+        
+        setErrorMessage(errorMsg);
+      } else if (planError.request) {
+        // Request was made but no response received
+        console.error('Plan registration network error:', planError.request);
+        setErrorMessage('Network error. Please check your connection and try again.');
+      } else {
+        // Request setup error
+        console.error('Plan registration request setup error:', planError.message);
+        setErrorMessage(`Request error: ${planError.message}`);
+      }
+    } else {
+      console.error('Unexpected plan registration error:', planError);
+      setErrorMessage('An unexpected error occurred. Please try again later.');
+    }
+    
+    setShowError(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   return (
