@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, Link, DollarSign } from 'lucide-react';
-import styles from './CalendarSync.module.css';
+import styles from './calendarSync.module.css';
 
 const CalendarSyncPopup = ({ isOpen, onClose, onSyncComplete }) => {
   const [step, setStep] = useState('intro');
