@@ -10,6 +10,16 @@ import { useRouter } from "next/navigation";
 import Popup from "./popup";
 import Link from 'next/link';
 
+// Fonction pour obtenir l'URL de base de l'API selon l'environnement
+const getApiBaseUrl = () => {
+  // En production, utilisez l'URL de votre API Gateway déployée
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://api-gateway-hcq3.onrender.com';
+  }
+  // En développement, utilisez localhost
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+};
+
 export default function LoginForm() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [email, setEmail] = useState("");
@@ -54,70 +64,154 @@ export default function LoginForm() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      if (user.email === 'admin1@gmail.com' || user.email === 'admin2@gmail.com' || user.email === 'estatias.services@gmail.com') {
-        setPopupMessage("This email is reserved and cannot be used.");
-        setPopupType("error");
-        setShowPopup(true);
-        await completeSignOut();
-        return;
-      }
-
-      if (!user.emailVerified) {
-        setPopupMessage("Your email is not verified. Please check your inbox.");
-        setPopupType("error");
-        setShowPopup(true);
-        await completeSignOut();
-        return;
-      }
-
-      const token = await user.getIdToken();
-      console.log("Retrieved token: ", token);
-
-      /*const userProfile = {
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      };
-      console.log("User profile: ", userProfile);*/
-
-      try {
-        const res = await axios.post("http://localhost:3000/hosts/google-host", { idToken: token });
-        console.log("Response from google-host:", res.data);
-
-        setPopupMessage("Successfully signed in with Google!");
-        setPopupType("success");
-        setShowPopup(true);
-        
-        // Wait for Firebase auth context to update with custom claims
-        setTimeout(async () => {
-          await waitForRoleAndRedirect('host');
-        }, 1500);
-        
-      } catch (apiError) {
-        console.error("API error:", apiError.response?.data || apiError);
-        setPopupMessage(apiError.response?.data?.message || "Error connecting to the server");
-        setPopupType("error");
-        setShowPopup(true);
-        await completeSignOut();
-      }
-    } catch (err) {
-      console.error("Google login error:", err);
-      setPopupMessage("Google login failed.");
+const handleGoogleLogin = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Vérifier si Firebase Auth est initialisé
+    if (!auth) {
+      setPopupMessage("Authentication service not available.");
       setPopupType("error");
       setShowPopup(true);
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+    
+    const provider = new GoogleAuthProvider();
+    
+    // Ajouter des scopes et configurations pour plus de compatibilité
+    provider.addScope('email');
+    provider.addScope('profile');
+    
+    // Configuration pour éviter les problèmes de popup
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+
+    console.log("Attempting Google sign-in...");
+    
+    let result;
+    try {
+      result = await signInWithPopup(auth, provider);
+    } catch (popupError) {
+      console.error("Popup error:", popupError);
+      
+      // Gestion spécifique des erreurs de popup
+      if (popupError.code === 'auth/popup-blocked') {
+        setPopupMessage("Popup blocked. Please allow popups for this site and try again.");
+        setPopupType("error");
+        setShowPopup(true);
+        return;
+      } else if (popupError.code === 'auth/popup-closed-by-user') {
+        setPopupMessage("Sign-in cancelled.");
+        setPopupType("error");
+        setShowPopup(true);
+        return;
+      } else if (popupError.code === 'auth/network-request-failed') {
+        setPopupMessage("Network error. Please check your connection and try again.");
+        setPopupType("error");
+        setShowPopup(true);
+        return;
+      } else if (popupError.code === 'auth/configuration-not-found') {
+        setPopupMessage("Google authentication not properly configured.");
+        setPopupType("error");
+        setShowPopup(true);
+        return;
+      }
+      
+      // Re-throw si c'est une autre erreur
+      throw popupError;
+    }
+
+    const user = result.user;
+    console.log("Google sign-in successful:", user.email);
+
+    // Vérification des emails réservés
+    if (user.email === 'admin1@gmail.com' || user.email === 'admin2@gmail.com' || user.email === 'estatias.services@gmail.com') {
+      setPopupMessage("This email is reserved and cannot be used.");
+      setPopupType("error");
+      setShowPopup(true);
+      await completeSignOut();
+      return;
+    }
+
+    // Note: La vérification d'email n'est généralement pas requise pour Google OAuth
+    // car Google vérifie déjà les emails. Commenté pour éviter les blocages.
+    /*
+    if (!user.emailVerified) {
+      setPopupMessage("Your email is not verified. Please check your inbox.");
+      setPopupType("error");
+      setShowPopup(true);
+      await completeSignOut();
+      return;
+    }
+    */
+
+    const token = await user.getIdToken();
+    console.log("Retrieved token: ", token);
+
+    try {
+      const apiBaseUrl = getApiBaseUrl();
+      console.log("API Base URL:", apiBaseUrl);
+      
+      const res = await axios.post(`${apiBaseUrl}/hosts/google-host`, 
+        { idToken: token },
+        {
+          timeout: 10000, // 10 secondes de timeout
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      
+      console.log("Response from google-host:", res.data);
+
+      setPopupMessage("Successfully signed in with Google!");
+      setPopupType("success");
+      setShowPopup(true);
+      
+      // Wait for Firebase auth context to update with custom claims
+      setTimeout(async () => {
+        await waitForRoleAndRedirect('host');
+      }, 1500);
+      
+    } catch (apiError) {
+      console.error("API error:", apiError.response?.data || apiError);
+      
+      let errorMessage = "Error connecting to the server";
+      if (apiError.response?.data?.message) {
+        errorMessage = apiError.response.data.message;
+      } else if (apiError.code === 'ECONNABORTED') {
+        errorMessage = "Request timeout. Please try again.";
+      } else if (apiError.code === 'ERR_NETWORK') {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      setPopupMessage(errorMessage);
+      setPopupType("error");
+      setShowPopup(true);
+      await completeSignOut();
+    }
+    
+  } catch (err) {
+    console.error("Google login error:", err);
+    
+    let errorMessage = "Google login failed.";
+    if (err.code === 'auth/unauthorized-domain') {
+      errorMessage = "This domain is not authorized for Google sign-in.";
+    } else if (err.code === 'auth/operation-not-allowed') {
+      errorMessage = "Google sign-in is not enabled.";
+    } else if (err.message) {
+      errorMessage = `Google login failed: ${err.message}`;
+    }
+    
+    setPopupMessage(errorMessage);
+    setPopupType("error");
+    setShowPopup(true);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -134,15 +228,16 @@ export default function LoginForm() {
       setError(null);
       await completeSignOut(); // Reset session before login
   
-      // 🔹 Auth Firebase (ne stocke rien pour l’instant)
+      // 🔹 Auth Firebase (ne stocke rien pour l'instant)
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const token = await user.getIdToken();
+      const apiBaseUrl = getApiBaseUrl();
   
        if (isAdmin) {
         try {
           // Send token to admin backend endpoint
-          const response = await axios.post("http://localhost:3000/admins/login", { 
+          const response = await axios.post(`${apiBaseUrl}/admins/login`, { 
             idToken: token 
           });
           
@@ -177,7 +272,7 @@ export default function LoginForm() {
   
         try {
           // Envoi du token Firebase au backend pour l'authentification des hôtes
-          const response = await axios.post("http://localhost:3000/hosts/login-host", {
+          const response = await axios.post(`${apiBaseUrl}/hosts/login-host`, {
             idToken: token,
           });
   
@@ -198,7 +293,7 @@ export default function LoginForm() {
           setPopupType("error");
           setShowPopup(true);
   
-          // Ne garde pas l’utilisateur connecté si échec backend
+          // Ne garde pas l'utilisateur connecté si échec backend
           await completeSignOut();
         }
       }

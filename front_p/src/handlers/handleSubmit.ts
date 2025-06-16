@@ -12,6 +12,16 @@ interface SubmitResult {
   error?: string;
 }
 
+// Configuration de l'URL de base de l'API
+const getApiBaseUrl = () => {
+  // En production, utilisez l'URL de votre API Gateway déployée
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://your-api-gateway-url.onrender.com';
+  }
+  // En développement, utilisez localhost
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+};
+
 // Function to compress an image before sending
 const compressImage = async (file: File): Promise<File> => {
   // Only compress if it's an image file
@@ -194,8 +204,11 @@ export const handleSubmit = async (formData: any, nextStep: Function | null = nu
     console.log("Sending data to backend:", JSON.stringify(dataToSend, null, 2));
     
     // 🔹 Step 4: Send data to the backend API
+    const apiUrl = getApiBaseUrl();
+    console.log("Using API URL:", apiUrl);
+    
     try {
-      const response = await axios.post("http://localhost:3000/hosts", dataToSend, {
+      const response = await axios.post(`${apiUrl}/hosts`, dataToSend, {
         headers: { "Content-Type": "application/json" },
       });
 

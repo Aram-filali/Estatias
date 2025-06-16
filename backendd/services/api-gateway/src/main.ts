@@ -9,6 +9,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://estatias.com',
+      'https://www.estatias.com',
       'http://localhost:3000',
       'http://localhost:3001', 
       'http://localhost:3002', 

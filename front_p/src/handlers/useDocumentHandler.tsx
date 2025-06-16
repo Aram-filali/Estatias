@@ -21,7 +21,15 @@ interface UseDocumentsHandlerReturn {
   error: string | null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Fonction pour obtenir l'URL de base de l'API
+const getApiBaseUrl = () => {
+  // En production, utilisez l'URL de votre API Gateway déployée
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://your-api-gateway-url.onrender.com';
+  }
+  // En développement, utilisez localhost
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+};
 
 // Function to compress an image before sending (same as in host creation)
 const compressImage = async (file: File): Promise<File> => {
@@ -124,12 +132,13 @@ export const useDocumentsHandler = (
     setError(null);
 
     try {
+      const apiBaseUrl = getApiBaseUrl();
       console.log('Fetching documents for host:', hostData.firebaseUid);
-      console.log('API URL:', `${API_BASE_URL}/hosts/${hostData.firebaseUid}/documents`);
+      console.log('API URL:', `${apiBaseUrl}/hosts/${hostData.firebaseUid}/documents`);
       console.log('Auth token present:', !!authToken);
 
       const response = await axios.get(
-        `${API_BASE_URL}/hosts/${hostData.firebaseUid}/documents`,
+        `${apiBaseUrl}/hosts/${hostData.firebaseUid}/documents`,
         {
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -268,8 +277,9 @@ export const useDocumentsHandler = (
       console.log('Sending data to backend:', JSON.stringify(dataToSend, null, 2));
 
       // Send update request to backend
+      const apiBaseUrl = getApiBaseUrl();
       const response = await axios.patch(
-        `${API_BASE_URL}/hosts/documents/update`,
+        `${apiBaseUrl}/hosts/documents/update`,
         dataToSend,
         {
           headers: {
