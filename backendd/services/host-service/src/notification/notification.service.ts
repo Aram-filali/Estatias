@@ -6,6 +6,16 @@ import { Model } from 'mongoose';
 import { Host, HostDocument } from '../schema/host.schema';
 import { InjectModel } from '@nestjs/mongoose';
 
+interface ReviewNotification {
+  reviewId: string;
+  propertyId: string;
+  hostId: string;
+  userEmail: string;
+  rating: number;
+  comment?: string;
+  propertyName?: string;
+}
+
 config();
 
 @Injectable()
@@ -49,6 +59,8 @@ export class NotificationService {
     this.fromName = process.env.FROM_NAME || 'Your Application';
     this.dashboardUrl = process.env.DASHBOARD_URL || 'https://yourdomain.com';
   }
+
+  
 
   async sendStatusUpdateEmail(hostId: string, newStatus: string) {
     try {
@@ -449,4 +461,50 @@ export class NotificationService {
 
     return { text: text.trim(), html };
   }
+
+
+
+  async sendNewReviewAlert(host: any, reviewData: ReviewNotification) {
+  const subject = '⭐ New Review Received!';
+  const dashboardLink = `${this.dashboardUrl}`; 
+  
+  try {
+    const info = await this.transporter.sendMail({
+      from: `"${this.fromName}" <${this.fromEmail}>`,
+      to: host.email,
+      subject: subject,
+      text: `You have received a new review for your property "${reviewData.propertyName}". Check your dashboard for details: ${dashboardLink}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4a4a4a;">🎉 New Review Received!</h2>
+          <p>Hello ${host.name || 'Host'},</p>
+          <p>Great news! You've received a new review for your property.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">Review Details:</h3>
+            <p><strong>Property:</strong> ${reviewData.propertyName}</p>
+            <p><strong>Rating:</strong> ${'⭐'.repeat(reviewData.rating)} (${reviewData.rating}/5)</p>
+            ${reviewData.comment ? `<p><strong>Comment:</strong> "${reviewData.comment}"</p>` : ''}
+            <p><strong>Reviewer:</strong> ${reviewData.userEmail}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              View All Reviews
+            </a>
+          </div>
+          
+          <p>Keep up the great work providing excellent service to your guests!</p>
+          <p>Best regards,<br>Your Platform Team</p>
+        </div>
+      `
+    });
+    
+    console.log('📩 Review notification email sent successfully:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending review notification email:', error);
+    throw new Error('Error sending review notification email: ' + error.message);
+  }
+}
 }

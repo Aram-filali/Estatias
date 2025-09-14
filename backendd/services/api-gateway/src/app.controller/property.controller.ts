@@ -649,4 +649,295 @@ async getAIGenerationHistory(@Req() req: any, @Query('limit') limit?: number) {
  * Default suggestions in case of microservice error
  */
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  @Post('reviews')
+ @UseGuards(FirebaseAuthGuard)
+async createReview(@Body() createReviewDto: any, @Req() req) {
+  console.group('🌟 Create Review Request');
+  console.log('📝 Review Data:', createReviewDto);
+  console.log('👤 User:', req.user);
+  console.groupEnd();
+
+  try {
+    const reviewData = {
+      ...createReviewDto,
+      userEmail: req.user.email
+    };
+
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'create_review' }, reviewData)
+    );
+
+    console.group('✅ Create Review Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 201) {
+      throw new HttpException(
+        response?.error || 'Failed to create review',
+        response?.statusCode || HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Create Review Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error creating review',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+@Get(':propertyId/reviews')
+ //@UseGuards(FirebaseAuthGuard)
+async getPropertyReviews(
+  @Param('propertyId') propertyId: string,
+  @Query('page') page: number = 1,
+  @Query('limit') limit: number = 10
+) {
+  console.group('📖 Get Reviews Request');
+  console.log('🆔 Property ID:', propertyId);
+  console.log('📄 Page:', page);
+  console.log('📊 Limit:', limit);
+  console.groupEnd();
+
+  try {
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'get_reviews_by_property' }, {
+        propertyId,
+        page: Number(page),
+        limit: Number(limit)
+      })
+    );
+
+    console.group('✅ Get Reviews Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 200) {
+      throw new HttpException(
+        response?.error || 'Failed to get reviews',
+        response?.statusCode || HttpStatus.NOT_FOUND
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Get Reviews Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error retrieving reviews',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+
+
+
+
+@Get('host/:hostUid/reviews')
+//@UseGuards(FirebaseAuthGuard)
+async getReviewsByHost(
+  @Param('hostUid') hostUid: string,
+  @Query('page') page: number = 1,
+  @Query('limit') limit: number = 10,
+  @Req() req
+) {
+  console.group('🏠 Get Host Reviews Request');  
+  console.log('🆔 Host UID:', hostUid);
+  console.log('📄 Page:', page);
+  console.log('📊 Limit:', limit);
+  console.log('👤 Requesting User:', req.user);
+  console.groupEnd();
+
+  try {
+    // Optional: Add authorization check to ensure only the host can view their reviews
+    // if (req.user.uid !== hostUid && req.user.role !== 'admin') {
+    //   throw new HttpException('Unauthorized to view these reviews', HttpStatus.UNAUTHORIZED);
+    // }
+
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'get_reviews_by_host' }, {
+        hostUid,
+        page: Number(page),
+        limit: Number(limit)
+      })
+    );
+
+    console.group('✅ Get Host Reviews Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 200) {
+      throw new HttpException(
+        response?.error || 'Failed to get host reviews',
+        response?.statusCode || HttpStatus.NOT_FOUND
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Get Host Reviews Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error retrieving host reviews',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+@Patch('reviews/:reviewId')
+ @UseGuards(FirebaseAuthGuard)
+async updateReview(
+  @Param('reviewId') reviewId: string,
+  @Body() updateReviewDto: any,
+  @Req() req
+) {
+  console.group('✏️ Update Review Request');
+  console.log('🆔 Review ID:', reviewId);
+  console.log('📝 Update Data:', updateReviewDto);
+  console.log('👤 User:', req.user);
+  console.groupEnd();
+
+  try {
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'update_review' }, {
+        reviewId,
+        userEmail: req.user.email,
+        ...updateReviewDto
+      })
+    );
+
+    console.group('✅ Update Review Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 200) {
+      throw new HttpException(
+        response?.error || 'Failed to update review',
+        response?.statusCode || HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Update Review Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error updating review',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+@Delete('reviews/:reviewId')
+ @UseGuards(FirebaseAuthGuard)
+async deleteReview(@Param('reviewId') reviewId: string, @Req() req) {
+  console.group('🗑️ Delete Review Request');
+  console.log('🆔 Review ID:', reviewId);
+  console.log('👤 User:', req.user);
+  console.groupEnd();
+
+  try {
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'delete_review' }, {
+        reviewId,
+        userEmail: req.user.email
+      })
+    );
+
+    console.group('✅ Delete Review Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 200) {
+      throw new HttpException(
+        response?.error || 'Failed to delete review',
+        response?.statusCode || HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Delete Review Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error deleting review',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+@Get(':propertyId/user-review')
+ @UseGuards(FirebaseAuthGuard)
+async getUserReviewForProperty(@Param('propertyId') propertyId: string, @Req() req) {
+  console.group('👤 Get User Review Request');
+  console.log('🆔 Property ID:', propertyId);
+  console.log('👤 User:', req.user);
+  console.groupEnd();
+
+  try {
+    const response = await firstValueFrom(
+      this.propertyClient.send({ cmd: 'get_user_review_for_property' }, {
+        propertyId,
+        userEmail: req.user.email
+      })
+    );
+
+    console.group('✅ Get User Review Response');
+    console.log('📦 Response:', response);
+    console.groupEnd();
+
+    if (!response || response.statusCode !== 200) {
+      throw new HttpException(
+        response?.error || 'Failed to get user review',
+        response?.statusCode || HttpStatus.NOT_FOUND
+      );
+    }
+
+    return response;
+  } catch (err) {
+    console.group('❌ Get User Review Error');
+    console.error('📝 Error:', err);
+    console.groupEnd();
+
+    throw new HttpException(
+      err?.message || 'Error retrieving user review',
+      err?.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+
+}
 }

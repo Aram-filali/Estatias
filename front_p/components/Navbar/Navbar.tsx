@@ -1,3 +1,4 @@
+//navbar of front_p
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";

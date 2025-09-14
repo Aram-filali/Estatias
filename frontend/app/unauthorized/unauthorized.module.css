@@ -1,0 +1,134 @@
+/* pages/unauthorized/unauthorized.module.css */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f9fafb;
+  padding: 3rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.wrapper {
+  max-width: 28rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  text-align: center;
+}
+
+.icon {
+  margin: 0 auto;
+  height: 3rem;
+  width: 3rem;
+  color: #ef4444;
+}
+
+.title {
+  margin-top: 1.5rem;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.description {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #4b5563;
+}
+
+.userInfo {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+}
+
+.userInfo p {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  margin: 0;
+}
+
+.userInfo strong {
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.primaryButton {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  color: white;
+  background-color: #4f46e5;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.primaryButton:hover {
+  background-color: #4338ca;
+}
+
+.primaryButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f3f4f6, 0 0 0 4px #4f46e5;
+}
+
+.secondaryButton {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  text-decoration: none;
+  color: #374151;
+  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.secondaryButton:hover {
+  background-color: #f9fafb;
+}
+
+.secondaryButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f3f4f6, 0 0 0 4px #4f46e5;
+}

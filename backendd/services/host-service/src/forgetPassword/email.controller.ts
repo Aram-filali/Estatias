@@ -10,6 +10,8 @@ interface JwtPayload {
   exp: number;
 }
 
+
+
 interface BookingNotification {
   bookingId: string;
   hostId: string;

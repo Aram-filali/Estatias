@@ -27,8 +27,9 @@ export class ProxyIntegrationService implements OnModuleInit {
         
         if (result.url) {
           try {
-            // Get the running site to extract the actual port
-            const runningSite = this.siteGenerator['runningSites'].get(hostId);
+            // Get the running sites status to extract the actual port
+            const sitesStatus = await this.siteGenerator.getSitesStatus();
+            const runningSite = sitesStatus.running.find(site => site.hostId === hostId);
             
             if (runningSite && runningSite.port) {
               // Create the localhost URL with port instead of the domain URL
