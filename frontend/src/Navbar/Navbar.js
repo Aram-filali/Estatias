@@ -2,43 +2,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link"; 
 import { useRouter, usePathname } from 'next/navigation';
-import { getAuth, signOut } from "firebase/auth";
+import { useAuth } from '../context/AuthContext'; 
 import ProfileDropdown from "./ProfileDropDown";
 import styles from "./Navbar.module.css";
 
 export const Navbar = () => {
-  const [user, setUser] = useState(false);
+  const { user, isAuthenticated, loading } = useAuth(); 
   const router = useRouter();
   const pathname = usePathname();
   const [isFixed, setIsFixed] = useState(false);
-
-  // Function to check if user is authenticated
-  const checkUserAuthentication = () => {
-    const isAuthenticated = !!localStorage.getItem('token') || !!localStorage.getItem('jwt');
-    setUser(isAuthenticated);
-  };
-
   const [isOpen, setIsOpen] = useState(false);
-  // Nouvel état pour suivre la rotation de la flèche
   const [arrowRotated, setArrowRotated] = useState(false);
-
-  useEffect(() => {
-    // Check authentication on initial load
-    checkUserAuthentication();
-
-    // Add listener for custom 'userLoggedIn' event
-    const handleUserLogin = () => {
-      checkUserAuthentication();
-    };
-
-    window.addEventListener('userLoggedIn', handleUserLogin);
-    window.addEventListener('focus', checkUserAuthentication);
-
-    return () => {
-      window.removeEventListener('userLoggedIn', handleUserLogin);
-      window.removeEventListener('focus', checkUserAuthentication);
-    };
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,31 +48,54 @@ export const Navbar = () => {
     };
   }, [pathname]);
 
-  // Logout function
-  const handleLogout = () => {
-    const auth = getAuth();
-    signOut(auth).then(() => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('jwt');
-      localStorage.removeItem('user');
-      setUser(false);
-      router.push("/");
-    }).catch((error) => {
-      console.error("Error during sign out:", error);
-    });
+  // Logout function - now uses the completeSignOut from firebase.js
+  const handleLogout = async () => {
+    try {
+      const { completeSignOut } = await import('../firebase'); 
+      const success = await completeSignOut();
+      if (success) {
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
-  // Fonction pour gérer le clic sur le bouton As a Guest
+  // Function to handle guest button click
   const handleGuestButtonClick = () => {
     setIsOpen(!isOpen);
-    setArrowRotated(!arrowRotated); // Basculer l'état de rotation à chaque clic
+    setArrowRotated(!arrowRotated);
   };
 
-  /*const shouldHideNav = ["/login"].includes(pathname);
-
-  if (shouldHideNav) {
-    return null;
-  }*/
+  // Show loading state while auth is being determined
+  if (loading) {
+    return (
+      <div className={`${styles.main} ${isFixed ? styles.scrolled : ''}`}>
+        <div className={styles.fixed}>
+          <div className={styles.navbarContent}>
+            <div className={styles.brandSection}>
+              <Link href="/" className={styles.brandLink}>
+                <h1 className={styles.brandName}>Host Website</h1>
+              </Link>
+            </div>
+            <div className={styles.navLinks}>
+              <ul className={styles.navList}>
+                <li className={styles.navItem}>
+                  <Link href="/" className={styles.loginBtn}>
+                    Home
+                  </Link>
+                </li>
+                {/* Show loading or placeholder */}
+                <li className={styles.authButtons}>
+                  <span className={styles.loginBtn}>Loading...</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.main} ${isFixed ? styles.scrolled : ''}`}>
@@ -120,49 +117,48 @@ export const Navbar = () => {
                 </Link>
               </li>
                 
-              
-              {!user && pathname !== "/signUp" && pathname !== "/Login" && pathname !== "/LoginHost" && (
-                  <li className={styles.authButtons}>
-                    <Link href="/LoginHost" className={styles.loginBtn}>
-                      As a Host
-                    </Link>
-                  </li>
-                )}
+              {/* Show Host link only when user is NOT authenticated and not on auth pages */}
+              {!isAuthenticated && pathname !== "/signUp" && pathname !== "/Login" && pathname !== "/LoginHost" && (
+                <li className={styles.authButtons}>
+                  <Link href="/LoginHost" className={styles.loginBtn}>
+                    As a Host
+                  </Link>
+                </li>
+              )}
 
-                {!user && pathname !== "/Login" && pathname !== "/signUp" && (
-                  <li 
-                    className={`${styles.authButtons}`} 
+              {/* Show Guest dropdown only when user is NOT authenticated and not on Login/SignUp pages */}
+              {!isAuthenticated && pathname !== "/Login" && pathname !== "/signUp" && (
+                <li className={`${styles.authButtons}`}>
+                  <button 
+                    className={styles.loginBtn}
+                    onClick={handleGuestButtonClick}
                   >
-                    <button 
-                      className={styles.loginBtn}
-                      onClick={handleGuestButtonClick} // Utiliser notre nouvelle fonction
-                    >
-                      <span>As a Guest</span>
-                      <span className={`${styles.dropdownArrow} ${arrowRotated ? styles.rotate : ''}`}>▾</span>
-                    </button>
-                    
-                    {/* Afficher le menu déroulant basé sur isOpen */}
-                    {isOpen && (
-                      <ul className={styles.dropdownMenu}>
-                        <li>
-                          <Link href="/Login" onClick={() => {
-                            setIsOpen(false);
-                            setArrowRotated(false);
-                          }}>Login</Link>
-                        </li>
-                        <li>
-                          <Link href="/signUp" onClick={() => {
-                            setIsOpen(false);
-                            setArrowRotated(false);
-                          }}>Create Account</Link>
-                        </li>
-                      </ul>
-                    )}
-                  </li>
-                )}
+                    <span>As a Guest</span>
+                    <span className={`${styles.dropdownArrow} ${arrowRotated ? styles.rotate : ''}`}>▾</span>
+                  </button>
+                  
+                  {/* Show dropdown menu based on isOpen */}
+                  {isOpen && (
+                    <ul className={styles.dropdownMenu}>
+                      <li>
+                        <Link href="/Login" onClick={() => {
+                          setIsOpen(false);
+                          setArrowRotated(false);
+                        }}>Login</Link>
+                      </li>
+                      <li>
+                        <Link href="/signUp" onClick={() => {
+                          setIsOpen(false);
+                          setArrowRotated(false);
+                        }}>Create Account</Link>
+                      </li>
+                    </ul>
+                  )}
+                </li>
+              )}
     
-              
-              {user && (
+              {/* Show ProfileDropdown ONLY when user is authenticated */}
+              {isAuthenticated && user && !loading && (
                 <li className={styles.userProfile}>
                   <ProfileDropdown onLogout={handleLogout} />
                 </li>

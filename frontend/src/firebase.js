@@ -1,3 +1,4 @@
+// firebase.js
 'use client';
 
 import { initializeApp } from "firebase/app";
@@ -17,6 +18,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// Helper function to delete cookies
+const deleteCookie = (name) => {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+  }
+};
+
 // Fonction de connexion avec Google
 export const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
@@ -34,10 +42,24 @@ export const signInWithGoogle = async () => {
 // Fonction de déconnexion complète
 export const completeSignOut = async () => {
   try {
+    // Clear localStorage (both old and new keys)
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userType");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userProfile");
+    localStorage.removeItem("userRole");
 
+    // Clear cookies
+    deleteCookie('authToken');
+    deleteCookie('userRole');
+    deleteCookie('userEmail');
+
+    // Sign out from Firebase
     await signOut(auth);
+
+    // Dispatch logout event
     window.dispatchEvent(new Event("userLoggedOut"));
 
     console.log("Utilisateur complètement déconnecté");

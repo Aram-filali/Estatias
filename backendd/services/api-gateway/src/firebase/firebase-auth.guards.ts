@@ -1,4 +1,4 @@
-// 3. Updated firebase-auth.guard.ts - Enhanced auth guard
+// firebase-auth.guard.ts - Fixed version
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { FirebaseAdminService } from './firebase';
@@ -29,12 +29,19 @@ export class FirebaseAuthGuard implements CanActivate {
     try {
       const decodedToken = await this.firebaseAdminService.firebaseApp.auth().verifyIdToken(token);
       
-      // Attach minimal user info to request
+      console.log('Decoded Firebase token:', decodedToken); // Debug log
+      
+      // Extract all necessary user info from Firebase token
       request.user = {
         firebaseUid: decodedToken.uid,
-        role: decodedToken.role,
+        email: decodedToken.email, // 🔥 THIS WAS MISSING!
+        name: decodedToken.name,
+        role: decodedToken.role || 'user', // Default role if not set
+        emailVerified: decodedToken.email_verified,
         decodedToken // Keep full token for additional claims if needed
       };
+
+      console.log('Request user set to:', request.user); // Debug log
       
       return true;
     } catch (error) {

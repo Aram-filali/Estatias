@@ -8,6 +8,8 @@ import { DatabaseModule } from './AI/database.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { ConfigModule } from '@nestjs/config';
 import { AIModule } from './AI/ai.module';
+import { ReviewModule } from './review/review.module'; // Import the new ReviewModule
+
 
 
 @Module({
@@ -19,6 +21,7 @@ import { AIModule } from './AI/ai.module';
     DatabaseModule,
     MessagingModule,
     AIModule,
+    ReviewModule,
     // Add ClientsModule for communicating with host service
     ClientsModule.register([
       {

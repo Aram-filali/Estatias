@@ -3,7 +3,7 @@ import React from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import MapComponent from 'src/components/Map';
-import PropertyReview from 'src/components/PropertyReview';
+import PropertyReview from '@/src/components/review/PropertyReview';
 import BookingComponent from 'src/components/bookingComponent';
 import ImageGallery from 'src/components/ImageGallery';
 import styles from '../../../styles/propertyDetails.module.css';
@@ -214,6 +214,9 @@ export default async function PropertyDetails({ params }) {
   const structuredData = generateStructuredData(property);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yoursite.com" || "https://localhost:3002";
 
+
+
+ 
   return (
     <div className={styles.bg}>
       <Head>
@@ -431,4 +434,4 @@ export default async function PropertyDetails({ params }) {
       </div>
     </div>
   );
-}
+};
