@@ -33,43 +33,43 @@ export const AuthProvider = ({ children }) => {
           // Get fresh token and custom claims
           const token = await firebaseUser.getIdToken(true);
           const tokenResult = await firebaseUser.getIdTokenResult();
-          
+
           // Get role from custom claims (set by your backend)
           const role = tokenResult.claims.role;
-          
+
           setUser(firebaseUser);
           setUserRole(role);
           setAuthToken(token);
-          
+
           // Update localStorage
           localStorage.setItem('authToken', token);
           localStorage.setItem('userType', role);
           localStorage.setItem('userEmail', firebaseUser.email);
           localStorage.setItem('userRole', role);
-          
+
           // Set cookies (same data for middleware access)
           setCookie('authToken', token);
           setCookie('userRole', role);
           setCookie('userEmail', firebaseUser.email);
-          
+
           console.log('User authenticated:', {
             email: firebaseUser.email,
             role: role,
             uid: firebaseUser.uid
           });
         } else {
-          // User is signed out
+          //User is signed out
           setUser(null);
           setUserRole(null);
           setAuthToken(null);
-          
-          // Clear localStorage
+
+          //Clear localStorage
           localStorage.removeItem('authToken');
           localStorage.removeItem('userType');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userProfile');
           localStorage.removeItem('userRole');
-          
+
           // Clear cookies
           deleteCookie('authToken');
           deleteCookie('userRole');
@@ -77,12 +77,12 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Error in auth state change:', error);
-        // Reset state on error
+        //Reset state on error
         setUser(null);
         setUserRole(null);
         setAuthToken(null);
-        
-        // Clear storage on error
+
+        //Clear storage on error
         localStorage.clear();
         deleteCookie('authToken');
         deleteCookie('userRole');
@@ -92,13 +92,13 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    // Listen for custom logout events
+    //Listen for custom logout events
     const handleLogout = () => {
       setUser(null);
       setUserRole(null);
       setAuthToken(null);
-      
-      // Clear cookies on logout
+
+      //Clear cookies on logout
       deleteCookie('authToken');
       deleteCookie('userRole');
       deleteCookie('userEmail');

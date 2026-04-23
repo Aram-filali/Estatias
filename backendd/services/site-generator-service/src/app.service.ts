@@ -8,6 +8,8 @@ import * as path from 'path';
 import { spawn, ChildProcess, exec } from 'child_process';
 import * as os from 'os';
 import * as ejs from 'ejs';
+import * as net from 'net';
+import * as http from 'http';
 import { SiteInfo, SiteInfoDocument } from './schema/site-info.schema';
 
 export interface RunningSite {
@@ -26,13 +28,18 @@ export interface RunningSite {
   error?: string;
 }*/
 
+/**
+ * Service de génération dynamique de sites web.
+ * Responsable de la création, du déploiement et de la gestion du cycle de vie
+ * des sites Next.js générés pour chaque hôte.
+ */
 @Injectable()
 export class SiteGeneratorService implements OnApplicationShutdown {
   private readonly logger = new Logger('SiteGeneratorService');
   
   private runningSites: Map<string, RunningSite> = new Map();
   private sitesDatabase: Map<string, SiteInfo> = new Map();
-  private startPort = 3010;
+  private startPort = 3014;
   private endPort = 4009;
   private usedPorts: Set<number> = new Set();
   private siteTimeouts: Map<string, NodeJS.Timeout> = new Map();
@@ -50,6 +57,7 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     @InjectModel(Property.name, 'secondDB') private propertyModel: Model<Property>,
     @InjectModel(SiteInfo.name) private readonly siteInfoModel: Model<SiteInfoDocument>,
   ) {
+    // Log de la configuration au démarrage
     this.logger.log(`Output directory: ${this.outputDir}`);
     this.logger.log(`Template directory: ${this.templateDir}`);
     this.logger.log(`Shared node_modules: ${this.sharedNodeModules}`);
@@ -82,6 +90,10 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     }
   }
 
+  /**
+   * Synchronise l'état en mémoire avec la base de données MongoDB.
+   * Assure la cohérence entre les processus actifs et les enregistrements.
+   */
   async synchronizeState(): Promise<void> {
     try {
       this.logger.log("Synchronizing in-memory state with database...");
@@ -183,15 +195,86 @@ export class SiteGeneratorService implements OnApplicationShutdown {
     }
   }
 
-  private findAvailablePort(): Promise<number> {
-    return new Promise((resolve, reject) => {
-      for (let port = this.startPort; port <= this.endPort; port++) {
-        if (!this.usedPorts.has(port)) {
-          this.usedPorts.add(port);
-          return resolve(port);
-        }
+  private async findAvailablePort(): Promise<number> {
+    for (let port = this.startPort; port <= this.endPort; port++) {
+      if (this.usedPorts.has(port)) {
+        continue;
       }
-      reject(new Error('No available ports in the specified range'));
+
+      const isAvailable = await this.isPortAvailable(port);
+      if (!isAvailable) {
+        continue;
+      }
+
+      this.usedPorts.add(port);
+      return port;
+    }
+
+    throw new Error('No available ports in the specified range');
+  }
+
+  private isPortAvailable(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+
+      server.once('error', () => {
+        resolve(false);
+      });
+
+      server.once('listening', () => {
+        server.close(() => resolve(true));
+      });
+
+      server.listen(port);
+    });
+  }
+
+  private isPortInUseError(errorMessage: string): boolean {
+    return /EADDRINUSE|already in use|address already in use/i.test(errorMessage || '');
+  }
+
+  private isPortListening(port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+
+      const done = (value: boolean) => {
+        if (!socket.destroyed) {
+          socket.destroy();
+        }
+        resolve(value);
+      };
+
+      socket.setTimeout(800);
+      socket.once('connect', () => done(true));
+      socket.once('timeout', () => done(false));
+      socket.once('error', () => done(false));
+      socket.connect(port, '127.0.0.1');
+    });
+  }
+
+  private isHttpResponsive(port: number, timeoutMs: number = 4000): Promise<boolean> {
+    return new Promise((resolve) => {
+      const req = http.get(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: '/',
+          timeout: timeoutMs,
+        },
+        (res) => {
+          res.resume();
+          resolve(true);
+        }
+      );
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve(false);
+      });
+
+      req.on('error', () => {
+        resolve(false);
+      });
     });
   }
 
@@ -212,8 +295,24 @@ async stopSite(hostId: string): Promise<{ message: string }> {
       if (!dbSiteInfo) {
           return { message: `No running site found for host ${hostId}` };
       }
-      
+
       // Cas où le processus a crashé mais la base de données n'a pas été mise à jour
+      if (dbSiteInfo.port) {
+        await this.killProcessUsingPort(dbSiteInfo.port);
+        this.releasePort(dbSiteInfo.port);
+      }
+
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        {
+          $unset: {
+            port: 1,
+            url: 1,
+          },
+          lastStopped: new Date(),
+        }
+      ).exec();
+      
       return { message: `Site was marked as running but no process found. Cleaning database entry.` };
   }
   
@@ -276,6 +375,67 @@ async stopSite(hostId: string): Promise<{ message: string }> {
       
       return { message: `Site for host ${hostId} stopped with errors` };
   }
+}
+
+private async killProcessUsingPort(port: number): Promise<void> {
+  try {
+    if (!port) return;
+
+    if (process.platform === 'win32') {
+      const output = await this.execSystemCommand(`netstat -ano | findstr :${port}`);
+      const lines = output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const pids = new Set<number>();
+      for (const line of lines) {
+        const cols = line.split(/\s+/);
+        const pid = Number(cols[cols.length - 1]);
+        if (Number.isInteger(pid) && pid > 0 && pid !== process.pid) {
+          pids.add(pid);
+        }
+      }
+
+      for (const pid of pids) {
+        try {
+          await this.execSystemCommand(`taskkill /PID ${pid} /F`);
+          this.logger.log(`Killed stale process ${pid} on port ${port}`);
+        } catch (killErr) {
+          this.logger.warn(`Failed to kill process ${pid} on port ${port}: ${killErr.message}`);
+        }
+      }
+      return;
+    }
+
+    const output = await this.execSystemCommand(`lsof -ti tcp:${port}`);
+    const pids = output
+      .split(/\r?\n/)
+      .map((line) => Number(line.trim()))
+      .filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid);
+
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGKILL');
+        this.logger.log(`Killed stale process ${pid} on port ${port}`);
+      } catch (killErr) {
+        this.logger.warn(`Failed to kill process ${pid} on port ${port}: ${killErr.message}`);
+      }
+    }
+  } catch (error) {
+    this.logger.warn(`No stale process found on port ${port} or kill check failed: ${error.message}`);
+  }
+}
+
+private async execSystemCommand(command: string, timeoutMs: number = 15000): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    exec(command, { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(stderr || error.message));
+      }
+      resolve((stdout || '').toString());
+    });
+  });
 }
 
 async getSitesStatus(): Promise<{ running: RunningSite[], all: SiteInfo[] }> {
@@ -394,8 +554,8 @@ import '../styles/globals.css';
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-50">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-gray-50" suppressHydrationWarning>
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <h1 className="text-2xl font-bold text-gray-900"><%= hostName %></h1>
@@ -603,7 +763,16 @@ body {
 }
 
 
-async generateSite(sitePath: string, hostId: string): Promise<{ message: string; url: string }> {
+  /**
+   * Génère un nouveau site pour un hôte donné.
+   * Processus :
+   * 1. Récupération des données (Hôte + Propriétés)
+   * 2. Copie du template Next.js
+   * 3. Hydratation des fichiers via EJS
+   * 4. Installation des dépendances et build
+   * 5. Lancement du serveur Next.js
+   */
+  async generateSite(sitePath: string, hostId: string): Promise<{ message: string; url: string }> {
   this.logger.log(`Starting site generation for ${hostId}...`);
   
   try {
@@ -619,6 +788,15 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
       if (existingSite && existingSite.status === 'ready') {
         this.logger.log(`Site already exists for host ${hostId}, starting it...`);
         return this.startSite(hostId);
+      }
+
+      if (existingSite) {
+        try {
+          await this.stopSite(hostId);
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        } catch (stopErr) {
+          this.logger.warn(`Could not fully stop existing site for ${hostId}: ${stopErr.message}`);
+        }
       }
 
       // Récupérer les informations de l'hôte
@@ -650,14 +828,24 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
 
       const outputDir = path.join(this.outputDir, hostId);
 
-      // Mettre à jour la base de données et la Map en mémoire
-      const newSiteInfo = new this.siteInfoModel({
-          hostId,
-          outputPath: outputDir,
-          status: 'building',
-          lastBuilt: new Date()
-      });
-      await newSiteInfo.save();
+        // Mettre à jour la base de données sans réinsérer un hostId déjà existant
+        await this.siteInfoModel.updateOne(
+          { hostId },
+          {
+            $set: {
+              hostId,
+              outputPath: outputDir,
+              status: 'building',
+              lastBuilt: new Date()
+            },
+            $unset: {
+              error: 1,
+              port: 1,
+              url: 1
+            }
+          },
+          { upsert: true }
+        ).exec();
 
       this.sitesDatabase.set(hostId, {
           hostId,
@@ -689,15 +877,11 @@ async generateSite(sitePath: string, hostId: string): Promise<{ message: string;
       
       // Démarrer le site et retourner l'URL avec le domaine correct
       const result = await this.startSite(hostId);
-      
-      // Récupérer à nouveau le host pour s'assurer d'avoir le bon domainName
-      const updatedHost = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
-      const domainName = updatedHost?.domainName || hostId;
-      
-      // Retourner l'URL avec le bon domaine
+
+        // Retourner l'URL réellement démarrée (localhost:port ou domaine proxy selon la config)
       return {
           message: result.message,
-          url: `http://${domainName}.localhost`
+          url: result.url
       };
   } catch (error) {
       this.logger.error(`Failed to generate site for ${hostId}: ${error.message}`);
@@ -747,42 +931,102 @@ async startSite(hostId: string): Promise<{ message: string; url: string }> {
   const siteInfo = this.sitesDatabase.get(hostId)!;
   
   if (siteInfo.status !== 'ready') {
-      throw new Error(`Site for host ${hostId} is not ready (status: ${siteInfo.status})`);
+      const outputPath = siteInfo.outputPath || dbSiteInfo.outputPath || path.join(this.outputDir, hostId);
+      const hasGeneratedSite = await fs.pathExists(outputPath) && await fs.pathExists(path.join(outputPath, 'package.json'));
+
+      if (!hasGeneratedSite) {
+          throw new Error(`Site for host ${hostId} is not ready (status: ${siteInfo.status})`);
+      }
+
+      await this.siteInfoModel.updateOne(
+        { hostId },
+        {
+          $set: {
+            outputPath,
+            status: 'ready',
+            lastBuilt: dbSiteInfo.lastBuilt || new Date(),
+          },
+          $unset: {
+            error: 1,
+          },
+        }
+      ).exec();
+
+      this.sitesDatabase.set(hostId, {
+        ...siteInfo,
+        outputPath,
+        status: 'ready',
+        error: undefined,
+      });
   }
   
   if (this.runningSites.has(hostId)) {
       const runningSite = this.runningSites.get(hostId)!;
-      this.resetSiteTimeout(hostId);
-      return {
-          message: 'Site is already running',
-          url: runningSite.url
-      };
+      const isHealthy = await this.isHttpResponsive(runningSite.port, 3000);
+
+      if (isHealthy) {
+        this.resetSiteTimeout(hostId);
+        return {
+            message: 'Site is already running',
+            url: runningSite.url
+        };
+      }
+
+      this.logger.warn(`Site ${hostId} is marked running on port ${runningSite.port} but is unresponsive. Restarting instance.`);
+      try {
+        await this.stopSite(hostId);
+      } catch (stopErr) {
+        this.logger.warn(`Failed to stop unresponsive site ${hostId}: ${stopErr.message}`);
+      }
   }
   
   try {
-    const port = await this.findAvailablePort();
     const host = await this.hostModel.findOne({ firebaseUid: hostId }).exec();
     const domainName = host?.domainName || hostId;
-    
-    await this.startPreview(hostId, siteInfo.outputPath, port);
-    
-    // Utiliser le domainName au lieu de l'hostId pour l'URL
-    const url = `http://${domainName}.localhost`;
-      
-    // Mettre à jour la base de données avec les infos de l'instance en cours
-    await this.siteInfoModel.updateOne(
-        { hostId },
-        { 
+    const maxAttempts = 6;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const port = await this.findAvailablePort();
+
+      try {
+        await this.startPreview(hostId, siteInfo.outputPath, port);
+
+        // Utiliser localhost direct pour éviter les problèmes de résolution/host-header en dev
+        const url = `http://localhost:${port}`;
+
+        // Mettre à jour la base de données avec les infos de l'instance en cours
+        await this.siteInfoModel.updateOne(
+          { hostId },
+          {
             port,
             url,
             lastStarted: new Date()
-        }
-    ).exec();
+          }
+        ).exec();
 
-    return { 
-        message: 'Site started successfully', 
-        url 
-    };
+        return {
+          message: 'Site started successfully',
+          url
+        };
+      } catch (startErr) {
+        const startMessage = startErr?.message || 'Unknown start error';
+        lastError = startErr;
+
+        if (this.usedPorts.has(port)) {
+          this.releasePort(port);
+        }
+
+        if (this.isPortInUseError(startMessage) && attempt < maxAttempts) {
+          this.logger.warn(`Port ${port} conflicted for ${hostId}. Retrying with another port (${attempt}/${maxAttempts})...`);
+          continue;
+        }
+
+        throw startErr;
+      }
+    }
+
+    throw lastError || new Error('Unable to start site after multiple port attempts');
   } catch (error) {
       this.logger.error(`Failed to start site for ${hostId}: ${error.message}`);
       
@@ -1178,63 +1422,107 @@ private async startPreview(hostId: string, siteDir: string, port: number): Promi
         NEXT_PUBLIC_HOST_ID: hostId,
         NEXT_PUBLIC_DOMAIN_NAME: domainName,
         NEXT_PUBLIC_API_URL: this.apiServerUrl,
-        NEXT_PUBLIC_BASE_URL: `http://${domainName}.localhost:${port}` // Include port in URL
+        NEXT_PUBLIC_BASE_URL: `http://localhost:${port}` // URL runtime directe en dev
       };
 
       this.logger.log(`🌐 Starting dev server for ${hostId} (${domainName}) on port ${port}...`);
       
-      const child = spawn(npmCmd, ['run', 'dev'], {
+      const child = spawn(
+        npmCmd,
+        ['run', 'dev', '--', '--turbo', '--hostname', '127.0.0.1', '--port', port.toString()],
+        {
         cwd: siteDir,
         env,
         stdio: this.debugMode ? 'inherit' : 'pipe',
         shell: true
-      });
-
-      const timeout = setTimeout(() => {
-        child.kill();
-        reject(new Error(`Server startup timed out after 2 minutes`));
-      }, 120000);
+        }
+      );
 
       let serverReady = false;
+      let settled = false;
+
+      const cleanupAndSettle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        clearInterval(readinessProbe);
+        fn();
+      };
+
+      const markReady = () => {
+        if (serverReady || settled) return;
+        serverReady = true;
+
+        // URL runtime directe en dev
+        const url = `http://localhost:${port}`;
+        this.runningSites.set(hostId, {
+          hostId,
+          process: child,
+          port,
+          startedAt: new Date(),
+          url
+        });
+
+        this.resetSiteTimeout(hostId);
+        this.logger.log(`✅ Dev server for ${hostId} (${domainName}) ready on port ${port}`);
+        cleanupAndSettle(() => resolve());
+      };
+
+      const failStart = (error: Error) => {
+        cleanupAndSettle(() => {
+          if (!child.killed) {
+            try {
+              child.kill();
+            } catch {}
+          }
+          reject(error);
+        });
+      };
+
+      const timeout = setTimeout(() => {
+        failStart(new Error(`Server startup timed out after 2 minutes`));
+      }, 120000);
+
+      const readinessProbe = setInterval(async () => {
+        if (serverReady || settled) return;
+        const responsive = await this.isHttpResponsive(port, 1500);
+        if (responsive) {
+          markReady();
+        }
+      }, 1000);
+
+      const detectReadyOrConflict = (output: string) => {
+        if (this.debugMode) this.logger.log(`[Next.js ${domainName}] ${output.trim()}`);
+
+        if (!serverReady && (output.includes('Ready') || output.includes('started server') || output.includes('ready -'))) {
+          markReady();
+          return;
+        }
+
+        if (!serverReady && this.isPortInUseError(output)) {
+          this.releasePort(port);
+          failStart(new Error(`Port ${port} already in use`));
+        }
+      };
       
       child.stdout?.on('data', (data) => {
         const output = data.toString();
-        if (this.debugMode) this.logger.log(`[Next.js ${domainName}] ${output.trim()}`);
-        
-        if (output.includes('Ready') || output.includes('started server')) {
-          clearTimeout(timeout);
-          serverReady = true;
-          
-          // Use domainName instead of hostId for URL and include port
-          const url = `http://${domainName}.localhost`;
-          this.runningSites.set(hostId, { 
-            hostId, 
-            process: child, 
-            port, 
-            startedAt: new Date(),
-            url
-          });
-          
-          this.resetSiteTimeout(hostId);
-          
-          this.logger.log(`✅ Dev server for ${hostId} (${domainName}) ready on port ${port}`);
-          resolve();
-        }
+        detectReadyOrConflict(output);
       });
 
       child.stderr?.on('data', (data) => {
         const error = data.toString();
         if (this.debugMode) this.logger.error(`[Next.js ${domainName} ERROR] ${error.trim()}`);
-        
-        if (!serverReady && error.includes('EADDRINUSE')) {
-          clearTimeout(timeout);
-          this.releasePort(port);
-          reject(new Error(`Port ${port} already in use`));
-        }
+        detectReadyOrConflict(error);
       });
 
       child.on('close', (code) => {
+        if (settled && serverReady && code === 0) {
+          return;
+        }
+
         clearTimeout(timeout);
+        clearInterval(readinessProbe);
         
         if (this.runningSites.has(hostId)) {
           this.runningSites.delete(hostId);
@@ -1247,13 +1535,15 @@ private async startPreview(hostId: string, siteDir: string, port: number): Promi
         }
         
         if (!serverReady && code !== 0) {
-          reject(new Error(`Server process exited with code ${code}`));
+          if (!settled) {
+            settled = true;
+            reject(new Error(`Server process exited with code ${code}`));
+          }
         }
       });
 
       child.on('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
+        failStart(error);
       });
     } catch (error) {
       reject(error);

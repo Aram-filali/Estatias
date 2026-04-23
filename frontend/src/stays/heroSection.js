@@ -8,6 +8,7 @@ export default function HeroSection() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   
   // Default hero content in case there are no properties
   const defaultHeroContent = [
@@ -30,14 +31,12 @@ export default function HeroSection() {
         const hostId = process.env.NEXT_PUBLIC_HOST_ID;
         
         if (!hostId) {
-          console.error("Host ID not found in environment variables");
           setLoading(false);
-          setError("Host ID not configured. Please check your environment variables.");
           return;
         }
         
         // Make API call with the correct parameter in the URL
-        const response = await axios.get(`http://localhost:3000/properties/photos/${hostId}`);
+        const response = await axios.get(`${apiBaseUrl}/properties/photos/${hostId}`);
         
         // Process the response data
         const propertiesData = response.data;
@@ -66,22 +65,14 @@ export default function HeroSection() {
         
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching property photos:', err);
-        
-        // More detailed error handling
-        if (err.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.error('Response error data:', err.response.data);
-          console.error('Response error status:', err.response.status);
+        if (err?.response?.status === 404) {
+          setProperties([]);
+          setError(null);
+        } else if (err.response) {
           setError(`Server error: ${err.response.status}`);
         } else if (err.request) {
-          // The request was made but no response was received
-          console.error('Request made but no response received');
           setError('No response from server. Please check your connection.');
         } else {
-          // Something happened in setting up the request that triggered an Error
-          console.error('Error message:', err.message);
           setError(`Request error: ${err.message}`);
         }
         
@@ -90,7 +81,7 @@ export default function HeroSection() {
     };
     
     fetchPropertyPhotos();
-  }, []);
+  }, [apiBaseUrl]);
 
   // Generate hero slides from properties or use defaults
   const heroSlides = properties.length > 0 

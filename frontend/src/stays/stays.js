@@ -33,6 +33,7 @@ export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hostData, setHostData] = useState(null);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   
   const controls = useAnimation();
   const { ref, inView } = useInView({
@@ -105,18 +106,19 @@ export default function Home() {
       const hostId = process.env.NEXT_PUBLIC_HOST_ID;
       
       if (!hostId) {
-        console.error("Host ID not found in environment variables");
         setLoading(false);
         return;
       }
       
       // Make API call to get properties by host ID
-      const response = await axios.get(`http://localhost:3000/properties/host/${hostId}`);
+      const response = await axios.get(`${apiBaseUrl}/properties/host/${hostId}`);
       setProperties(response.data || []);
       setLoading(false);
       
     } catch (error) {
-      console.error("Error loading properties:", error);
+      if (error?.response?.status !== 404) {
+        console.error("Error loading properties:", error);
+      }
       setProperties([]);
       setLoading(false);
     }

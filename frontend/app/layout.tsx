@@ -4,13 +4,13 @@ import Script from "next/script";
 import AppProviders from "../src/providers/AppProviders";
 import { Navbar } from "../src/Navbar/Navbar";
 import Footer from "../src/Footer/Footer";
-import "/styles/stayss.css";
-import "/styles/styleSignupLogin.css";
-import '/styles/PropertyReview.css';
-import "/styles/propertyDetails.css";
-import "/styles/reviewSection.css";
-import "/styles/gallery.css";
-import "/styles/bookingComponent.css";
+import "../styles/stayss.css";
+import "../styles/styleSignupLogin.css";
+import "../styles/PropertyReview.css";
+import "../styles/propertyDetails.css";
+import "../styles/reviewSection.css";
+import "../styles/gallery.css";
+import "../styles/bookingComponent.css";
 
 interface LayoutProps {
   children: ReactNode;
@@ -59,7 +59,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <Head>
         {/* Primary Meta Tags */}
         <title>{title}</title>
@@ -128,7 +128,7 @@ export default function RootLayout({
         />
       </Head>
           
-      <body>
+      <body suppressHydrationWarning>
         {/* Google Analytics (replace GA_MEASUREMENT_ID with your actual ID) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"

@@ -1,7 +1,7 @@
 // Updated LoginHostt.js (Host Login)
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { signInWithGoogle, completeSignOut } from "../../src/firebase";
@@ -12,7 +12,7 @@ import { signInWithEmailAndPassword, getAuth } from 'firebase/auth';
 import { auth } from "./firebaseConfig";
 
 const LoginHostt = () => {
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullname, setFullName] = useState("");
@@ -25,12 +25,6 @@ const LoginHostt = () => {
   const [loading, setLoading] = useState(false);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsSignUp(false);
-    }, 800);
-  }, []);
 
   const displayPopup = (message, type, duration = 5000) => {
     setPopupMessage(message);

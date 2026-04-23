@@ -28,11 +28,16 @@ export default function Footer() {
         if (response.ok) {
           const data = await response.json();
           setSocialLinks(data.socials);
-        } else {
-          console.error('Failed to fetch social links');
         }
       } catch (error) {
-        console.error('Error fetching social links:', error);
+        setSocialLinks({
+          facebook: null,
+          instagram: null,
+          linkedin: null,
+          twitter: null,
+          youtube: null,
+          tiktok: null
+        });
       }
     };
 

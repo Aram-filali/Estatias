@@ -7,11 +7,19 @@ import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext();
 
+const getCookie = (name) => {
+  if (typeof document === 'undefined') return null;
+  const part = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${name}=`));
+  return part ? decodeURIComponent(part.split('=')[1]) : null;
+};
+
 // Helper function to set cookies
 const setCookie = (name, value, days = 7) => {
   const expires = new Date();
   expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;secure;samesite=strict`;
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;samesite=lax`;
 };
 
 // Helper function to delete cookies
@@ -26,7 +34,50 @@ export const AuthProvider = ({ children }) => {
   const [authToken, setAuthToken] = useState(null);
   const router = useRouter();
 
+  const applyBridgedSession = () => {
+    const storedToken = localStorage.getItem('authToken') || getCookie('authToken');
+    const storedRole = localStorage.getItem('userRole') || localStorage.getItem('userType') || getCookie('userRole');
+    const storedUid = localStorage.getItem('userId') || getCookie('userId') || process.env.NEXT_PUBLIC_HOST_ID;
+    const storedEmail = localStorage.getItem('userEmail') || getCookie('userEmail') || null;
+
+    if (!storedToken || !storedRole) {
+      return false;
+    }
+
+    const bridgedUser = {
+      uid: storedUid || 'bridged-host',
+      email: storedEmail,
+      role: storedRole,
+      isBridgedSession: true,
+    };
+
+    setUser(bridgedUser);
+    setUserRole(storedRole);
+    setAuthToken(storedToken);
+
+    localStorage.setItem('authToken', storedToken);
+    localStorage.setItem('token', storedToken);
+    if (storedRole) {
+      localStorage.setItem('userRole', storedRole);
+      localStorage.setItem('userType', storedRole);
+    }
+    if (storedUid) {
+      localStorage.setItem('userId', storedUid);
+    }
+    if (storedEmail) {
+      localStorage.setItem('userEmail', storedEmail);
+    }
+    localStorage.setItem('user', JSON.stringify(bridgedUser));
+
+    return true;
+  };
+
   useEffect(() => {
+    const bootstrapped = applyBridgedSession();
+    if (bootstrapped) {
+      setLoading(false);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
@@ -64,6 +115,11 @@ export const AuthProvider = ({ children }) => {
             uid: firebaseUser.uid
           });
         } else {
+          const reused = applyBridgedSession();
+          if (reused) {
+            return;
+          }
+
           // User is signed out
           setUser(null);
           setUserRole(null);

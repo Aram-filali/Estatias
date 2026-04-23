@@ -3,6 +3,27 @@ import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  const bridgeToken = request.nextUrl.searchParams.get('bridgeToken');
+  const bridgeRole = request.nextUrl.searchParams.get('bridgeRole');
+  const bridgeUid = request.nextUrl.searchParams.get('bridgeUid');
+  const bridgeEmail = request.nextUrl.searchParams.get('bridgeEmail');
+
+  if (bridgeToken && bridgeUid) {
+    const cleanUrl = new URL(request.url);
+    cleanUrl.searchParams.delete('bridgeToken');
+    cleanUrl.searchParams.delete('bridgeRole');
+    cleanUrl.searchParams.delete('bridgeUid');
+    cleanUrl.searchParams.delete('bridgeEmail');
+
+    const response = NextResponse.redirect(cleanUrl);
+    response.cookies.set('authToken', bridgeToken, { path: '/', sameSite: 'lax' });
+    response.cookies.set('userRole', bridgeRole || 'host', { path: '/', sameSite: 'lax' });
+    response.cookies.set('userId', bridgeUid, { path: '/', sameSite: 'lax' });
+    if (bridgeEmail) {
+      response.cookies.set('userEmail', bridgeEmail, { path: '/', sameSite: 'lax' });
+    }
+    return response;
+  }
   
   // Define protected routes and their required roles
   const protectedRoutes = {

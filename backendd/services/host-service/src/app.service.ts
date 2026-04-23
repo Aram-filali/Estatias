@@ -79,7 +79,7 @@ export class HostService {
         await this.firebaseAdminService.firebaseApp.auth().setCustomUserClaims(firebaseUser.uid, { role });
         
         // Use the data as-is without re-uploading files
-        // Frontend already provides URLs from its Firebase storage uploads
+        // Frontend now sends document payloads stored directly in MongoDB
         const hostData = { ...createHostDto };
         
         // Ensure Firebase UID is set correctly
@@ -391,6 +391,14 @@ export class HostService {
                 // Fonction pour supprimer un fichier à partir de son URL
                 const deleteFileFromUrl = async (fileUrl: string) => {
                     if (!fileUrl) return;
+
+                  if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+                    return;
+                  }
+
+                  if (!fileUrl.includes('firebasestorage.googleapis.com')) {
+                    return;
+                  }
                     
                     try {
                         // Extraire le chemin du fichier à partir de l'URL

@@ -9,11 +9,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const uri = configService.get<string>('MONGO_URL');
+        const directUri = configService.get<string>('MONGO_URL_DIRECT');
+        const uri = directUri || configService.get<string>('MONGO_URL');
 
         if (!uri) {
-          console.error('❌ MONGO_URL n\'est pas défini dans les variables d\'environnement.');
+          console.error("❌ MONGO_URL (ou MONGO_URL_DIRECT) n'est pas défini dans les variables d'environnement.");
           process.exit(1);
+        }
+
+        if (directUri) {
+          console.log('⚠️ Utilisation de MONGO_URL_DIRECT (fallback sans DNS SRV).');
         }
 
         return {

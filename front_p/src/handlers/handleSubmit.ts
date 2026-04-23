@@ -2,8 +2,7 @@
 import axios from "axios";
 import imageCompression from "browser-image-compression";
 import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { auth, storage } from "../firebaseConfig";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { auth } from "../firebaseConfig";
 
 // Type définition pour le retour de handleSubmit
 interface SubmitResult {
@@ -33,54 +32,23 @@ const compressImage = async (file: File): Promise<File> => {
   return file;
 };
 
-// Function to upload file to Firebase Storage and get URL
-const uploadFileToStorage = async (file: File, folder: string, userId: string): Promise<{ url: string, storagePath: string }> => {
-  try {
-    // Generate a unique filename
-    const timestamp = new Date().getTime();
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${userId}_${timestamp}.${fileExtension}`;
-    const storagePath = `${folder}/${fileName}`;
-    
-    // Create reference to the file location in Firebase Storage
-    const storageRef = ref(storage, storagePath);
-    
-    // If it's an image, compress it first
-    const fileToUpload = file.type.startsWith('image/') ? await compressImage(file) : file;
-    
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, fileToUpload);
-    
-    // Get download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    
-    return { url: downloadURL, storagePath };
-  } catch (error) {
-    console.error(`Error uploading file to ${folder}:`, error);
-    throw new Error(`Failed to upload file to ${folder}`);
-  }
+const fileToBase64 = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error(`Failed to encode file: ${file.name}`));
+    reader.readAsDataURL(file);
+  });
 };
 
-// Function to delete a file from Firebase Storage
-const deleteFileFromStorage = async (storagePath: string): Promise<void> => {
-  try {
-    const fileRef = ref(storage, storagePath);
-    await deleteObject(fileRef);
-    console.log(`Successfully deleted file at ${storagePath}`);
-  } catch (error) {
-    console.error(`Error deleting file at ${storagePath}:`, error);
-    // Don't throw here as we want to continue with other cleanup tasks
-  }
+const prepareDocumentPayload = async (file: File): Promise<string> => {
+  const fileToStore = file.type.startsWith('image/') ? await compressImage(file) : file;
+  return fileToBase64(fileToStore);
 };
 
 // Dedicated cleanup function to ensure all resources are properly deleted
-const cleanupResources = async (firebaseUser: any, uploadedFiles: { url: string, storagePath: string }[]) => {
+const cleanupResources = async (firebaseUser: any) => {
   try {
-    // Clean up all uploaded files
-    for (const file of uploadedFiles) {
-      await deleteFileFromStorage(file.storagePath);
-    }
-    
     // Delete the Firebase user if it exists
     if (firebaseUser) {
       console.log("Deleting Firebase user due to error in subsequent steps");
@@ -100,7 +68,6 @@ const cleanupResources = async (firebaseUser: any, uploadedFiles: { url: string,
 // Fonction principale modifiée pour retourner un objet SubmitResult
 export const handleSubmit = async (formData: any, nextStep: Function | null = null): Promise<SubmitResult> => {
   let firebaseUser = null;
-  const uploadedFiles: { url: string, storagePath: string }[] = [];
   let backendSuccess = false;
   
   try {
@@ -139,23 +106,13 @@ export const handleSubmit = async (formData: any, nextStep: Function | null = nu
       }
     }
     
-    // 🔹 Step 2: Upload files to Firebase Storage and get URLs
-    const fileUrls: any = {};
+    // 🔹 Step 2: Encode files to base64 for MongoDB storage
+    const filePayloads: any = {};
+    filePayloads.kbisOrId = await prepareDocumentPayload(formData.kbisOrId);
 
-    // Upload KBIS or ID document
-    const kbisOrIdUpload = await uploadFileToStorage(formData.kbisOrId, "KBIS - ID document", firebaseUser.uid);
-    fileUrls.kbisOrId = kbisOrIdUpload.url;
-    uploadedFiles.push(kbisOrIdUpload);
-
-    // Handle representative documents if applicable
     if (formData.hasRepresentative) {
-      const proxyUpload = await uploadFileToStorage(formData.proxy, "Proxy Document", firebaseUser.uid);
-      fileUrls.proxy = proxyUpload.url;
-      uploadedFiles.push(proxyUpload);
-      
-      const repIdUpload = await uploadFileToStorage(formData.repId, "Representative ID", firebaseUser.uid);
-      fileUrls.repId = repIdUpload.url;
-      uploadedFiles.push(repIdUpload);
+      filePayloads.proxy = await prepareDocumentPayload(formData.proxy);
+      filePayloads.repId = await prepareDocumentPayload(formData.repId);
     }
     
     // 🔹 Step 3: Prepare data to send to backend API
@@ -173,8 +130,8 @@ export const handleSubmit = async (formData: any, nextStep: Function | null = nu
       role: 'host',
       domainName: formData.domainName || undefined,
       firebaseUid: firebaseUser.uid,
-      // Include the uploaded file URLs
-      ...fileUrls
+      // Include encoded document payloads for MongoDB storage
+      ...filePayloads
     };
 
     // Add agency-specific data if isAgency is true
@@ -219,7 +176,7 @@ export const handleSubmit = async (formData: any, nextStep: Function | null = nu
       console.error("API call failed:", apiError);
       
       // Clean up resources since backend call failed
-      await cleanupResources(firebaseUser, uploadedFiles);
+      await cleanupResources(firebaseUser);
       
       // Handle API errors specifically
       if (axios.isAxiosError(apiError)) {
@@ -246,7 +203,7 @@ export const handleSubmit = async (formData: any, nextStep: Function | null = nu
   } catch (error) {
     // Only perform cleanup if the backend registration wasn't successful
     if (!backendSuccess) {
-      await cleanupResources(firebaseUser, uploadedFiles);
+      await cleanupResources(firebaseUser);
     }
     
     // Handle errors

@@ -11,10 +11,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const uri = configService.get<string>('MONGO_URL1');
+        const directUri = configService.get<string>('MONGO_URL1_DIRECT');
+        const uri = directUri || configService.get<string>('MONGO_URL1');
         if (!uri) {
-          console.error('❌ MONGO_URL1 n\'est pas défini dans les variables d\'environnement.');
+          console.error("❌ MONGO_URL1 (ou MONGO_URL1_DIRECT) n'est pas défini dans les variables d'environnement.");
           process.exit(1);
+        }
+
+        if (directUri) {
+          console.log('⚠️ Utilisation de MONGO_URL1_DIRECT (fallback sans DNS SRV).');
         }
         
         return {
@@ -38,10 +43,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [ConfigService],
       connectionName: 'secondDB', // Nom pour différencier les connexions
       useFactory: async (configService: ConfigService) => {
-        const uriSecond = configService.get<string>('MONGO_URL2');
+        const directUriSecond = configService.get<string>('MONGO_URL2_DIRECT');
+        const uriSecond = directUriSecond || configService.get<string>('MONGO_URL2');
         if (!uriSecond) {
-          console.error('❌ MONGO_URL2 n\'est pas défini dans les variables d\'environnement.');
+          console.error("❌ MONGO_URL2 (ou MONGO_URL2_DIRECT) n'est pas défini dans les variables d'environnement.");
           process.exit(1);
+        }
+
+        if (directUriSecond) {
+          console.log('⚠️ Utilisation de MONGO_URL2_DIRECT (fallback sans DNS SRV).');
         }
         
         return {

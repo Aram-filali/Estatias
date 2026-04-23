@@ -114,81 +114,109 @@ export default function DashboardPage() {
     router.push("/");
   }
 
-  const redirectToHostWebsite = async () => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    if (!user || !host || !authToken) return;
-    
+  const normalizeSiteUrl = (rawUrl: string, fallbackPort?: number) => {
     try {
-      setLoading(true);
-      
-      // First get the status
-      const statusResponse = await axios.get(`${API_BASE_URL}/site-generator/status`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-      
-      console.log("Site status response:", statusResponse.data);
-      
-      // Simplified site info extraction - look in both running and all collections
-      const allSites = [...(statusResponse.data.running || []), ...(statusResponse.data.all || [])];
-      const siteInfo = allSites.find(site => site.hostId === user.uid);
-      
-      console.log("Found site info:", siteInfo);
-      
-      let response;
-      let siteUrl;
-      
-      // Simplified decision tree
-      if (!siteInfo || siteInfo.status === 'error') {
-        // No site or site has errors - generate a new one
-        console.log("Generating new site");
-        response = await axios.post(
-          `${API_BASE_URL}/site-generator/${user.uid}/generate`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
-      } else if (siteInfo.status === 'ready' && !siteInfo.url) {
+      const parsed = new URL(rawUrl);
+      if (parsed.port) return rawUrl;
+      if (fallbackPort) return `${parsed.protocol}//${parsed.hostname}:${fallbackPort}`;
+      return rawUrl;
+    } catch {
+      if (fallbackPort && /^https?:\/\//i.test(rawUrl) && !/:[0-9]+(?:\/|$)/.test(rawUrl)) {
+        return `${rawUrl.replace(/\/$/, '')}:${fallbackPort}`;
+      }
+      return rawUrl;
+    }
+  };
 
-        console.log("Starting existing site");
-        response = await axios.post(
-          `${API_BASE_URL}/site-generator/${user.uid}/start`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
-      } else if (siteInfo.url) {
-        // Site is already running
-        console.log("Site is already running");
-        siteUrl = siteInfo.url;
+  const openGeneratedHostSiteDirect = async (pathSuffix: string = '') => {
+    const popup = window.open('about:blank', '_blank');
+    if (!popup) {
+      setError('Popup blocked by browser. Please allow popups and retry.');
+      return;
+    }
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user || !host) {
+        popup.close();
+        setError('You must be logged in to access your generated site.');
+        return;
       }
-      
-      // Get URL from response if we made a request
-      if (response && response.data && response.data.url) {
-        siteUrl = response.data.url;
+
+      setLoading(true);
+      const token = authToken || await user.getIdToken();
+      if (!authToken) {
+        setAuthToken(token);
       }
-      
+
+      const startResponse = await axios.post(
+        `${API_BASE_URL}/site-generator/${user.uid}/start`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 60000,
+        }
+      );
+
+      let siteUrl = startResponse?.data?.url
+        ? normalizeSiteUrl(startResponse.data.url, startResponse.data.port)
+        : '';
+
       if (!siteUrl) {
-        throw new Error("Failed to get a valid site URL");
+        const statusResponse = await axios.get(`${API_BASE_URL}/site-generator/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
+        });
+
+        const allSites = [...(statusResponse.data.running || []), ...(statusResponse.data.all || [])];
+        const siteInfo = allSites.find((site: any) => site.hostId === user.uid);
+        if (siteInfo?.url) {
+          siteUrl = normalizeSiteUrl(siteInfo.url, siteInfo.port);
+        }
       }
-      
-      // Open the site in a new tab
-      console.log("Opening URL:", siteUrl);
-      window.open(siteUrl, '_blank');
+
+      if (!siteUrl) {
+        throw new Error('Failed to get a valid site URL');
+      }
+
+      const normalizedSuffix = pathSuffix
+        ? (pathSuffix.startsWith('/') ? pathSuffix : `/${pathSuffix}`)
+        : '';
+
+      let finalUrl = siteUrl;
+      if (normalizedSuffix) {
+        try {
+          finalUrl = new URL(normalizedSuffix, siteUrl).toString();
+        } catch {
+          finalUrl = `${siteUrl.replace(/\/$/, '')}${normalizedSuffix}`;
+        }
+      }
+
+      const targetUrl = new URL(finalUrl);
+      targetUrl.searchParams.set('bridgeToken', token);
+      targetUrl.searchParams.set('bridgeRole', 'host');
+      targetUrl.searchParams.set('bridgeUid', user.uid);
+      if (user.email) {
+        targetUrl.searchParams.set('bridgeEmail', user.email);
+      }
+
+      popup.location.replace(targetUrl.toString());
     } catch (err) {
-      console.error("Error accessing host website:", err);
-      setError("Failed to access your booking website. Please try again later.");
+      console.error('Error accessing host website:', err);
+      popup.close();
+      setError('Unable to open your generated host site. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const redirectToManageProperties = async () => {
+    await openGeneratedHostSiteDirect('/MyWebsite/property');
+  };
+
+  const redirectToHostWebsite = async () => {
+    await openGeneratedHostSiteDirect('');
   };
 
   const trialStatus = host ? getTrialStatus() : { text: '', className: '' };
@@ -281,7 +309,9 @@ export default function DashboardPage() {
               <button className={styles.primaryButton} onClick={redirectToHostWebsite}>
                 View As Guest
               </button>
-              <button className={styles.secondaryButton}>Manage my properties</button>
+              <button className={styles.secondaryButton} onClick={redirectToManageProperties}>
+                Manage my properties
+              </button>
             </div>
           </div>
         </section>

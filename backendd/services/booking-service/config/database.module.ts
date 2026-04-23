@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import  { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -21,7 +21,7 @@ import  { ConfigModule, ConfigService } from '@nestjs/config';
           await mongoose.connect(uri);
           console.log('✅ Connecté à MongoDB');
         } catch (error) {
-          console.error('❌ Erreur de connexion à MongoDB:', error.message);
+          console.error('❌ Erreur de connexion à MongoDB:');
           process.exit(1);
         }
 
@@ -30,5 +30,4 @@ import  { ConfigModule, ConfigService } from '@nestjs/config';
     }),
   ],
 })
-export class DatabaseModule {}
-
+export class DatabaseModule { }

@@ -1,12 +1,41 @@
 // src/scripts/update-admin-role.ts
 import * as admin from 'firebase-admin';
 import * as dotenv from 'dotenv';
-import serviceAccountJson from '../../config/firebase-service-account.json';
+import * as fs from 'fs';
+import * as path from 'path';
 
 dotenv.config();
 
 // Initialize Firebase Admin SDK
-const serviceAccount = serviceAccountJson as admin.ServiceAccount;
+function parseServiceAccount(raw: string): admin.ServiceAccount {
+  return JSON.parse(raw) as admin.ServiceAccount;
+}
+
+function loadServiceAccount(): admin.ServiceAccount {
+  const envJson =
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
+    process.env.FIREBASE_SERVICE_ACCOUNT;
+
+  if (envJson) {
+    return parseServiceAccount(envJson);
+  }
+
+  const localConfigPath = path.resolve(process.cwd(), 'config', 'firebase-service-account.json');
+  if (fs.existsSync(localConfigPath)) {
+    return parseServiceAccount(fs.readFileSync(localConfigPath, 'utf-8'));
+  }
+
+  const sharedConfigPath = path.resolve(process.cwd(), '..', 'config', 'firebase-service-account.json');
+  if (fs.existsSync(sharedConfigPath)) {
+    return parseServiceAccount(fs.readFileSync(sharedConfigPath, 'utf-8'));
+  }
+
+  throw new Error(
+    "Firebase service account introuvable. Définissez FIREBASE_SERVICE_ACCOUNT_KEY ou ajoutez config/firebase-service-account.json",
+  );
+}
+
+const serviceAccount = loadServiceAccount();
 
 if (!admin.apps.length) {
   admin.initializeApp({

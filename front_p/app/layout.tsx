@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "styles/globals.css";
-import { usePathname } from "next/navigation";
-import Footer from "@/components/Footer/Footer";
-import { Navbar } from "@/components/Navbar/Navbar";
-import { HostProvider } from "@/components/addProperty/HostProvider";
 import { ConditionalNavbarAndFooter } from "@/components/addProperty/ConditionalNavbarAndFooter";
 import { AuthProvider } from '../contexts/AuthContext';
 // Enable metadata
@@ -65,7 +61,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -106,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <ConditionalNavbarAndFooter>
             {children}

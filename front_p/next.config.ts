@@ -11,11 +11,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   
-  
-  // Configuration pour éviter les erreurs de build
-  experimental: {
-    esmExternals: false,
-  },
 };
 
 export default nextConfig;

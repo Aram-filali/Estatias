@@ -9,17 +9,35 @@ const API_TIMEOUT = 30000;
 // Récupérer l'ID de l'hôte depuis les variables d'environnement
 const HOST_ID = process.env.NEXT_PUBLIC_HOST_ID;
 
+const getCookieValue = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const cookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${name}=`));
+  return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
+};
+
 export function usePropertyData() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const [currentUser, setCurrentUser] = useState<any>(
+    auth.currentUser || (HOST_ID ? ({ uid: HOST_ID } as any) : null)
+  );
 
   const getIdToken = useCallback(async (forceRefresh = true): Promise<string> => {
     // Enhanced token retrieval with more robust error handling
     try {
       const user = auth.currentUser;
       if (!user) {
+        const storedToken =
+          (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null) ||
+          getCookieValue('authToken');
+
+        if (storedToken) {
+          return storedToken;
+        }
+
         console.error("No authenticated user found");
         throw new Error("User not authenticated");
       }
@@ -162,11 +180,6 @@ export function usePropertyData() {
 
   const deleteProperty = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-  
       const token = await getIdToken();
       await axios.delete(`${API_URL}/${id}`, {
         headers: {
@@ -194,7 +207,7 @@ export function usePropertyData() {
   // Modifier useEffect pour charger les propriétés sans authentification
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
+      setCurrentUser(user || (HOST_ID ? ({ uid: HOST_ID } as any) : null));
       // Charger les propriétés même si l'utilisateur n'est pas connecté
       // car on récupère les propriétés d'un hôte spécifique
       loadProperties();

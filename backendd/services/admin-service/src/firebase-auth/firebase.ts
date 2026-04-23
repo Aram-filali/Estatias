@@ -3,6 +3,15 @@ import * as admin from 'firebase-admin';
 import * as path from 'path';
 import * as fs from 'fs';
 
+type RawServiceAccount = {
+  project_id?: string;
+  client_email?: string;
+  private_key?: string;
+  projectId?: string;
+  clientEmail?: string;
+  privateKey?: string;
+};
+
 @Injectable()
 export class FirebaseAdminService {
   constructor() {
@@ -17,19 +26,10 @@ export class FirebaseAdminService {
         return;
       }
 
-      // Chemin vers le fichier de service account
-      const serviceAccountPath = path.resolve(__dirname, '../../../config/firebase-service-account.json');
-      
-      // Vérifier que le fichier existe
-      if (!fs.existsSync(serviceAccountPath)) {
-        throw new Error(`Fichier de clé de service introuvable: ${serviceAccountPath}`);
-      }
-
-      // Lire et valider le fichier JSON
-      const serviceAccount = require(serviceAccountPath);
+      const serviceAccount = this.loadServiceAccount();
       
       // Vérifications de base du fichier de service account
-      if (!serviceAccount.private_key || !serviceAccount.client_email || !serviceAccount.project_id) {
+      if (!serviceAccount.privateKey || !serviceAccount.clientEmail || !serviceAccount.projectId) {
         throw new Error('Fichier de clé de service invalide - propriétés manquantes');
       }
 
@@ -40,10 +40,10 @@ export class FirebaseAdminService {
       });
 
       console.log('Firebase Admin SDK initialisé avec succès.');
-      console.log(`Projet ID: ${serviceAccount.project_id}`);
-      console.log(`Client Email: ${serviceAccount.client_email}`);
+      console.log(`Projet ID: ${serviceAccount.projectId}`);
+      console.log(`Client Email: ${serviceAccount.clientEmail}`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de l\'initialisation de Firebase Admin SDK:', error);
       
       // Messages d'erreur spécifiques
@@ -57,6 +57,59 @@ export class FirebaseAdminService {
       
       throw new Error(`Erreur d'initialisation Firebase Admin SDK: ${error.message}`);
     }
+  }
+
+  private parseServiceAccount(raw: string): admin.ServiceAccount {
+    const parsed = JSON.parse(raw) as RawServiceAccount;
+    const privateKeyRaw = parsed.privateKey || parsed.private_key;
+
+    return {
+      projectId: parsed.projectId || parsed.project_id,
+      clientEmail: parsed.clientEmail || parsed.client_email,
+      privateKey: privateKeyRaw ? this.normalizePrivateKey(privateKeyRaw) : undefined,
+    };
+  }
+
+  private normalizePrivateKey(privateKey: string): string {
+    let normalized = privateKey.trim();
+
+    if (
+      (normalized.startsWith('"') && normalized.endsWith('"')) ||
+      (normalized.startsWith("'") && normalized.endsWith("'"))
+    ) {
+      normalized = normalized.slice(1, -1);
+    }
+
+    normalized = normalized
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\\n/g, '\n')
+      .replace(/\r\n/g, '\n');
+
+    return normalized;
+  }
+
+  private loadServiceAccount(): admin.ServiceAccount {
+    const envJson =
+      process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
+      process.env.FIREBASE_SERVICE_ACCOUNT;
+
+    if (envJson) {
+      return this.parseServiceAccount(envJson);
+    }
+
+    const localConfigPath = path.resolve(process.cwd(), 'config', 'firebase-service-account.json');
+    if (fs.existsSync(localConfigPath)) {
+      return this.parseServiceAccount(fs.readFileSync(localConfigPath, 'utf-8'));
+    }
+
+    const sharedConfigPath = path.resolve(process.cwd(), '..', 'config', 'firebase-service-account.json');
+    if (fs.existsSync(sharedConfigPath)) {
+      return this.parseServiceAccount(fs.readFileSync(sharedConfigPath, 'utf-8'));
+    }
+
+    throw new Error(
+      `Fichier de clé de service introuvable: ${localConfigPath}`,
+    );
   }
 
   // Récupère l'instance de l'application Firebase Admin

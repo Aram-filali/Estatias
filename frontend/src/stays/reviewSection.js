@@ -21,14 +21,6 @@ export default function ReviewSection() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
   const HOST_UID = process.env.NEXT_PUBLIC_HOST_ID;
 
- 
-    console.log("Using hostId:", HOST_UID);
-
-    if (!HOST_UID) {
-      console.error("Host ID not found in environment variables");
-      setLoading(false);
-      return;
-    }
   // Fetch reviews from API
   const fetchReviews = async () => {
     try {
@@ -36,14 +28,30 @@ export default function ReviewSection() {
       setError(null);
 
       if (!HOST_UID) {
-        throw new Error('Host UID not found in environment variables');
+        setReviews([]);
+        setReviewStats({
+          totalCount: 0,
+          averageRating: 0,
+          ratingDistribution: {}
+        });
+        return;
       }
 
       // Adjust the API URL to match your setup
       const response = await fetch(`${apiUrl}/properties/host/${HOST_UID}/reviews?page=1&limit=20`);
-      
+
+      if (response.status === 404) {
+        setReviews([]);
+        setReviewStats({
+          totalCount: 0,
+          averageRating: 0,
+          ratingDistribution: {}
+        });
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch reviews: ${response.statusText}`);
+        throw new Error(`Failed to fetch reviews: ${response.status}`);
       }
 
       const data = await response.json();
@@ -74,12 +82,19 @@ export default function ReviewSection() {
           ratingDistribution
         });
       } else {
-        throw new Error(data.error || 'Failed to fetch reviews');
+        setReviews([]);
+        setReviewStats({
+          totalCount: 0,
+          averageRating: 0,
+          ratingDistribution: {}
+        });
       }
     } catch (err) {
-      console.error('Error fetching reviews:', err);
-      setError(err.message);
-      // Fallback to empty array if fetch fails
+      if (err?.message?.includes('Failed to fetch')) {
+        setError(null);
+      } else {
+        setError(err.message);
+      }
       setReviews([]);
     } finally {
       setLoading(false);
